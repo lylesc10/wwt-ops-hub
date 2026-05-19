@@ -1,0 +1,87 @@
+.panel { display: flex; flex-direction: column; }
+.loading { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); padding: 20px; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Summary bar */
+.summaryBar {
+  display: flex; align-items: center; gap: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+.summaryItem {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 2px; padding: 0 8px;
+  border-right: 1px solid var(--border-subtle);
+}
+.summaryItem:last-of-type { border-right: none; }
+.summaryNum { font-family: var(--font-head); font-size: 18px; font-weight: 800; line-height: 1; color: var(--text-primary); }
+.summaryLabel { font-size: 9px; font-family: var(--font-mono); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.refreshBtn { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-muted); background: transparent; cursor: pointer; margin-left: 8px; flex-shrink: 0; }
+.refreshBtn:hover { color: var(--text-primary); border-color: var(--border-strong); }
+
+/* Missing banner */
+.missingBanner {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px;
+  background: var(--red-bg); border-bottom: 1px solid rgba(244,63,94,.15);
+  font-size: 12px; color: var(--red); font-family: var(--font-mono);
+  flex-wrap: wrap;
+}
+.missingHint { font-size: 10px; color: var(--text-muted); margin-left: auto; }
+
+/* No WOs */
+.noWOs { padding: 24px 16px; text-align: center; color: var(--text-secondary); font-size: 13px; }
+.noWOsHint { font-size: 11px; color: var(--text-muted); margin-top: 8px; font-family: var(--font-mono); line-height: 1.6; }
+
+/* Type blocks */
+.typeBlock { border-bottom: 1px solid var(--border-subtle); }
+.typeBlock:last-child { border-bottom: none; }
+
+.typeHeader {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 9px 16px; background: transparent; border: none;
+  cursor: pointer; text-align: left; transition: background 0.1s;
+}
+.typeHeader:hover { background: var(--bg-hover); }
+.typeHeaderMissing { opacity: 0.6; }
+
+.typeDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.typeLabel { font-size: 12px; font-weight: 600; color: var(--text-primary); flex-shrink: 0; }
+.typeSuffix { font-size: 10px; font-family: var(--font-mono); color: var(--text-muted); }
+
+.typePills { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; justify-content: flex-end; }
+.pill {
+  font-size: 10px; font-family: var(--font-mono); font-weight: 600;
+  padding: 1px 7px; border-radius: 10px; border: 1px solid;
+  white-space: nowrap;
+}
+
+.typeChevron { font-size: 9px; color: var(--text-muted); flex-shrink: 0; }
+
+/* WO detail rows */
+.typeBody { background: var(--bg-elevated); padding: 4px 0; }
+
+.woRow {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; padding: 8px 20px 8px 32px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.woRow:last-child { border-bottom: none; }
+.woLeft { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.woRight { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+
+.woId { font-size: 11px; font-family: var(--font-mono); }
+.woIdLink { color: var(--accent-light); display: flex; align-items: center; gap: 3px; text-decoration: none; }
+.woIdLink:hover { text-decoration: underline; }
+.woIdNone { color: var(--text-muted); }
+
+.woTitle { font-size: 11px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.woTech  { font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+.woProviderId { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); }
+.woDate  { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); }
+
+.woStatus { font-size: 10px; font-family: var(--font-mono); font-weight: 600; padding: 2px 8px; border-radius: 10px; border: 1px solid; white-space: nowrap; }
+.woBudget { font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); }

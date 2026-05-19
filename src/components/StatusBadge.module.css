@@ -1,0 +1,17 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+.scheduled   { background: rgba(59,130,246,.1);  color: #60a5fa; border: 1px solid rgba(59,130,246,.2); }
+.staffed     { background: rgba(16,185,129,.1);  color: #34d399; border: 1px solid rgba(16,185,129,.2); }
+.in_progress { background: rgba(245,158,11,.1);  color: #fbbf24; border: 1px solid rgba(245,158,11,.2); }
+.completed   { background: rgba(107,114,128,.1); color: #9ca3af; border: 1px solid rgba(107,114,128,.2); }
+.cancelled   { background: rgba(244,63,94,.1);   color: #fb7185; border: 1px solid rgba(244,63,94,.2); }
+.flagged     { background: rgba(168,85,247,.1);  color: #c084fc; border: 1px solid rgba(168,85,247,.2); }
