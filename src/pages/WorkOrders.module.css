@@ -241,3 +241,34 @@
 .dupeLink:hover { text-decoration: underline; }
 .spinning { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Top-level tab switcher ─────────────────────────────────── */
+.topTabBar { display: flex; border-bottom: 1px solid var(--border); background: var(--bg-surface); padding: 0 20px; flex-shrink: 0; }
+.topTab { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; padding: 12px 18px; border: none; border-bottom: 2px solid transparent; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.12s; margin-bottom: -1px; font-family: var(--font-ui); }
+.topTab:hover { color: var(--text-primary); }
+.topTabActive { color: var(--amber); border-bottom-color: var(--amber); }
+
+/* ── Project Stats panel ────────────────────────────────────── */
+.statsPanel { display: flex; flex-direction: column; gap: 16px; padding: 20px 24px; flex: 1; overflow: hidden; }
+.statsToolbar { display: flex; align-items: center; gap: 10px; }
+.statsError { font-size: 12px; color: var(--red); font-family: var(--font-mono); }
+.statsLoading { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); padding: 40px 0; justify-content: center; }
+.statsEmpty { font-size: 13px; color: var(--text-muted); text-align: center; padding: 48px 0; }
+.statsSummary { display: flex; gap: 12px; flex-shrink: 0; }
+.statCard { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 18px; min-width: 160px; }
+.statCardLabel { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 6px; }
+.statCardValue { font-size: 22px; font-weight: 700; color: var(--amber); font-family: var(--font-mono); }
+.statsTableWrap { flex: 1; overflow: auto; border: 1px solid var(--border); border-radius: var(--r-lg); }
+.statsTable { width: 100%; border-collapse: collapse; font-size: 12px; }
+.statsTable thead tr { background: var(--bg-elevated); border-bottom: 1px solid var(--border); }
+.statsTable th { padding: 9px 14px; text-align: left; font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); white-space: nowrap; cursor: pointer; user-select: none; }
+.statsTable th:hover { color: var(--text-primary); }
+.statsTable td { padding: 9px 14px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+.statsTable tbody tr:last-child td { border-bottom: none; }
+.statsTable tbody tr:hover td { background: var(--bg-hover); }
+.statsCode { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+.statsProject { color: var(--text-secondary); max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.statsCost { font-family: var(--font-mono); font-weight: 600; color: var(--green); white-space: nowrap; }
+.statsTrips { font-family: var(--font-mono); color: var(--text-secondary); text-align: center; }
+.statsDates { color: var(--text-muted); font-size: 11px; max-width: 220px; }
+.statsTechs { color: var(--text-secondary); font-size: 11px; max-width: 200px; }

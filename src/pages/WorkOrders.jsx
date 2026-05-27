@@ -9,7 +9,7 @@ import {
   rowComplete, isPastDate, triggerDownload,
 } from '@/cpwog/engine'
 import { parsePaste, parseCSVImport } from '@/cpwog/parsers'
-import { Download, History, Route, Plus, X, Trash2, Check, ChevronDown, AlertTriangle, Loader, ExternalLink, ShieldAlert } from 'lucide-react'
+import { Download, History, Route, Plus, X, Trash2, Check, ChevronDown, AlertTriangle, Loader, ExternalLink, ShieldAlert, BarChart2, RefreshCw } from 'lucide-react'
 import { useFNSync } from '@/hooks/useFNSync'
 import styles from './WorkOrders.module.css'
 
@@ -66,6 +66,7 @@ export default function WorkOrders() {
   const [startOverConfirm, setStartOverConfirm] = useState(false)
   const [pendingTidLabel, setPendingTidLabel] = useState(null)
   const [tidLabelInput, setTidLabelInput] = useState('')
+  const [activeTab, setActiveTab] = useState('generator')
   const { checking, dupeResults, checkDupes, clearDupes } = useFNSync()
   const fileInputRef = useRef(null)
   const inputRefs = useRef({})
@@ -281,8 +282,14 @@ export default function WorkOrders() {
       />
 
       <div className={styles.body}>
-        {/* Step bar */}
-        <div className={styles.stepBar}>
+        {/* Top-level tab switcher */}
+        <div className={styles.topTabBar}>
+          <button className={`${styles.topTab} ${activeTab==='generator'?styles.topTabActive:''}`} onClick={()=>setActiveTab('generator')}>WO Generator</button>
+          <button className={`${styles.topTab} ${activeTab==='stats'?styles.topTabActive:''}`} onClick={()=>setActiveTab('stats')}><BarChart2 size={13}/> Project Stats</button>
+        </div>
+
+        {/* Step bar — only shown in generator tab */}
+        {activeTab==='generator'&&<div className={styles.stepBar}>
           {STEP_LABELS.map((label,i)=>(
             <div key={i} className={styles.stepItem}>
               <div className={`${styles.stepNum} ${i<step?styles.stepDone:i===step?styles.stepActive:styles.stepPending}`}>{i<step?<Check size={11}/>:i+1}</div>
@@ -290,9 +297,12 @@ export default function WorkOrders() {
               {i<STEP_LABELS.length-1&&<div className={`${styles.stepLine} ${i<step?styles.stepLineDone:''}`}/>}
             </div>
           ))}
-        </div>
+        </div>}
 
-        <div className={styles.content}>
+        {/* Project Stats tab */}
+        {activeTab==='stats'&&<ProjectStats styles={styles}/>}
+
+        <div className={styles.content} style={{display: activeTab==='generator' ? undefined : 'none'}}>
           {/* STEP 0 */}
           {step===0&&(
             <div className={styles.step0}>
@@ -650,6 +660,162 @@ export default function WorkOrders() {
               <button className={styles.ghostBtn} style={{width:'100%'}} onClick={()=>setStartOverConfirm(false)}>Cancel</button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── ProjectStats ──────────────────────────────────────────────
+function ProjectStats({ styles }) {
+  const [loading, setLoading] = useState(false)
+  const [stats,   setStats]   = useState(null)
+  const [error,   setError]   = useState('')
+  const [sortBy,  setSortBy]  = useState('total_cost')
+  const [sortDir, setSortDir] = useState('desc')
+  const [search,  setSearch]  = useState('')
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
+    try {
+      // 1. Get PNC projects
+      const { data: projects, error: pe } = await supabase
+        .from('projects').select('id, name, client').ilike('client', '%PNC%')
+      if (pe) throw new Error(pe.message)
+
+      if (!projects?.length) { setStats([]); setLoading(false); return }
+
+      const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]))
+
+      // 2. Get all site codes for PNC projects
+      const { data: sites, error: se } = await supabase
+        .from('sites').select('id, code, project_id').in('project_id', projects.map(p => p.id))
+      if (se) throw new Error(se.message)
+
+      if (!sites?.length) { setStats([]); setLoading(false); return }
+
+      const codeToProject = {}
+      sites.forEach(s => { codeToProject[s.code.toUpperCase()] = projectMap[s.project_id] ?? '—' })
+      const siteCodes = sites.map(s => s.code)
+
+      // 3. Get fn_work_history rows for those site codes
+      const { data: history, error: he } = await supabase
+        .from('fn_work_history')
+        .select('fn_wo_id, provider_name, wo_type, status, site_code, site_name, total_pay, work_date')
+        .in('site_code', siteCodes)
+      if (he) throw new Error(he.message)
+
+      // 4. Aggregate per site
+      const bySite = {}
+      for (const row of history ?? []) {
+        const code = (row.site_code ?? '').toUpperCase()
+        if (!bySite[code]) bySite[code] = {
+          site_code:   code,
+          project:     codeToProject[code] ?? '—',
+          total_cost:  0,
+          trip_count:  0,
+          dates:       new Set(),
+          techs:       new Set(),
+        }
+        bySite[code].total_cost  += parseFloat(row.total_pay ?? 0)
+        bySite[code].trip_count  += 1
+        if (row.work_date)    bySite[code].dates.add(row.work_date)
+        if (row.provider_name) bySite[code].techs.add(row.provider_name)
+      }
+
+      setStats(Object.values(bySite).map(s => ({
+        ...s, dates: [...s.dates].sort(), techs: [...s.techs].sort(),
+      })))
+    } catch (e) { setError(e.message) }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const toggle = (col) => {
+    if (sortBy === col) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    else { setSortBy(col); setSortDir('desc') }
+  }
+
+  const filtered = (stats ?? []).filter(s =>
+    !search.trim() || s.site_code.includes(search.toUpperCase()) || s.project.toLowerCase().includes(search.toLowerCase())
+  )
+  const sorted = [...filtered].sort((a, b) => {
+    const av = a[sortBy], bv = b[sortBy]
+    const mult = sortDir === 'desc' ? -1 : 1
+    if (typeof av === 'number') return mult * (av - bv)
+    return mult * String(av ?? '').localeCompare(String(bv ?? ''))
+  })
+
+  const totalCost  = filtered.reduce((s, r) => s + r.total_cost,  0)
+  const totalTrips = filtered.reduce((s, r) => s + r.trip_count, 0)
+
+  const arrow = (col) => sortBy !== col ? '' : sortDir === 'desc' ? ' ↓' : ' ↑'
+
+  const fmtDate = (d) => {
+    try { return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }
+    catch { return d }
+  }
+
+  return (
+    <div className={styles.statsPanel}>
+      <div className={styles.statsToolbar}>
+        <input className={styles.input} style={{maxWidth:220}} placeholder="Search site or project…" value={search} onChange={e=>setSearch(e.target.value)}/>
+        <button className={styles.ghostBtn} onClick={load} disabled={loading}>
+          <RefreshCw size={12} className={loading ? styles.spinning : undefined}/> Refresh
+        </button>
+      </div>
+
+      {error && <p className={styles.statsError}>{error}</p>}
+
+      {stats !== null && (
+        <div className={styles.statsSummary}>
+          <div className={styles.statCard}><div className={styles.statCardLabel}>Total Actual Spend</div><div className={styles.statCardValue}>${totalCost.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</div></div>
+          <div className={styles.statCard}><div className={styles.statCardLabel}>Total Trips</div><div className={styles.statCardValue}>{totalTrips.toLocaleString()}</div></div>
+          <div className={styles.statCard}><div className={styles.statCardLabel}>Sites</div><div className={styles.statCardValue}>{filtered.length.toLocaleString()}</div></div>
+        </div>
+      )}
+
+      {loading && <div className={styles.statsLoading}><Loader size={16} className={styles.spinning}/> Loading PNC stats…</div>}
+
+      {!loading && stats !== null && sorted.length === 0 && (
+        <div className={styles.statsEmpty}>{search ? 'No sites match your search.' : 'No PNC work order history found. Upload an FN export in the FN Export Analyzer to populate this view.'}</div>
+      )}
+
+      {!loading && sorted.length > 0 && (
+        <div className={styles.statsTableWrap}>
+          <table className={styles.statsTable}>
+            <thead>
+              <tr>
+                <th onClick={()=>toggle('site_code')}>Site{arrow('site_code')}</th>
+                <th onClick={()=>toggle('project')}>Project{arrow('project')}</th>
+                <th onClick={()=>toggle('total_cost')}>Actual Spend{arrow('total_cost')}</th>
+                <th onClick={()=>toggle('trip_count')}>Trips{arrow('trip_count')}</th>
+                <th>Work Dates</th>
+                <th>Techs</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(row => (
+                <tr key={row.site_code}>
+                  <td className={styles.statsCode}>{row.site_code}</td>
+                  <td className={styles.statsProject}>{row.project}</td>
+                  <td className={styles.statsCost}>${row.total_cost.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                  <td className={styles.statsTrips}>{row.trip_count}</td>
+                  <td className={styles.statsDates}>
+                    {row.dates.length === 0 ? '—' : row.dates.length <= 3
+                      ? row.dates.map(fmtDate).join(', ')
+                      : `${row.dates.slice(0,2).map(fmtDate).join(', ')} +${row.dates.length - 2} more`}
+                  </td>
+                  <td className={styles.statsTechs}>
+                    {row.techs.length === 0 ? '—' : row.techs.length <= 2
+                      ? row.techs.join(', ')
+                      : `${row.techs.slice(0,2).join(', ')} +${row.techs.length - 2}`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
