@@ -1,11 +1,31 @@
-const IS_SANDBOX   = process.env.FN_ENV === 'sandbox'
-const FN_BASE      = IS_SANDBOX ? 'https://api.fndev.net'              : 'https://api.fieldnation.com'
-const FN_AUTH      = IS_SANDBOX ? 'https://auth.fndev.net/oauth/token' : 'https://auth.fieldnation.com/oauth/token'
+const BASE_URL_MAP = {
+  sandbox:    'https://api.fndev.net',
+  prod:       'https://api.fieldnation.com',
+  production: 'https://api.fieldnation.com',
+}
+const AUTH_URL_MAP = {
+  sandbox:    'https://auth.fndev.net/oauth/token',
+  prod:       'https://auth.fieldnation.com/oauth/token',
+  production: 'https://auth.fieldnation.com/oauth/token',
+}
+
+const IS_SANDBOX = process.env.FN_ENV === 'sandbox'
+const FN_BASE    = IS_SANDBOX ? BASE_URL_MAP.sandbox : BASE_URL_MAP.prod
+const FN_AUTH    = IS_SANDBOX ? AUTH_URL_MAP.sandbox : AUTH_URL_MAP.prod
 
 let _tokenCache = null
 
+function resolveBase(raw) {
+  return BASE_URL_MAP[raw] ?? raw
+}
+
+function resolveAuth(raw) {
+  if (AUTH_URL_MAP[raw]) return AUTH_URL_MAP[raw]
+  return raw?.includes('fndev') ? AUTH_URL_MAP.sandbox : FN_AUTH
+}
+
 export async function getFNToken(clientId, clientSecret, base) {
-  const authUrl = base?.includes('fndev') ? 'https://auth.fndev.net/oauth/token' : FN_AUTH
+  const authUrl = resolveAuth(base)
   if (_tokenCache?.clientId === clientId && Date.now() < _tokenCache.expiresAt - 60_000) return _tokenCache.token
   const res = await fetch(authUrl, {
     method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
@@ -20,9 +40,10 @@ export async function getFNToken(clientId, clientSecret, base) {
 export async function fnFetch(path, opts = {}, credentials = null) {
   const clientId     = credentials?.clientId     || process.env.FN_CLIENT_ID
   const clientSecret = credentials?.clientSecret || process.env.FN_CLIENT_SECRET
-  const baseUrl      = credentials?.baseUrl      || process.env.FN_BASE_URL || FN_BASE
+  const rawBase      = credentials?.baseUrl      || process.env.FN_BASE_URL || FN_BASE
+  const baseUrl      = resolveBase(rawBase)
   if (!clientId || !clientSecret) throw new Error('FN_CREDENTIALS_MISSING')
-  const token = await getFNToken(clientId, clientSecret, baseUrl)
+  const token = await getFNToken(clientId, clientSecret, rawBase)
   return fetch(`${baseUrl}${path}`, {
     ...opts,
     headers: { Authorization:`Bearer ${token}`, 'Content-Type':'application/json', Accept:'application/json', ...(opts.headers??{}) },
