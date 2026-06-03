@@ -4,9 +4,9 @@ const BASE_URL_MAP = {
   production: 'https://api.fieldnation.com',
 }
 const AUTH_URL_MAP = {
-  sandbox:    'https://auth.fndev.net/oauth/token',
-  prod:       'https://auth.fieldnation.com/oauth/token',
-  production: 'https://auth.fieldnation.com/oauth/token',
+  sandbox:    'https://api.fndev.net/authentication/api/oauth/token',
+  prod:       'https://api.fieldnation.com/authentication/api/oauth/token',
+  production: 'https://api.fieldnation.com/authentication/api/oauth/token',
 }
 
 const IS_SANDBOX = process.env.FN_ENV === 'sandbox'
@@ -24,12 +24,13 @@ function resolveAuth(raw) {
   return raw?.includes('fndev') ? AUTH_URL_MAP.sandbox : FN_AUTH
 }
 
-export async function getFNToken(clientId, clientSecret, base) {
+export async function getFNToken(clientId, clientSecret, base, username, password) {
   const authUrl = resolveAuth(base)
   if (_tokenCache?.clientId === clientId && Date.now() < _tokenCache.expiresAt - 60_000) return _tokenCache.token
   const res = await fetch(authUrl, {
-    method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body: new URLSearchParams({ grant_type:'client_credentials', client_id:clientId, client_secret:clientSecret, scope:'read write' }),
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ grant_type: 'password', client_id: clientId, client_secret: clientSecret, username, password }),
   })
   if (!res.ok) { const err = await res.text().catch(()=>''); throw new Error(`FN auth failed (${res.status}): ${err}`) }
   const data = await res.json()
@@ -40,10 +41,12 @@ export async function getFNToken(clientId, clientSecret, base) {
 export async function fnFetch(path, opts = {}, credentials = null) {
   const clientId     = credentials?.clientId     || process.env.FN_CLIENT_ID
   const clientSecret = credentials?.clientSecret || process.env.FN_CLIENT_SECRET
+  const username     = credentials?.username     || process.env.FN_USERNAME
+  const password     = credentials?.password     || process.env.FN_PASSWORD
   const rawBase      = credentials?.baseUrl      || process.env.FN_BASE_URL || FN_BASE
   const baseUrl      = resolveBase(rawBase)
   if (!clientId || !clientSecret) throw new Error('FN_CREDENTIALS_MISSING')
-  const token = await getFNToken(clientId, clientSecret, rawBase)
+  const token = await getFNToken(clientId, clientSecret, rawBase, username, password)
   return fetch(`${baseUrl}${path}`, {
     ...opts,
     headers: { Authorization:`Bearer ${token}`, 'Content-Type':'application/json', Accept:'application/json', ...(opts.headers??{}) },
