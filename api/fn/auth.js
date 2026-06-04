@@ -1,10 +1,10 @@
 const BASE_URL_MAP = {
-  sandbox:    'https://api.fndev.net',
-  prod:       'https://api.fieldnation.com',
-  production: 'https://api.fieldnation.com',
+  sandbox:    'https://api-sandbox.fndev.net/api/rest/v2',
+  prod:       'https://api.fieldnation.com/api/rest/v2',
+  production: 'https://api.fieldnation.com/api/rest/v2',
 }
 const AUTH_URL_MAP = {
-  sandbox:    'https://api.fndev.net/authentication/api/oauth/token',
+  sandbox:    'https://api-sandbox.fndev.net/authentication/api/oauth/token',
   prod:       'https://api.fieldnation.com/authentication/api/oauth/token',
   production: 'https://api.fieldnation.com/authentication/api/oauth/token',
 }
@@ -47,9 +47,10 @@ export async function fnFetch(path, opts = {}, credentials = null) {
   const baseUrl      = resolveBase(rawBase)
   if (!clientId || !clientSecret) throw new Error('FN_CREDENTIALS_MISSING')
   const token = await getFNToken(clientId, clientSecret, rawBase, username, password)
-  return fetch(`${baseUrl}${path}`, {
+  const separator = path.includes('?') ? '&' : '?'
+  return fetch(`${baseUrl}${path}${separator}access_token=${token}`, {
     ...opts,
-    headers: { Authorization:`Bearer ${token}`, 'Content-Type':'application/json', Accept:'application/json', ...(opts.headers??{}) },
+    headers: { 'Content-Type':'application/json', Accept:'application/json', ...(opts.headers??{}) },
   })
 }
 
