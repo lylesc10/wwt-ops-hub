@@ -58,7 +58,7 @@ export default async function handler(req, res) {
         const payload={
           title: params.title??'TEST-WO-001-LVL(1)',
           description:'Test WO from Ops Manager sandbox',
-          location:{ name:params.location_name??'Test Branch', address:{ address1:params.address??'123 Main St', city:params.city??'Columbus', state_code:params.state??'OH', zip:params.zip??'43215', country:'USA' }},
+          location:{ mode:'custom', address1:params.address??'123 Main St', city:params.city??'Columbus', state:params.state??'OH', zip:params.zip??'43215', country:'US' },
           scheduling:{ requested:{ start:{local_time:`${new Date().toISOString().split('T')[0]}T08:00:00`}, end:{local_time:`${new Date().toISOString().split('T')[0]}T17:00:00`}}},
           pay:{ type:'fixed', fixed:{ amount: params.budget??150 }},
           ...(params.project_id?{project:{id:Number(params.project_id)}}:{}),

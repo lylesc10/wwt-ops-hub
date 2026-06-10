@@ -9,4 +9,14 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      '/fn-sandbox': {
+        target:       'https://api-sandbox.fndev.net',
+        changeOrigin: true,
+        rewrite:      (p) => p.replace(/^\/fn-sandbox/, ''),
+        secure:       true,
+      },
+    },
+  },
 })

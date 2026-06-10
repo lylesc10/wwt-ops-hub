@@ -9,8 +9,9 @@ import {
   rowComplete, isPastDate, triggerDownload,
 } from '@/cpwog/engine'
 import { parsePaste, parseCSVImport } from '@/cpwog/parsers'
-import { Download, History, Route, Plus, X, Trash2, Check, ChevronDown, AlertTriangle, Loader, ExternalLink, ShieldAlert, BarChart2, RefreshCw } from 'lucide-react'
+import { Download, History, Route, Plus, X, Trash2, Check, ChevronDown, AlertTriangle, Loader, ExternalLink, ShieldAlert, BarChart2, RefreshCw, Send } from 'lucide-react'
 import { useFNSync } from '@/hooks/useFNSync'
+import { createWorkOrderDirect, deleteWorkOrderDirect, isFNConfigured, listClients } from '@/lib/fnDirect'
 import styles from './WorkOrders.module.css'
 
 const JOKES = [
@@ -68,6 +69,10 @@ export default function WorkOrders() {
   const [tidLabelInput, setTidLabelInput] = useState('')
   const [activeTab, setActiveTab] = useState('generator')
   const { checking, dupeResults, checkDupes, clearDupes } = useFNSync()
+  const [fnResults,  setFnResults]  = useState({})
+  const [fnPushing,  setFnPushing]  = useState(false)
+  const [fnClients,  setFnClients]  = useState([])
+  const [fnClientId, setFnClientId] = useState('')
   const fileInputRef = useRef(null)
   const inputRefs = useRef({})
   const prevConfigRef = useRef(woConfig)
@@ -79,6 +84,7 @@ export default function WorkOrders() {
   )
 
   useEffect(() => {
+    if (isFNConfigured()) listClients().then(c => { setFnClients(c); if (c.length === 1) setFnClientId(String(c[0].id)) }).catch(()=>{})
     supabase.from('job_history').select('*').order('created_at',{ascending:false}).limit(100).then(({data})=>{if(data)setJobHistory(data)})
     supabase.from('template_id_history').select('data').eq('id',1).then(({data})=>{if(data?.[0]?.data)setTidHistory(data[0].data)})
     supabase.from('custom_wo_types').select('data').eq('id',1).then(({data})=>{
@@ -266,6 +272,41 @@ export default function WorkOrders() {
     setGenerating(false)
   }, [sites,projectId,displayName,woType,woConfig,includeDEL,delConfig,includeBRK,brkConfig,ALL_WO_TYPES])
 
+  const fnRows = sites.filter(rowComplete).flatMap(s => buildRows(s,projectId,displayName,woType,woConfig,ALL_WO_TYPES).filter(r=>r.length>0))
+
+  const pushAllToFN = useCallback(async () => {
+    const rows = sites.filter(rowComplete).flatMap(s => buildRows(s,projectId,displayName,woType,woConfig,ALL_WO_TYPES).filter(r=>r.length>0))
+    setFnPushing(true)
+    setFnResults({})
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]
+      const key = String(i)
+      setFnResults(prev => ({...prev, [key]: {status:'pushing', title:row[2], date:row[11]}}))
+      try {
+        const result = await createWorkOrderDirect({
+          title:       row[2],
+          address:     row[4],
+          address2:    row[5] || '',
+          city:        row[6],
+          state:       row[7],
+          zip:         row[8],
+          startDate:   row[11],
+          startTime:   row[13],
+          budget:      row[18],
+          payType:     row[28],
+          payRate:     row[21],
+          approxHours: row[26],
+          templateId:  row[0],
+          clientId:    fnClientId || undefined,
+        })
+        setFnResults(prev => ({...prev, [key]: {status:'success', title:row[2], date:row[11], wo_id:result.id, url:result.url}}))
+      } catch(err) {
+        setFnResults(prev => ({...prev, [key]: {status:'error', title:row[2], date:row[11], error:err.message}}))
+      }
+    }
+    setFnPushing(false)
+  }, [sites, projectId, displayName, woType, woConfig, ALL_WO_TYPES, fnClientId])
+
   const totalRows=sites.filter(rowComplete).reduce((sum,s)=>sum+buildRows(s,projectId,displayName,woType,woConfig,ALL_WO_TYPES).filter(r=>r.length>0).length,0)
   const canProceed=[projectId.trim().length>0&&!!woType,sites.every(rowComplete),true]
   const anyUnverified=sites.some(s=>s.address&&s.verified!==true)
@@ -326,6 +367,22 @@ export default function WorkOrders() {
                   {showDnDD&&dnHistory.length>0&&<div className={styles.dropdown}>{dnHistory.map(dn=><div key={dn} className={styles.ddItem} onClick={()=>{setDisplayName(dn);setShowDnDD(false)}}>{dn}</div>)}</div>}
                   <span className={styles.hint}>Defaults to Project ID if blank</span>
                 </div>
+                {isFNConfigured() && fnClients.length > 0 && (
+                  <div className={styles.field}>
+                    <label>FieldNation Client</label>
+                    <select
+                      className={styles.input}
+                      value={fnClientId}
+                      onChange={e => setFnClientId(e.target.value)}
+                    >
+                      <option value=''>— None —</option>
+                      {fnClients.map(c => (
+                        <option key={c.id} value={String(c.id)}>{c.name} (ID: {c.id})</option>
+                      ))}
+                    </select>
+                    <span className={styles.hint}>Assigned to WOs when pushing to FieldNation</span>
+                  </div>
+                )}
               </div>
 
               <div className={styles.card}>
@@ -506,6 +563,19 @@ export default function WorkOrders() {
 
               <button className={styles.routeBtn} onClick={()=>setShowRoute(true)}><Route size={14}/>{sites.filter(s=>rowComplete(s)&&(s.routeToTechs||[]).some(Boolean)).length>0?`Route WOs — ${sites.filter(s=>rowComplete(s)&&(s.routeToTechs||[]).some(Boolean)).length} assigned`:'Route WOs — optional'}</button>
               <button className={styles.downloadBtn} onClick={downloadCSV} disabled={generating}><Download size={16}/>{generating?'Building CSV…':`Download ${woType}${includeDEL?' + DEL':''}${includeBRK?' + BRK':''} CSV${(includeDEL||includeBRK)?'s':''}`}</button>
+
+              {isFNConfigured() && (
+                <FNPushPanel
+                  rows={fnRows}
+                  fnResults={fnResults}
+                  setFnResults={setFnResults}
+                  fnPushing={fnPushing}
+                  onPushAll={pushAllToFN}
+                  onClear={() => setFnResults({})}
+                  styles={styles}
+                />
+              )}
+
               <div className={styles.startOverRow}><button className={styles.ghostBtn} onClick={()=>setStartOverConfirm(true)}>↩ Start Over</button></div>
             </div>
           )}
@@ -845,6 +915,97 @@ function CompanionToggle({label,enabled,onToggle,config,setConfig,type,tidHistor
             ))}
             <div className={styles.field} style={{gridColumn:'span 2'}}><label>Pay Type</label><div className={styles.payTypeRow}>{['Fixed','Hourly'].map(pt=><button key={pt} className={`${styles.payTypeBtn} ${(config.payType||'Fixed')===pt?styles.payTypeBtnActive:''}`} onClick={()=>setConfig(p=>({...p,payType:pt}))}>{pt}</button>)}</div></div>
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── FNPushPanel ───────────────────────────────────────────────
+function FNPushPanel({ rows, fnResults, setFnResults, fnPushing, onPushAll, onClear, styles }) {
+  const total      = rows.length
+  const pushed     = Object.values(fnResults).filter(r => r.status === 'success').length
+  const errors     = Object.values(fnResults).filter(r => r.status === 'error').length
+  const hasResults = Object.keys(fnResults).length > 0
+
+  const deleteWO = async (key, woId) => {
+    setFnResults(prev => ({...prev, [key]: {...prev[key], deleting: true}}))
+    try {
+      await deleteWorkOrderDirect(woId)
+      setFnResults(prev => ({...prev, [key]: {...prev[key], status: 'deleted', deleting: false}}))
+    } catch(err) {
+      setFnResults(prev => ({...prev, [key]: {...prev[key], deleting: false, deleteError: err.message}}))
+    }
+  }
+
+  return (
+    <div className={styles.fnPushPanel}>
+      <div className={styles.fnPanelHeader}>
+        <div className={styles.fnPanelTitle}>
+          <Send size={14} />
+          <span>Push to FieldNation Sandbox</span>
+          {pushed > 0 && <span className={styles.fnSuccessBadge}>{pushed} pushed</span>}
+          {errors > 0 && <span className={styles.fnErrorBadge}>{errors} failed</span>}
+        </div>
+        <div style={{display:'flex', gap:6}}>
+          {hasResults && <button className={styles.ghostBtn} onClick={onClear} disabled={fnPushing}>Clear</button>}
+          <button
+            className={styles.primaryBtn}
+            onClick={onPushAll}
+            disabled={fnPushing || total === 0}
+          >
+            {fnPushing
+              ? <><Loader size={12} className={styles.spinning}/> Pushing…</>
+              : <><Send size={12}/> Push {total} WO{total !== 1 ? 's' : ''} to FN</>}
+          </button>
+        </div>
+      </div>
+
+      {!hasResults && !fnPushing && (
+        <p className={styles.fnPanelHint}>
+          Creates {total} work order{total !== 1 ? 's' : ''} directly in FieldNation sandbox — one per row in the CSV above.
+        </p>
+      )}
+
+      {hasResults && (
+        <div className={styles.fnResultList}>
+          {rows.map((row, i) => {
+            const key    = String(i)
+            const result = fnResults[key]
+            if (!result) return null
+            const isDeleted = result.status === 'deleted'
+            return (
+              <div key={i} className={`${styles.fnResultRow} ${result.status === 'success' ? styles.fnResultRowOk : result.status === 'deleted' ? styles.fnResultRowDeleted : result.status === 'error' ? styles.fnResultRowErr : ''}`}>
+                <span className={styles.fnResultCode} style={isDeleted ? {textDecoration:'line-through', opacity:0.5} : {}}>{result.title}</span>
+                <span className={styles.fnResultDate}>{result.date || '—'}</span>
+                {result.status === 'pushing' && <Loader size={11} className={styles.spinning} style={{color:'var(--amber)', flexShrink:0}}/>}
+                {result.status === 'success' && (
+                  <>
+                    <Check size={11} style={{color:'var(--green)', flexShrink:0}}/>
+                    <span className={styles.fnResultId}>WO {result.wo_id}</span>
+                    <a href={result.url} target="_blank" rel="noreferrer" className={styles.fnResultLink}><ExternalLink size={10}/> View</a>
+                    <button
+                      className={styles.fnDeleteBtn}
+                      onClick={() => deleteWO(key, result.wo_id)}
+                      disabled={result.deleting}
+                      title="Delete from FieldNation"
+                    >
+                      {result.deleting ? <Loader size={10} className={styles.spinning}/> : <Trash2 size={10}/>}
+                    </button>
+                  </>
+                )}
+                {result.status === 'deleted' && (
+                  <span className={styles.fnResultDeleted}>deleted</span>
+                )}
+                {result.status === 'error' && (
+                  <span className={styles.fnResultError} title={result.error}>{result.error}</span>
+                )}
+                {result.deleteError && (
+                  <span className={styles.fnResultError} title={result.deleteError}>delete failed</span>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
