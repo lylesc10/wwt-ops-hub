@@ -52,6 +52,30 @@ function normalizeTime(t) {
   return '08:00:00'
 }
 
+function addHoursToTime(timeStr, hrs) {
+  const [h, m, s] = timeStr.split(':').map(Number)
+  const totalMin = h * 60 + m + Math.round(hrs * 60)
+  const endH = Math.min(Math.floor(totalMin / 60), 23)
+  const endM = totalMin % 60
+  return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}:${String(s ?? 0).padStart(2, '0')}`
+}
+
+// FN silently ignores scheduling on WO create — must be set via PUT after creation.
+async function setSchedule(woId, token, startDate, startTime, endTime) {
+  if (!startDate) return
+  await fetch(`${FN_API_BASE}/workorders/${woId}/schedule?access_token=${token}`, {
+    method:  'PUT',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body:    JSON.stringify({
+      service_window: {
+        mode:  'exact',
+        start: { local: { date: startDate, time: startTime } },
+        end:   { local: { date: startDate, time: endTime   } },
+      },
+    }),
+  })
+}
+
 export async function listClients() {
   const token = await getToken()
   const res = await fetch(`${FN_API_BASE}/clients?access_token=${token}`, {
@@ -67,6 +91,23 @@ export async function listClients() {
     return { id: c.id, name: d.name ?? d.company_name ?? `Client ${c.id}` }
   }))
   return full
+}
+
+export async function listManagers() {
+  try {
+    const token = await getToken()
+    const res = await fetch(`${FN_API_BASE}/managers?access_token=${token}`, {
+      headers: { Accept: 'application/json' },
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data.results ?? []).map(m => ({
+      id:   m.id,
+      name: m.name ?? `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim() || `Manager ${m.id}`,
+    }))
+  } catch {
+    return []
+  }
 }
 
 export async function deleteWorkOrderDirect(woId, cancelReason = 'Deleted via WWT Ops Hub') {
@@ -85,13 +126,12 @@ export async function deleteWorkOrderDirect(woId, cancelReason = 'Deleted via WW
 export async function createWorkOrderDirect({
   title, address, address2, city, state, zip,
   startDate, startTime, budget, payType, payRate, approxHours,
-  templateId, clientId,
+  templateId, clientId, managerId,
 }) {
   const token = await getToken()
   const start = normalizeTime(startTime)
   const hrs   = Number(approxHours) || 8
-  const endH  = Math.min(parseInt(start) + hrs, 23)
-  const end   = `${String(endH).padStart(2, '0')}:${start.slice(3, 5)}:00`
+  const end   = addHoursToTime(start, hrs)
 
   const payload = {
     title,
@@ -105,17 +145,12 @@ export async function createWorkOrderDirect({
       zip,
       country:  'US',
     },
-    scheduling: {
-      requested: {
-        start: { local_time: `${startDate}T${start}` },
-        end:   { local_time: `${startDate}T${end}` },
-      },
-    },
     pay: (payType ?? 'Fixed') === 'Hourly'
       ? { type: 'hourly', base: { rate: Number(payRate) || 50, max_units: hrs } }
       : { type: 'fixed',  base: { amount: Number(budget) || 150 } },
     ...(templateId ? { template_id: Number(templateId) } : {}),
-    ...(clientId   ? { client: { id: Number(clientId) } } : {}),
+    ...(clientId   ? { client:      { id: Number(clientId)  } } : {}),
+    ...(managerId  ? { manager:     { id: Number(managerId) } } : {}),
   }
 
   const res = await fetch(`${FN_API_BASE}/workorders?access_token=${token}`, {
@@ -126,6 +161,9 @@ export async function createWorkOrderDirect({
 
   const data = await res.json()
   if (!res.ok) throw new Error(`FN ${res.status}: ${data.message ?? res.statusText}`)
+
+  // Schedule must be set after creation — FN silently ignores it on POST
+  await setSchedule(data.id, token, startDate, start, end)
 
   return {
     id:     data.id,

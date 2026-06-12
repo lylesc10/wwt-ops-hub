@@ -11,7 +11,7 @@ import {
 import { parsePaste, parseCSVImport } from '@/cpwog/parsers'
 import { Download, History, Route, Plus, X, Trash2, Check, ChevronDown, AlertTriangle, Loader, ExternalLink, ShieldAlert, BarChart2, RefreshCw, Send } from 'lucide-react'
 import { useFNSync } from '@/hooks/useFNSync'
-import { createWorkOrderDirect, deleteWorkOrderDirect, isFNConfigured, listClients } from '@/lib/fnDirect'
+import { createWorkOrderDirect, deleteWorkOrderDirect, isFNConfigured, listClients, listManagers } from '@/lib/fnDirect'
 import styles from './WorkOrders.module.css'
 
 const JOKES = [
@@ -71,8 +71,10 @@ export default function WorkOrders() {
   const { checking, dupeResults, checkDupes, clearDupes } = useFNSync()
   const [fnResults,  setFnResults]  = useState({})
   const [fnPushing,  setFnPushing]  = useState(false)
-  const [fnClients,  setFnClients]  = useState([])
-  const [fnClientId, setFnClientId] = useState('')
+  const [fnClients,   setFnClients]   = useState([])
+  const [fnClientId,  setFnClientId]  = useState('')
+  const [fnManagers,  setFnManagers]  = useState([])
+  const [fnManagerId, setFnManagerId] = useState('')
   const fileInputRef = useRef(null)
   const inputRefs = useRef({})
   const prevConfigRef = useRef(woConfig)
@@ -84,7 +86,10 @@ export default function WorkOrders() {
   )
 
   useEffect(() => {
-    if (isFNConfigured()) listClients().then(c => { setFnClients(c); if (c.length === 1) setFnClientId(String(c[0].id)) }).catch(()=>{})
+    if (isFNConfigured()) {
+      listClients().then(c => { setFnClients(c); if (c.length === 1) setFnClientId(String(c[0].id)) }).catch(()=>{})
+      listManagers().then(m => { setFnManagers(m); if (m.length === 1) setFnManagerId(String(m[0].id)) }).catch(()=>{})
+    }
     supabase.from('job_history').select('*').order('created_at',{ascending:false}).limit(100).then(({data})=>{if(data)setJobHistory(data)})
     supabase.from('template_id_history').select('data').eq('id',1).then(({data})=>{if(data?.[0]?.data)setTidHistory(data[0].data)})
     supabase.from('custom_wo_types').select('data').eq('id',1).then(({data})=>{
@@ -297,7 +302,8 @@ export default function WorkOrders() {
           payRate:     row[21],
           approxHours: row[26],
           templateId:  row[0],
-          clientId:    fnClientId || undefined,
+          clientId:    fnClientId  || undefined,
+          managerId:   fnManagerId || undefined,
         })
         setFnResults(prev => ({...prev, [key]: {status:'success', title:row[2], date:row[11], wo_id:result.id, url:result.url}}))
       } catch(err) {
@@ -305,7 +311,7 @@ export default function WorkOrders() {
       }
     }
     setFnPushing(false)
-  }, [sites, projectId, displayName, woType, woConfig, ALL_WO_TYPES, fnClientId])
+  }, [sites, projectId, displayName, woType, woConfig, ALL_WO_TYPES, fnClientId, fnManagerId])
 
   const totalRows=sites.filter(rowComplete).reduce((sum,s)=>sum+buildRows(s,projectId,displayName,woType,woConfig,ALL_WO_TYPES).filter(r=>r.length>0).length,0)
   const canProceed=[projectId.trim().length>0&&!!woType,sites.every(rowComplete),true]
@@ -381,6 +387,22 @@ export default function WorkOrders() {
                       ))}
                     </select>
                     <span className={styles.hint}>Assigned to WOs when pushing to FieldNation</span>
+                  </div>
+                )}
+                {isFNConfigured() && fnManagers.length > 0 && (
+                  <div className={styles.field}>
+                    <label>Work Order Manager</label>
+                    <select
+                      className={styles.input}
+                      value={fnManagerId}
+                      onChange={e => setFnManagerId(e.target.value)}
+                    >
+                      <option value=''>— Default —</option>
+                      {fnManagers.map(m => (
+                        <option key={m.id} value={String(m.id)}>{m.name} (ID: {m.id})</option>
+                      ))}
+                    </select>
+                    <span className={styles.hint}>Manager assigned to each pushed WO</span>
                   </div>
                 )}
               </div>

@@ -269,6 +269,44 @@ Sandbox PNC client ID: **27120**.
 
 ---
 
+## Schedule — Verified Behavior (June 2026)
+
+**`scheduling` on POST /workorders is silently ignored.** Schedule must be set via a separate call after creation:
+
+```
+PUT /workorders/{id}/schedule?access_token=TOKEN
+```
+
+Correct body shape (confirmed against sandbox):
+```json
+{
+  "service_window": {
+    "mode": "exact",
+    "start": { "local": { "date": "2026-07-07", "time": "09:00:00" } },
+    "end":   { "local": { "date": "2026-07-07", "time": "17:00:00" } }
+  }
+}
+```
+
+- `mode` is required — omitting it returns 400
+- Use `start.local.date` / `start.local.time`, NOT `start.local_time`
+- FN auto-converts to UTC based on the WO location's timezone
+
+---
+
+## Manager Assignment — Verified Behavior (June 2026)
+
+Assign a manager on WO create by including in the POST body:
+```json
+{ "manager": { "id": 931971 } }
+```
+
+- If omitted, FN auto-assigns the authenticated user as manager
+- `GET /managers` returns 404 in sandbox (endpoint may not exist or may require prod)
+- Manager ID is the FN user ID visible on `GET /workorders/{id}` → `manager.id`
+
+---
+
 ## Common integration mistakes in this project
 
 1. **Wrong auth URL** — must be `https://api.fieldnation.com/authentication/api/oauth/token`, NOT `https://auth.fieldnation.com/oauth/token` (that domain doesn't exist)
