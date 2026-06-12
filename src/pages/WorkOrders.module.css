@@ -62,6 +62,7 @@
 .payTypeRow { display: flex; gap: 8px; }
 .payTypeBtn { flex: 1; padding: 7px; border-radius: var(--r-sm); border: 2px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; font-family: var(--font-head); font-size: 14px; letter-spacing: 1px; transition: all 0.12s; }
 .payTypeBtnActive { border-color: var(--amber); color: var(--amber); background: var(--amber-bg); }
+.payNote { font-size: 11px; color: var(--text-muted); opacity: 0.75; line-height: 1.4; }
 
 /* Companion toggles */
 .companionToggle { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--r-sm); cursor: pointer; background: var(--bg-elevated); transition: all 0.12s; }

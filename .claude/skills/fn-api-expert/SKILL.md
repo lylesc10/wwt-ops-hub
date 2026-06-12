@@ -218,6 +218,57 @@ Rate limit headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-R
 
 ---
 
+## Work Order Create — Verified Payload Shape
+
+Confirmed against sandbox (June 2026). The API **silently ignores** wrong shapes — it returns 200 but stores empty fields.
+
+```json
+{
+  "title": "FB1A-LVL(1)",
+  "description": "...",
+  "location": {
+    "mode":     "custom",
+    "address1": "100 E Pratt St",
+    "address2": "",
+    "city":     "Baltimore",
+    "state":    "MD",
+    "zip":      "21202",
+    "country":  "US"
+  },
+  "scheduling": {
+    "requested": {
+      "start": { "local_time": "2026-07-07T08:00:00" },
+      "end":   { "local_time": "2026-07-07T17:00:00" }
+    }
+  },
+  "pay": {
+    "type": "fixed",
+    "base": { "amount": 150 }
+  },
+  "template_id": 103095
+}
+```
+
+**Client assignment** — pass inline on WO create, or omit to leave unassigned:
+```json
+{ "client": { "id": 27120 } }
+```
+Look up available client IDs with `GET /clients?access_token=TOKEN` — returns `results: [{ id }]`.
+Sandbox PNC client ID: **27120**.
+
+**Critical location rules:**
+- `mode: "custom"` is required — omitting it causes address to be silently dropped
+- Fields are **flat** on `location` directly — NOT nested under `location.address{}`
+- Use `state` (2-letter code), NOT `state_code`
+- Use `country: "US"`, NOT `"USA"`
+
+**Pay shape:**
+- Fixed: `{ type: "fixed", base: { amount: NUMBER } }`
+- Hourly: `{ type: "hourly", base: { rate: NUMBER, max_units: NUMBER } }`
+- The nested key is always `base` — NOT `fixed` or `hourly`
+
+---
+
 ## Common integration mistakes in this project
 
 1. **Wrong auth URL** — must be `https://api.fieldnation.com/authentication/api/oauth/token`, NOT `https://auth.fieldnation.com/oauth/token` (that domain doesn't exist)
@@ -226,6 +277,9 @@ Rate limit headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-R
 4. **Sandbox credentials on production** — the two environments have completely separate credentials; `client_id` format like `wwt.provider1` is a sandbox credential
 5. **Wrong grant type** — must be `password`, not `client_credentials`
 6. **Form-encoded body** — auth endpoint requires `application/json`, not `application/x-www-form-urlencoded`
+7. **Nested location address** — `location.address.address1` is silently ignored; use flat `location.address1` with `mode: "custom"`
+8. **Wrong country code** — use `"US"` not `"USA"`; wrong value causes geocoding failure
+9. **Wrong pay shape** — nested key must be `base`, not `fixed` or `hourly`
 
 ---
 

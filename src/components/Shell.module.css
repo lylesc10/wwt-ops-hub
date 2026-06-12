@@ -40,7 +40,12 @@
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(99,102,241,.4);
   letter-spacing: -0.5px;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  transition: opacity 0.15s, transform 0.15s;
 }
+.brandMark:hover { opacity: 0.85; transform: scale(1.07); }
 
 .brandText { min-width: 0; }
 

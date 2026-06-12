@@ -427,6 +427,9 @@ export default function WorkOrders() {
                         {['Fixed','Hourly'].map(pt=><button key={pt} className={`${styles.payTypeBtn} ${(woConfig.payType||'Fixed')===pt?styles.payTypeBtnActive:''}`} onClick={()=>setWoConfig(p=>({...p,payType:pt}))}>{pt}</button>)}
                       </div>
                     </div>
+                    <div className={styles.payNote} style={{gridColumn:'span 2'}}>
+                      Budget and pay rate are defaults — values provided in location data will override these.
+                    </div>
                   </div>
                   <CompanionToggle label="Also generate BRK (Backboard) on Day 1" enabled={includeBRK} onToggle={()=>setIncludeBRK(v=>!v)} config={brkConfig} setConfig={setBrkConfig} type="BRK" tidHistory={tidHistory} showTidDD={showBrkTidDD} setShowTidDD={setShowBrkTidDD} styles={styles}/>
                   <CompanionToggle label="Also generate DEL (Delivery) on Day 1" enabled={includeDEL} onToggle={()=>setIncludeDEL(v=>!v)} config={delConfig} setConfig={setDelConfig} type="DEL" tidHistory={tidHistory} showTidDD={showDelTidDD} setShowTidDD={setShowDelTidDD} showDateField styles={styles}/>

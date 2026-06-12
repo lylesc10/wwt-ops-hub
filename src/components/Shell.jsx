@@ -38,7 +38,7 @@ export function Shell({ children }) {
 
         {/* Brand */}
         <div className={styles.brand}>
-          <div className={styles.brandMark}>R</div>
+          <button className={styles.brandMark} onClick={() => navigate('/dashboard')}>R</button>
           <div className={styles.brandText}>
             <span className={styles.brandName}>Ops Manager</span>
             <span className={styles.brandSub}>Field Services</span>
