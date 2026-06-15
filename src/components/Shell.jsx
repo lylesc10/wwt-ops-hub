@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Table2, CalendarRange, Route,
   ClipboardList, Bell, Settings, LogOut, Zap,
-  Code2, MessageSquare, TrendingUp, Users2, Grid3x3, HardHat, FileBarChart, BarChart3
+  Code2, MessageSquare, TrendingUp, Users2, Grid3x3, HardHat, FileBarChart, BarChart3, PieChart
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -20,6 +20,7 @@ const NAV = [
   { to: '/tech-pool',   icon: HardHat,         label: 'Tech Pool'     },
   { to: '/coverage',    icon: Grid3x3,         label: 'WO Coverage'   },
   { to: '/fn-analyzer',    icon: FileBarChart, label: 'FN Analyzer'   },
+  { to: '/pnc-dashboard',  icon: PieChart,     label: 'PNC Dashboard' },
   { to: '/tech-analysis',   icon: BarChart3,     label: 'Tech Analysis' },
   { to: '/parsers',     icon: Code2,           label: 'Parser Studio' },
   { to: '/settings',    icon: Settings,        label: 'Settings'      },

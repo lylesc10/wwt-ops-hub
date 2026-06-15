@@ -209,7 +209,7 @@
 /* Main */
 .main {
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--bg-base);
   display: flex;
   flex-direction: column;

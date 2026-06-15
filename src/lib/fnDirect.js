@@ -103,7 +103,7 @@ export async function listManagers() {
     const data = await res.json()
     return (data.results ?? []).map(m => ({
       id:   m.id,
-      name: m.name ?? `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim() || `Manager ${m.id}`,
+      name: m.name ?? (`${m.first_name ?? ''} ${m.last_name ?? ''}`.trim() || `Manager ${m.id}`),
     }))
   } catch {
     return []

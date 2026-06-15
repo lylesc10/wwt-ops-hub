@@ -10,6 +10,9 @@ import { createClient } from '@supabase/supabase-js'
 import { fnFetch } from '../auth.js'
 
 const supabase = createClient(
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+)
 
 function parseCreds(encrypted_data) {
   if (!encrypted_data) return null
@@ -22,10 +25,6 @@ function parseCreds(encrypted_data) {
   try { return JSON.parse(String(encrypted_data)) } catch {}
   return null
 }
-
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ message: 'Method not allowed' })
