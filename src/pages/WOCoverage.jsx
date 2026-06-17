@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useSites } from '@/hooks/useSites'
 import { useProjects } from '@/hooks/useProjects'
-import { supabase } from '@/lib/supabase'
+import { dab } from '@/lib/dab'
 import { PageHeader } from '@/components/PageHeader'
 import { EXPECTED_WO_TYPES, WO_TYPE_META, FN_STATUS_META } from '@/hooks/useSiteWorkOrders'
 import { RefreshCw, Filter, X, ExternalLink } from 'lucide-react'
@@ -22,7 +22,7 @@ export default function WOCoverage() {
 
   const fetchWOs = useCallback(async () => {
     setLoadingWOs(true)
-    const { data } = await supabase
+    const { data } = await dab
       .from('site_work_orders')
       .select('*')
       .order('wo_type').order('wo_number')

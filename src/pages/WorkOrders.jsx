@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useProjects } from '@/hooks/useProjects'
-import { supabase } from '@/lib/supabase'
+import { dab, getToken } from '@/lib/dab'
 import { PageHeader } from '@/components/PageHeader'
 import {
   WO_TYPES, WO_DEFAULTS, WO_HEADERS, SITE_COLS, EMPTY_SITE,
@@ -90,16 +90,16 @@ export default function WorkOrders() {
       listClients().then(c => { setFnClients(c); if (c.length === 1) setFnClientId(String(c[0].id)) }).catch(()=>{})
       listManagers().then(m => { setFnManagers(m); if (m.length === 1) setFnManagerId(String(m[0].id)) }).catch(()=>{})
     }
-    supabase.from('job_history').select('*').order('created_at',{ascending:false}).limit(100).then(({data})=>{if(data)setJobHistory(data)})
-    supabase.from('template_id_history').select('data').eq('id',1).then(({data})=>{if(data?.[0]?.data)setTidHistory(data[0].data)})
-    supabase.from('custom_wo_types').select('data').eq('id',1).then(({data})=>{
+    dab.from('job_history').select('*').order('created_at',{ascending:false}).limit(100).then(({data})=>{if(data)setJobHistory(data)})
+    dab.from('template_id_history').select('data').eq('id',1).then(({data})=>{if(data?.[0]?.data)setTidHistory(data[0].data)})
+    dab.from('custom_wo_types').select('data').eq('id',1).then(({data})=>{
       if(!data?.[0]?.data)return
       const d=data[0].data
       if(d.custom)setCustomTypes(d.custom)
       if(d.deletedBuiltins)setDeletedBuiltins(d.deletedBuiltins)
       if(d.overriddenBuiltins)setOverriddenBuiltins(d.overriddenBuiltins)
     })
-    supabase.from('project_history').select('project_ids,display_names').eq('id',1).then(({data})=>{
+    dab.from('project_history').select('project_ids,display_names').eq('id',1).then(({data})=>{
       if(!data?.[0])return
       if(data[0].project_ids)setPidHistory(data[0].project_ids)
       if(data[0].display_names)setDnHistory(data[0].display_names)
@@ -125,7 +125,7 @@ export default function WorkOrders() {
       const entry={id,label:label.trim()}
       const updated=[entry,...existing.filter(x=>(typeof x==='string'?x:x.id)!==id)].slice(0,10)
       const next={...prev,[type]:updated}
-      supabase.from('template_id_history').upsert({id:1,data:next,updated_at:new Date().toISOString()})
+      dab.from('template_id_history').upsert({id:1,data:next,updated_at:new Date().toISOString()})
       return next
     })
   }
@@ -134,7 +134,7 @@ export default function WorkOrders() {
     if(!id?.trim())return
     setPidHistory(prev=>{
       const updated=[id,...prev.filter(x=>x!==id)].slice(0,15)
-      supabase.from('project_history').upsert({id:1,project_ids:updated,updated_at:new Date().toISOString()})
+      dab.from('project_history').upsert({id:1,project_ids:updated,updated_at:new Date().toISOString()})
       return updated
     })
   }
@@ -143,18 +143,18 @@ export default function WorkOrders() {
     if(!name?.trim())return
     setDnHistory(prev=>{
       const updated=[name,...prev.filter(x=>x!==name)].slice(0,15)
-      supabase.from('project_history').upsert({id:1,display_names:updated,updated_at:new Date().toISOString()})
+      dab.from('project_history').upsert({id:1,display_names:updated,updated_at:new Date().toISOString()})
       return updated
     })
   }
 
   const persistWoTypes = (custom,deleted,overridden) => {
-    supabase.from('custom_wo_types').upsert({id:1,data:{custom,deletedBuiltins:deleted,overriddenBuiltins:overridden},updated_at:new Date().toISOString()})
+    dab.from('custom_wo_types').upsert({id:1,data:{custom,deletedBuiltins:deleted,overriddenBuiltins:overridden},updated_at:new Date().toISOString()})
   }
 
   const saveJob = async (extra={}) => {
     const job = {project_id:projectId,display_name:displayName,wo_type:woType,wo_config:woConfig,del_config:includeDEL?delConfig:null,include_del:includeDEL,brk_config:includeBRK?brkConfig:null,include_brk:includeBRK,sites:sites.filter(s=>s.code||s.address),site_count:sites.filter(rowComplete).length,created_at:new Date().toISOString(),...extra}
-    const {data} = await supabase.from('job_history').insert(job).select()
+    const {data} = await dab.from('job_history').insert(job).select()
     if(data?.[0])setJobHistory(prev=>[data[0],...prev].slice(0,100))
   }
 
@@ -774,8 +774,8 @@ function ProjectStats({ styles }) {
     setLoading(true); setError('')
     try {
       // 1. Get PNC projects
-      const { data: projects, error: pe } = await supabase
-        .from('projects').select('id, name, client').ilike('client', '%PNC%')
+      const { data: projects, error: pe } = await dab
+        .from('projects').select('id,name,client').ilike('client', '%PNC%')
       if (pe) throw new Error(pe.message)
 
       if (!projects?.length) { setStats([]); setLoading(false); return }
@@ -783,8 +783,8 @@ function ProjectStats({ styles }) {
       const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]))
 
       // 2. Get all site codes for PNC projects
-      const { data: sites, error: se } = await supabase
-        .from('sites').select('id, code, project_id').in('project_id', projects.map(p => p.id))
+      const { data: sites, error: se } = await dab
+        .from('sites').select('id,code,project_id').in('project_id', projects.map(p => p.id))
       if (se) throw new Error(se.message)
 
       if (!sites?.length) { setStats([]); setLoading(false); return }
@@ -794,9 +794,9 @@ function ProjectStats({ styles }) {
       const siteCodes = sites.map(s => s.code)
 
       // 3. Get fn_work_history rows for those site codes
-      const { data: history, error: he } = await supabase
+      const { data: history, error: he } = await dab
         .from('fn_work_history')
-        .select('fn_wo_id, provider_name, wo_type, status, site_code, site_name, total_pay, work_date')
+        .select('fn_wo_id,provider_name,wo_type,status,site_code,site_name,total_pay,work_date')
         .in('site_code', siteCodes)
       if (he) throw new Error(he.message)
 

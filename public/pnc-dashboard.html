@@ -1,111 +1,67 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PNC Unification — WO Activity</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Quicksand:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
 :root {
-  /* SUNSET BEACH (default) */
-  --bg:#fff5e8;
-  --bg2:#ffe9d2;
-  --sf:#ffffff;
-  --sf2:#fff1de;
-  --sf3:#fde2c4;
-  --b:rgba(212,128,77,0.13);
-  --b2:rgba(212,128,77,0.22);
-  --tx:#1a3a52;
-  --tx2:#5a7b91;
-  --tx3:#9bb1c1;
-  --ac:#00b8a9;        /* tropical teal */
-  --acd:rgba(0,184,169,0.13);
-  --paid:#1aa872;      /* palm green */
-  --appr:#3d8bd9;      /* ocean blue */
-  --asgn:#d65bbc;      /* hibiscus pink */
-  --canc:#ff6b5b;      /* coral */
-  --wdone:#f6b042;     /* sunset gold */
-  --drft:#8e8378;      /* driftwood */
-  --hover:#fff1de;
-  --sun1:#ffb86b;
-  --sun2:#ff6b9d;
-  --sun3:#a85cc4;
-  --ocean1:#4fc3c7;
-  --ocean2:#2b8aaa;
-}
-[data-theme="dark"] {
-  /* TWILIGHT TIDES */
-  --bg:#0a1f33;
-  --bg2:#0d2845;
-  --sf:#10324f;
-  --sf2:#143b5e;
-  --sf3:#1c4870;
-  --b:rgba(120,200,220,0.10);
-  --b2:rgba(120,200,220,0.20);
-  --tx:#f5ecd9;
-  --tx2:#a8bccc;
-  --tx3:#6b8499;
-  --ac:#5eead4;
-  --acd:rgba(94,234,212,0.14);
-  --paid:#5eea9c;
-  --appr:#7cb8ff;
-  --asgn:#ff9bdc;
-  --canc:#ff8a7e;
-  --wdone:#ffc875;
-  --drft:#8a9ba8;
-  --hover:#143b5e;
-  --sun1:#ff8e6e;
-  --sun2:#ff5fa0;
-  --sun3:#7c5fc4;
-  --ocean1:#5eead4;
-  --ocean2:#3d8bd9;
+  --bg:#0e1015;
+  --bg2:#0e1015;
+  --sf:#14171e;
+  --sf2:#1a1d26;
+  --sf3:#1e2230;
+  --b:rgba(31,35,51,0.7);
+  --b2:#1f2333;
+  --tx:#eceef4;
+  --tx2:#8892a4;
+  --tx3:#4d5568;
+  --ac:#4a7fdc;
+  --acd:rgba(74,127,220,0.10);
+  --paid:#10b981;
+  --appr:#3b82f6;
+  --asgn:#a855f7;
+  --canc:#f43f5e;
+  --wdone:#f59e0b;
+  --drft:#4d5568;
+  --hover:#1e2230;
+  --sun1:#4a7fdc;
+  --sun2:#3b6dcc;
+  --sun3:#2c5bb8;
+  --ocean1:#4a7fdc;
+  --ocean2:#3b82f6;
 }
 
 *{box-sizing:border-box;margin:0;padding:0;}
 body{
   background:var(--bg);
   color:var(--tx);
-  font-family:'Quicksand','Segoe UI',system-ui,sans-serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
   font-size:14px;
   font-weight:500;
   min-height:100vh;
-  background-image:
-    radial-gradient(circle at 15% -10%, var(--sun1) 0%, transparent 40%),
-    radial-gradient(circle at 90% 5%, var(--sun2) 0%, transparent 35%),
-    radial-gradient(circle at 50% 100%, var(--ocean1) 0%, transparent 45%);
-  background-attachment:fixed;
 }
-[data-theme="dark"] body{
-  background-image:
-    radial-gradient(circle at 15% -10%, rgba(255,142,110,0.35) 0%, transparent 40%),
-    radial-gradient(circle at 90% 5%, rgba(255,95,160,0.25) 0%, transparent 35%),
-    radial-gradient(circle at 50% 100%, rgba(94,234,212,0.18) 0%, transparent 45%);
-}
-.mono{font-family:'DM Mono','Courier New',monospace;}
-.serif{font-family:'Fraunces',Georgia,serif;}
+.mono{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;}
+.serif{font-family:'Inter',-apple-system,sans-serif;}
 
 /* HEADER */
 header{
-  border-bottom:1px solid var(--b);
+  border-bottom:1px solid var(--b2);
   padding:14px 22px;
   display:flex;
   align-items:center;
   justify-content:space-between;
   position:sticky;
   top:0;
-  background:linear-gradient(135deg, var(--sun1) 0%, var(--sun2) 50%, var(--sun3) 100%);
+  background:#14171e;
   z-index:100;
   gap:12px;
   flex-wrap:wrap;
-  box-shadow:0 4px 20px rgba(255,107,93,0.18);
-}
-[data-theme="dark"] header{
-  background:linear-gradient(135deg, #ff8e6e 0%, #ff5fa0 45%, #7c5fc4 100%);
-  box-shadow:0 4px 24px rgba(0,0,0,0.4);
+  box-shadow:0 1px 0 var(--b2);
 }
 .logo{
-  font-family:'Fraunces',serif;
+  font-family:'Inter',-apple-system,sans-serif;
   font-size:18px;
   font-weight:700;
   color:#fff;
@@ -115,70 +71,46 @@ header{
   align-items:center;
   gap:8px;
 }
-.logo .sun{
-  width:22px;height:22px;border-radius:50%;
-  background:radial-gradient(circle, #fff5ad 0%, #ffd54f 60%, #ff9f40 100%);
-  box-shadow:0 0 16px rgba(255,213,79,0.7);
-  display:inline-block;
-  animation:bob 4s ease-in-out infinite;
-}
-@keyframes bob {
-  0%,100%{transform:translateY(0);}
-  50%{transform:translateY(-3px);}
-}
 .logo .proj{color:#fff;font-weight:500;font-style:italic;}
 .logo .sep{opacity:0.6;font-weight:400;}
 .nav{
   display:flex;gap:3px;
-  background:rgba(255,255,255,0.18);
-  border:1px solid rgba(255,255,255,0.25);
+  background:var(--sf2);
+  border:1px solid var(--b2);
   border-radius:14px;padding:4px;
-  backdrop-filter:blur(8px);
 }
 .ntab{
   border:none;background:none;cursor:pointer;
   border-radius:10px;padding:6px 13px;
-  font-size:12px;color:rgba(255,255,255,0.85);
+  font-size:12px;color:var(--tx2);
   transition:all .2s;white-space:nowrap;
-  font-family:'Quicksand',inherit;font-weight:600;
+  font-family:inherit;font-weight:600;
   letter-spacing:0.01em;
 }
-.ntab:hover{color:#fff;background:rgba(255,255,255,0.18);}
-.ntab.active{background:#fff;color:var(--sun2);box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+.ntab:hover{color:var(--tx);background:var(--sf3);}
+.ntab.active{background:var(--ac);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
 .hright{display:flex;gap:8px;align-items:center;}
 .tbtn{
-  border:1px solid rgba(255,255,255,0.3);
-  background:rgba(255,255,255,0.15);
+  border:1px solid var(--b2);
+  background:var(--sf2);
   border-radius:10px;cursor:pointer;
   padding:6px 12px;font-size:13px;
-  color:#fff;font-family:inherit;font-weight:600;
+  color:var(--tx);font-family:inherit;font-weight:600;
   transition:all .2s;
-  backdrop-filter:blur(8px);
 }
-.tbtn:hover{background:rgba(255,255,255,0.28);transform:translateY(-1px);}
-
-/* WAVE DIVIDER under header */
-.wave{
-  height:18px;
-  background:var(--bg);
-  position:relative;
-  overflow:hidden;
-}
-.wave svg{position:absolute;top:-2px;left:0;width:100%;height:24px;display:block;}
+.tbtn:hover{background:var(--sf3);transform:translateY(-1px);}
 
 /* STATS BAR */
 .sbar{
   border-bottom:1px solid var(--b);
   padding:10px 22px;
   display:flex;
-  background:rgba(255,255,255,0.6);
+  background:var(--sf);
   overflow-x:auto;gap:0;
-  backdrop-filter:blur(8px);
 }
-[data-theme="dark"] .sbar{background:rgba(16,50,79,0.6);}
 .sc{padding:6px 20px 6px 0;display:flex;flex-direction:column;gap:3px;border-right:1px dashed var(--b2);margin-right:18px;min-width:90px;flex-shrink:0;}
 .sc:last-child{border-right:none;margin-right:0;}
-.sv{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--tx);line-height:1;letter-spacing:-0.01em;}
+.sv{font-family:'Inter',-apple-system,sans-serif;font-size:18px;font-weight:700;color:var(--tx);line-height:1;letter-spacing:-0.01em;}
 .sl{font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--tx3);margin-top:4px;font-weight:600;}
 .sc.pay .sv{color:var(--paid);}
 .sc.ca .sv{color:var(--canc);}
@@ -186,8 +118,8 @@ header{
 .sc.as .sv{color:var(--asgn);}
 .sc.wd .sv{color:var(--wdone);}
 
-.note{font-size:11px;color:var(--tx3);font-family:'Quicksand',sans-serif;font-style:italic;padding:8px 22px 0;}
-.note::before{content:"🐚 ";}
+.note{font-size:11px;color:var(--tx3);font-family:inherit;font-style:italic;padding:8px 22px 0;}
+.note::before{content:"→ ";}
 
 /* PAGES */
 .page{display:none;padding:22px;}.page.active{display:block;}
@@ -203,7 +135,7 @@ header{
   box-shadow:0 2px 10px rgba(0,0,0,0.04);
 }
 .kpi:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,0.08);}
-.kpiv{font-family:'Fraunces',serif;font-size:26px;font-weight:700;color:var(--tx);line-height:1;margin-bottom:5px;letter-spacing:-0.02em;}
+.kpiv{font-family:'Inter',-apple-system,sans-serif;font-size:26px;font-weight:700;color:var(--tx);line-height:1;margin-bottom:5px;letter-spacing:-0.02em;}
 .kpil{font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--tx3);font-weight:700;}
 .kpis2{font-size:11px;color:var(--tx2);margin-top:4px;font-style:italic;}
 .kpi.kpay .kpiv{color:var(--paid);}
@@ -213,7 +145,7 @@ header{
 
 .sec{margin-bottom:28px;}
 .sech{
-  font-family:'Fraunces',serif;
+  font-family:'Inter',-apple-system,sans-serif;
   font-size:18px;
   font-weight:700;
   color:var(--tx);
@@ -223,7 +155,7 @@ header{
   border-bottom:2px dashed var(--b2);
   display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;
 }
-.sechsub{font-family:'Quicksand',sans-serif;font-size:12px;color:var(--tx3);font-weight:500;font-style:italic;}
+.sechsub{font-family:inherit;font-size:12px;color:var(--tx3);font-weight:500;font-style:italic;}
 
 /* STATUS BAR */
 .stbar{display:flex;gap:3px;height:12px;border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:inset 0 1px 2px rgba(0,0,0,0.06);}
@@ -242,15 +174,15 @@ header{
 }
 .rcard:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,0.08);}
 .rct{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:10px;}
-.rcname{font-family:'Fraunces',serif;font-size:15px;font-weight:700;color:var(--tx);letter-spacing:-0.01em;}
-.rccode{font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-top:3px;}
-.rcpay{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--paid);text-align:right;letter-spacing:-0.02em;}
+.rcname{font-family:'Inter',-apple-system,sans-serif;font-size:15px;font-weight:700;color:var(--tx);letter-spacing:-0.01em;}
+.rccode{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:10px;color:var(--tx3);margin-top:3px;}
+.rcpay{font-family:'Inter',-apple-system,sans-serif;font-size:22px;font-weight:700;color:var(--paid);text-align:right;letter-spacing:-0.02em;}
 .rcpl{font-size:9px;color:var(--tx3);text-align:right;margin-top:2px;font-style:italic;}
 .rcbar{height:4px;background:var(--sf3);border-radius:3px;overflow:hidden;margin:10px 0;}
 .rcfill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--ocean1),var(--ac));transition:width .4s;}
 .rcmeta{display:flex;gap:14px;flex-wrap:wrap;}
 .rcm{display:flex;flex-direction:column;gap:1px;}
-.rcmv{font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--tx);}
+.rcmv{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:14px;font-weight:700;color:var(--tx);}
 .rcml{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
 .rcsplit{display:flex;height:6px;border-radius:4px;overflow:hidden;margin-top:11px;background:var(--sf3);}
 .rcsp{height:100%;}
@@ -263,17 +195,17 @@ header{
 .ltable tr:hover td{background:var(--hover);}
 .lbar{width:120px;height:6px;background:var(--sf3);border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;}
 .lbari{height:100%;background:linear-gradient(90deg,var(--ocean1),var(--ac));border-radius:4px;}
-.badge{font-size:10px;padding:3px 8px;border-radius:6px;font-family:'DM Mono',monospace;font-weight:700;letter-spacing:0.03em;}
+.badge{font-size:10px;padding:3px 8px;border-radius:6px;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-weight:700;letter-spacing:0.03em;}
 .bco{background:rgba(61,139,217,.16);color:var(--appr);}
 .baz{background:rgba(246,176,66,.18);color:var(--wdone);}
 .bpaid{background:rgba(26,168,114,.16);color:var(--paid);}
 .bcanc{background:rgba(255,107,91,.18);color:var(--canc);}
 .bwd{background:rgba(246,176,66,.18);color:var(--wdone);}
-.mv{font-family:'DM Mono',monospace;font-size:12px;}
+.mv{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:12px;}
 
 /* TIMELINE */
 .wk{margin-bottom:22px;}
-.wkh{font-family:'Fraunces',serif;font-size:14px;color:var(--tx);margin-bottom:8px;font-weight:600;letter-spacing:-0.01em;}
+.wkh{font-family:'Inter',-apple-system,sans-serif;font-size:14px;color:var(--tx);margin-bottom:8px;font-weight:600;letter-spacing:-0.01em;}
 .wkdays{display:flex;gap:6px;flex-wrap:wrap;}
 .day{
   background:var(--sf);border:1px solid var(--b2);
@@ -282,8 +214,8 @@ header{
   box-shadow:0 1px 4px rgba(0,0,0,0.03);
 }
 .day:hover{border-color:var(--ac);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,184,169,0.15);}
-.daydate{font-size:10px;color:var(--tx3);margin-bottom:5px;font-family:'DM Mono',monospace;font-weight:600;}
-.daycount{font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:var(--tx);letter-spacing:-0.02em;}
+.daydate{font-size:10px;color:var(--tx3);margin-bottom:5px;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-weight:600;}
+.daycount{font-family:'Inter',-apple-system,sans-serif;font-size:20px;font-weight:700;color:var(--tx);letter-spacing:-0.02em;}
 .dayl{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;}
 .dayfill{height:3px;border-radius:2px;margin-top:6px;background:linear-gradient(90deg,var(--ocean1),var(--ac));}
 
@@ -296,8 +228,8 @@ header{
 .dowstrip{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;}
 .dow{background:var(--sf);border:1px solid var(--b2);border-radius:14px;padding:14px 10px;text-align:center;transition:transform .2s;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
 .dow:hover{transform:translateY(-2px);}
-.dowlabel{font-family:'Fraunces',serif;font-size:13px;color:var(--tx2);font-weight:700;margin-bottom:6px;letter-spacing:0.02em;}
-.dowval{font-family:'Fraunces',serif;font-size:26px;font-weight:700;color:var(--tx);line-height:1;letter-spacing:-0.02em;}
+.dowlabel{font-family:'Inter',-apple-system,sans-serif;font-size:13px;color:var(--tx2);font-weight:700;margin-bottom:6px;letter-spacing:0.02em;}
+.dowval{font-family:'Inter',-apple-system,sans-serif;font-size:26px;font-weight:700;color:var(--tx);line-height:1;letter-spacing:-0.02em;}
 .dowsub{font-size:10px;color:var(--tx3);margin-top:4px;font-style:italic;}
 .dowfill{height:4px;background:linear-gradient(90deg,var(--ocean1),var(--ac));border-radius:3px;margin-top:7px;}
 
@@ -306,40 +238,40 @@ header{
 .hbar{flex:1;background:linear-gradient(180deg,var(--ac),var(--ocean2));border-radius:6px 6px 0 0;position:relative;min-width:30px;transition:all .2s;cursor:default;}
 .hbar:hover{transform:translateY(-3px);}
 .hbar:hover .hbarlabel{display:block;}
-.hbarlabel{display:none;position:absolute;top:-26px;left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:3px 8px;border-radius:6px;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;white-space:nowrap;}
+.hbarlabel{display:none;position:absolute;top:-26px;left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:3px 8px;border-radius:6px;font-size:10px;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-weight:700;white-space:nowrap;}
 .histlabels{display:flex;gap:6px;margin-top:8px;}
-.histlbl{flex:1;text-align:center;font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;min-width:30px;font-weight:600;}
+.histlbl{flex:1;text-align:center;font-size:10px;color:var(--tx3);font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;min-width:30px;font-weight:600;}
 
 /* Weekly chart */
 .wchart{display:flex;align-items:flex-end;gap:8px;height:180px;padding:10px 0;border-bottom:2px dashed var(--b2);}
 .wbar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;min-width:38px;position:relative;cursor:default;}
 .wbar:hover .wbartooltip{display:block;}
 .wbartooltip{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:8px 10px;border-radius:8px;font-size:11px;white-space:nowrap;z-index:10;box-shadow:0 6px 16px rgba(0,0,0,.18);}
-.wbartooltip .ttv{font-family:'DM Mono',monospace;font-weight:700;}
+.wbartooltip .ttv{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-weight:700;}
 .wbarstack{display:flex;flex-direction:column;width:100%;border-radius:6px 6px 0 0;overflow:hidden;}
 .wbarseg{width:100%;}
 .wbarlabels{display:flex;gap:8px;margin-top:8px;}
-.wbarlbl{flex:1;text-align:center;font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;min-width:38px;font-weight:600;}
+.wbarlbl{flex:1;text-align:center;font-size:10px;color:var(--tx3);font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;min-width:38px;font-weight:600;}
 
 /* Branch grid */
 .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;}
 .brow{background:var(--sf);border:1px solid var(--b2);border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.03);transition:transform .2s;}
 .brow:hover{transform:translateY(-2px);}
 .brtop{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px;}
-.brcode{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--tx);letter-spacing:-0.02em;}
+.brcode{font-family:'Inter',-apple-system,sans-serif;font-size:18px;font-weight:700;color:var(--tx);letter-spacing:-0.02em;}
 .brcity{font-size:11px;color:var(--tx3);margin-top:1px;font-style:italic;}
-.brrate{font-family:'Fraunces',serif;font-size:16px;font-weight:700;text-align:right;letter-spacing:-0.02em;}
+.brrate{font-family:'Inter',-apple-system,sans-serif;font-size:16px;font-weight:700;text-align:right;letter-spacing:-0.02em;}
 .brratel{font-size:9px;color:var(--tx3);text-align:right;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
 .brsplit{display:flex;height:5px;border-radius:3px;overflow:hidden;margin-top:8px;background:var(--sf3);}
-.brmeta{display:flex;justify-content:space-between;font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:6px;font-weight:600;}
+.brmeta{display:flex;justify-content:space-between;font-size:10px;color:var(--tx3);font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;margin-top:6px;font-weight:600;}
 
 /* Service time bars */
 .timeBars{display:flex;flex-direction:column;gap:7px;}
 .tbrow{display:flex;align-items:center;gap:11px;}
-.tblbl{font-family:'DM Mono',monospace;font-size:12px;color:var(--tx2);min-width:100px;font-weight:600;}
+.tblbl{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:12px;color:var(--tx2);min-width:100px;font-weight:600;}
 .tbout{flex:1;background:var(--sf3);height:16px;border-radius:8px;overflow:hidden;position:relative;}
-.tbin{height:100%;background:linear-gradient(90deg,var(--ocean1),var(--ac));border-radius:8px;display:flex;align-items:center;padding:0 8px;color:#fff;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;}
-.tbcnt{font-family:'DM Mono',monospace;font-size:12px;color:var(--tx);min-width:90px;text-align:right;font-weight:600;}
+.tbin{height:100%;background:linear-gradient(90deg,var(--ocean1),var(--ac));border-radius:8px;display:flex;align-items:center;padding:0 8px;color:#fff;font-size:10px;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-weight:700;}
+.tbcnt{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:12px;color:var(--tx);min-width:90px;text-align:right;font-weight:600;}
 
 /* Insight cards */
 .insights{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;margin-bottom:24px;}
@@ -364,14 +296,14 @@ header{
 .insightc.wd{border-left-color:var(--wdone);}
 .insightc.wd::before{background:radial-gradient(circle, rgba(246,176,66,0.18) 0%, transparent 70%);}
 .insightt{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3);margin-bottom:8px;font-weight:700;}
-.insightv{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--tx);margin-bottom:6px;letter-spacing:-0.02em;line-height:1.1;}
+.insightv{font-family:'Inter',-apple-system,sans-serif;font-size:22px;font-weight:700;color:var(--tx);margin-bottom:6px;letter-spacing:-0.02em;line-height:1.1;}
 .insightd{font-size:12px;color:var(--tx2);line-height:1.5;font-weight:500;}
 
 /* Inputs */
 input[type="text"], select{
   background:var(--sf);border:1px solid var(--b2);border-radius:10px;
   color:var(--tx);padding:8px 13px;font-size:13px;outline:none;
-  font-family:'Quicksand',inherit;font-weight:500;
+  font-family:inherit;font-weight:500;
   transition:border-color .15s, box-shadow .15s;
 }
 input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--acd);}
@@ -390,16 +322,16 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
   cursor:pointer;transition:background .15s;flex-wrap:wrap;
 }
 .siteHead:hover{background:var(--hover);}
-.siteRank{font-family:'Fraunces',serif;font-size:13px;color:var(--tx3);min-width:34px;font-weight:700;}
-.siteBranch{font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:var(--tx);letter-spacing:-0.02em;min-width:64px;}
+.siteRank{font-family:'Inter',-apple-system,sans-serif;font-size:13px;color:var(--tx3);min-width:34px;font-weight:700;}
+.siteBranch{font-family:'Inter',-apple-system,sans-serif;font-size:20px;font-weight:700;color:var(--tx);letter-spacing:-0.02em;min-width:64px;}
 .siteLoc{flex:1;min-width:140px;}
-.siteCity{font-family:'Quicksand',sans-serif;font-size:13px;font-weight:600;color:var(--tx);}
-.siteDates{font-size:11px;color:var(--tx3);margin-top:2px;font-style:italic;font-family:'Quicksand',sans-serif;}
+.siteCity{font-family:inherit;font-size:13px;font-weight:600;color:var(--tx);}
+.siteDates{font-size:11px;color:var(--tx3);margin-top:2px;font-style:italic;font-family:inherit;}
 .siteStats{display:flex;gap:14px;flex-wrap:wrap;}
 .siteStat{display:flex;flex-direction:column;align-items:center;gap:1px;}
-.siteSv{font-family:'Fraunces',serif;font-size:15px;font-weight:700;color:var(--tx);line-height:1;letter-spacing:-0.01em;}
+.siteSv{font-family:'Inter',-apple-system,sans-serif;font-size:15px;font-weight:700;color:var(--tx);line-height:1;letter-spacing:-0.01em;}
 .siteSl{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.07em;font-weight:700;}
-.siteCost{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--paid);text-align:right;min-width:90px;letter-spacing:-0.02em;}
+.siteCost{font-family:'Inter',-apple-system,sans-serif;font-size:22px;font-weight:700;color:var(--paid);text-align:right;min-width:90px;letter-spacing:-0.02em;}
 .siteCostL{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;text-align:right;font-weight:700;}
 .siteArr{color:var(--tx3);font-size:11px;transition:transform .2s;}
 .siteCard.open .siteArr{transform:rotate(90deg);}
@@ -408,8 +340,8 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 .siteSplit{display:grid;grid-template-columns:1fr 1.4fr;gap:18px;}
 @media(max-width:820px){.siteSplit{grid-template-columns:1fr;}}
 .siteSection{}
-.siteSecH{font-family:'Fraunces',serif;font-size:13px;color:var(--tx);font-weight:700;margin-bottom:8px;letter-spacing:-0.01em;display:flex;justify-content:space-between;align-items:baseline;}
-.siteSecHsub{font-family:'Quicksand',sans-serif;font-size:10px;color:var(--tx3);font-weight:500;font-style:italic;}
+.siteSecH{font-family:'Inter',-apple-system,sans-serif;font-size:13px;color:var(--tx);font-weight:700;margin-bottom:8px;letter-spacing:-0.01em;display:flex;justify-content:space-between;align-items:baseline;}
+.siteSecHsub{font-family:inherit;font-size:10px;color:var(--tx3);font-weight:500;font-style:italic;}
 .scopeTable, .techSiteTable{width:100%;border-collapse:collapse;background:var(--sf);border-radius:10px;overflow:hidden;}
 .scopeTable th, .techSiteTable th{
   font-size:9px;text-transform:uppercase;letter-spacing:.09em;
@@ -430,9 +362,9 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 
 /* FINANCIALS */
 .subNav{display:inline-flex;background:var(--sf2);border:1px solid var(--b2);border-radius:12px;padding:3px;margin-bottom:22px;gap:2px;flex-wrap:wrap;}
-.subTab{border:none;background:none;cursor:pointer;border-radius:8px;padding:7px 14px;font-size:12px;color:var(--tx2);font-family:'Quicksand',inherit;font-weight:600;transition:all .15s;}
+.subTab{border:none;background:none;cursor:pointer;border-radius:8px;padding:7px 14px;font-size:12px;color:var(--tx2);font-family:inherit;font-weight:600;transition:all .15s;}
 .subTab:hover{color:var(--tx);background:var(--sf3);}
-.subTab.active{background:linear-gradient(135deg,var(--sun1),var(--sun2));color:#fff;box-shadow:0 2px 8px rgba(255,107,93,0.25);}
+.subTab.active{background:var(--ac);color:#fff;box-shadow:none;}
 .subPanel{display:none;}.subPanel.active{display:block;}
 
 /* Money flow diagram */
@@ -444,13 +376,13 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 .flowBox.pending{border-left:4px solid var(--wdone);}
 .flowBox.fees{border-left:4px solid var(--asgn);}
 .flowLabel{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--tx3);font-weight:700;margin-bottom:6px;}
-.flowAmt{font-family:'Fraunces',serif;font-size:30px;font-weight:700;color:var(--tx);letter-spacing:-0.02em;line-height:1;}
+.flowAmt{font-family:'Inter',-apple-system,sans-serif;font-size:30px;font-weight:700;color:var(--tx);letter-spacing:-0.02em;line-height:1;}
 .flowSub{font-size:11px;color:var(--tx2);margin-top:6px;font-style:italic;font-weight:500;}
-.flowPct{display:inline-block;font-family:'DM Mono',monospace;font-size:11px;background:var(--sf2);padding:2px 8px;border-radius:5px;color:var(--tx2);margin-top:6px;font-weight:700;}
+.flowPct{display:inline-block;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:11px;background:var(--sf2);padding:2px 8px;border-radius:5px;color:var(--tx2);margin-top:6px;font-weight:700;}
 
 /* Stacked status bar */
 .stackBar{display:flex;height:32px;border-radius:10px;overflow:hidden;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
-.stackSeg{display:flex;align-items:center;justify-content:center;color:#fff;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;transition:opacity .15s;}
+.stackSeg{display:flex;align-items:center;justify-content:center;color:#fff;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:11px;font-weight:700;transition:opacity .15s;}
 .stackSeg:hover{opacity:0.85;cursor:default;}
 
 /* Weekly chart */
@@ -460,9 +392,9 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 .wfSeg{width:100%;}
 .wfBar:hover .wfTip{display:block;}
 .wfTip{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:8px 11px;border-radius:8px;font-size:11px;white-space:nowrap;z-index:20;box-shadow:0 6px 18px rgba(0,0,0,0.2);}
-.wfTip b{font-family:'DM Mono',monospace;}
+.wfTip b{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;}
 .wfLabels{display:flex;gap:5px;margin-top:8px;}
-.wfLbl{flex:1;text-align:center;font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;font-weight:600;min-width:32px;writing-mode:horizontal-tb;}
+.wfLbl{flex:1;text-align:center;font-size:9px;color:var(--tx3);font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-weight:600;min-width:32px;writing-mode:horizontal-tb;}
 
 /* Cumulative line chart */
 .cumChart{position:relative;background:var(--sf);border:1px solid var(--b2);border-radius:14px;padding:16px;margin-bottom:22px;box-shadow:0 2px 10px rgba(0,0,0,0.04);}
@@ -472,27 +404,27 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 .routeGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
 .routeCard{background:var(--sf);border:1px solid var(--b2);border-left:4px solid var(--ac);border-radius:14px;padding:15px 17px;box-shadow:0 2px 10px rgba(0,0,0,0.04);transition:transform .2s, box-shadow .2s;}
 .routeCard:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,0.08);}
-.routeCard h5{font-family:'Fraunces',serif;font-size:16px;color:var(--tx);font-weight:700;letter-spacing:-0.01em;}
+.routeCard h5{font-family:'Inter',-apple-system,sans-serif;font-size:16px;color:var(--tx);font-weight:700;letter-spacing:-0.01em;}
 .routeCard .rsub{font-size:11px;color:var(--tx3);font-style:italic;margin-top:2px;}
-.routeAmt{font-family:'Fraunces',serif;font-size:24px;font-weight:700;color:var(--paid);letter-spacing:-0.02em;}
+.routeAmt{font-family:'Inter',-apple-system,sans-serif;font-size:24px;font-weight:700;color:var(--paid);letter-spacing:-0.02em;}
 .routeStack{display:flex;height:8px;border-radius:5px;overflow:hidden;margin:10px 0;background:var(--sf3);}
-.routeStat{display:flex;justify-content:space-between;font-size:11px;color:var(--tx2);font-family:'Quicksand',sans-serif;margin-top:6px;font-weight:600;}
-.routeStat .mono{font-family:'DM Mono',monospace;color:var(--tx);font-weight:700;}
+.routeStat{display:flex;justify-content:space-between;font-size:11px;color:var(--tx2);font-family:inherit;margin-top:6px;font-weight:600;}
+.routeStat .mono{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;color:var(--tx);font-weight:700;}
 
 
 .hubGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:8px;}
 .hubBox{background:var(--sf);border:1px solid var(--b2);border-radius:12px;padding:11px 13px;border-top:3px solid var(--ocean1);box-shadow:0 1px 4px rgba(0,0,0,0.03);transition:transform .2s;}
 .hubBox:hover{transform:translateY(-2px);}
-.hubCode{font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--ac);letter-spacing:0.02em;}
+.hubCode{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:14px;font-weight:700;color:var(--ac);letter-spacing:0.02em;}
 .hubName{font-size:10px;color:var(--tx3);margin-top:2px;font-style:italic;}
-.hubAmt{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--paid);margin-top:8px;letter-spacing:-0.01em;}
-.hubMeta{font-family:'DM Mono',monospace;font-size:10px;color:var(--tx2);margin-top:3px;font-weight:600;}
+.hubAmt{font-family:'Inter',-apple-system,sans-serif;font-size:18px;font-weight:700;color:var(--paid);margin-top:8px;letter-spacing:-0.01em;}
+.hubMeta{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:10px;color:var(--tx2);margin-top:3px;font-weight:600;}
 .routeCard2{background:var(--sf);border:1px solid var(--b2);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.04);transition:box-shadow .2s;}
 .routeCard2:hover{box-shadow:0 6px 18px rgba(0,0,0,0.08);}
 .routeHead{display:flex;align-items:center;gap:14px;padding:13px 18px;cursor:pointer;transition:background .15s;flex-wrap:wrap;}
 .routeHead:hover{background:var(--hover);}
-.routeBadge{font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--sun1),var(--sun2));padding:6px 12px;border-radius:9px;letter-spacing:-0.01em;min-width:80px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
-.routeHubChip{font-family:'DM Mono',monospace;font-size:10px;background:var(--sf2);border:1px solid var(--b);color:var(--tx2);padding:3px 8px;border-radius:6px;font-weight:700;}
+.routeBadge{font-family:'Inter',-apple-system,sans-serif;font-size:20px;font-weight:700;color:#fff;background:var(--ac);padding:6px 12px;border-radius:9px;letter-spacing:-0.01em;min-width:80px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+.routeHubChip{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:10px;background:var(--sf2);border:1px solid var(--b);color:var(--tx2);padding:3px 8px;border-radius:6px;font-weight:700;}
 .routeArr{color:var(--tx3);font-size:11px;transition:transform .2s;}
 .routeCard2.open .routeArr{transform:rotate(90deg);}
 .routeBody{display:none;border-top:1px dashed var(--b2);padding:16px 20px;background:var(--sf2);}
@@ -505,8 +437,8 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 .regionCard:hover{box-shadow:0 6px 18px rgba(0,0,0,0.08);}
 .regionHead{display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;transition:background .15s;flex-wrap:wrap;}
 .regionHead:hover{background:var(--hover);}
-.regionTitle{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--tx);letter-spacing:-0.02em;background:linear-gradient(135deg,var(--ocean1),var(--ocean2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.regionAmt{font-family:'Fraunces',serif;font-size:24px;font-weight:700;color:var(--paid);letter-spacing:-0.02em;margin-left:auto;text-align:right;}
+.regionTitle{font-family:'Inter',-apple-system,sans-serif;font-size:22px;font-weight:700;color:var(--tx);letter-spacing:-0.02em;color:var(--tx);}
+.regionAmt{font-family:'Inter',-apple-system,sans-serif;font-size:24px;font-weight:700;color:var(--paid);letter-spacing:-0.02em;margin-left:auto;text-align:right;}
 .regionAmtL{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;text-align:right;font-weight:700;}
 .regionArr{color:var(--tx3);font-size:11px;transition:transform .2s;}
 .regionCard.open .regionArr{transform:rotate(90deg);}
@@ -522,11 +454,11 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
   box-shadow:0 2px 10px rgba(0,0,0,0.04);
 }
 .scoreFormula::before{
-  content:"⭐";position:absolute;top:-10px;right:14px;
+  content:"";position:absolute;top:-10px;right:14px;
   font-size:60px;opacity:0.08;line-height:1;
 }
-.scoreFormula b{color:var(--tx);font-weight:700;font-family:'Fraunces',serif;font-size:15px;}
-.scoreFormula .fcomp{display:inline-block;background:var(--sf2);border:1px solid var(--b);border-radius:8px;padding:4px 10px;margin:3px 4px;font-family:'DM Mono',monospace;font-size:11px;color:var(--tx);font-weight:600;}
+.scoreFormula b{color:var(--tx);font-weight:700;font-family:'Inter',-apple-system,sans-serif;font-size:15px;}
+.scoreFormula .fcomp{display:inline-block;background:var(--sf2);border:1px solid var(--b);border-radius:8px;padding:4px 10px;margin:3px 4px;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:11px;color:var(--tx);font-weight:600;}
 .tierGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:24px;}
 .tierBox{
   background:var(--sf);border:1px solid var(--b2);border-radius:14px;
@@ -540,14 +472,14 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 .tierBox.exp{border-left-color:var(--wdone);}
 .tierBox.active{border-left-color:var(--asgn);}
 .tierBox.rookie{border-left-color:var(--drft);}
-.tierName{font-family:'Fraunces',serif;font-size:12px;font-weight:700;letter-spacing:0.05em;color:var(--tx3);}
+.tierName{font-family:'Inter',-apple-system,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.05em;color:var(--tx3);}
 .tierBox.elite .tierName{color:var(--paid);}
 .tierBox.veteran .tierName{color:var(--appr);}
 .tierBox.exp .tierName{color:var(--wdone);}
 .tierBox.active .tierName{color:var(--asgn);}
-.tierCount{font-family:'Fraunces',serif;font-size:30px;font-weight:700;color:var(--tx);line-height:1;margin-top:6px;letter-spacing:-0.02em;}
+.tierCount{font-family:'Inter',-apple-system,sans-serif;font-size:30px;font-weight:700;color:var(--tx);line-height:1;margin-top:6px;letter-spacing:-0.02em;}
 .tierLabel{font-size:11px;color:var(--tx3);margin-top:5px;font-style:italic;}
-.tierRange{font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-top:3px;font-weight:600;}
+.tierRange{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:10px;color:var(--tx3);margin-top:3px;font-weight:600;}
 
 .tcard{
   background:var(--sf);border:1px solid var(--b2);
@@ -564,21 +496,21 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 .tcard.rookie{border-left-color:var(--drft);}
 .tcardHeader{display:flex;align-items:center;gap:16px;padding:15px 20px;cursor:pointer;transition:background .15s;flex-wrap:wrap;}
 .tcardHeader:hover{background:var(--hover);}
-.tcardRank{font-family:'Fraunces',serif;font-size:14px;color:var(--tx3);min-width:38px;font-weight:700;}
+.tcardRank{font-family:'Inter',-apple-system,sans-serif;font-size:14px;color:var(--tx3);min-width:38px;font-weight:700;}
 .tcardName{flex:1;min-width:160px;}
-.tcardN{font-family:'Fraunces',serif;font-size:16px;font-weight:700;color:var(--tx);letter-spacing:-0.01em;}
-.tcardP{font-size:12px;color:var(--tx3);margin-top:3px;font-family:'Quicksand',sans-serif;font-style:italic;}
-.tierTag{font-family:'Fraunces',serif;font-size:11px;font-weight:700;padding:4px 11px;border-radius:8px;letter-spacing:0.05em;white-space:nowrap;}
+.tcardN{font-family:'Inter',-apple-system,sans-serif;font-size:16px;font-weight:700;color:var(--tx);letter-spacing:-0.01em;}
+.tcardP{font-size:12px;color:var(--tx3);margin-top:3px;font-family:inherit;font-style:italic;}
+.tierTag{font-family:'Inter',-apple-system,sans-serif;font-size:11px;font-weight:700;padding:4px 11px;border-radius:8px;letter-spacing:0.05em;white-space:nowrap;}
 .tierTag.elite{background:rgba(26,168,114,.18);color:var(--paid);}
 .tierTag.veteran{background:rgba(61,139,217,.16);color:var(--appr);}
 .tierTag.exp{background:rgba(246,176,66,.18);color:var(--wdone);}
 .tierTag.active{background:rgba(214,91,188,.16);color:var(--asgn);}
 .tierTag.rookie{background:var(--sf2);color:var(--tx3);}
-.tcardScore{font-family:'Fraunces',serif;font-size:26px;font-weight:700;color:var(--tx);line-height:1;text-align:right;min-width:68px;letter-spacing:-0.02em;}
+.tcardScore{font-family:'Inter',-apple-system,sans-serif;font-size:26px;font-weight:700;color:var(--tx);line-height:1;text-align:right;min-width:68px;letter-spacing:-0.02em;}
 .tcardScoreL{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;text-align:right;font-weight:700;}
-.tcardStats{display:flex;gap:14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--tx2);flex-wrap:wrap;}
+.tcardStats{display:flex;gap:14px;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:11px;color:var(--tx2);flex-wrap:wrap;}
 .tcardStat{display:flex;flex-direction:column;align-items:center;gap:2px;}
-.tcardSv{color:var(--tx);font-weight:700;font-size:14px;font-family:'Fraunces',serif;letter-spacing:-0.01em;}
+.tcardSv{color:var(--tx);font-weight:700;font-size:14px;font-family:'Inter',-apple-system,sans-serif;letter-spacing:-0.01em;}
 .tcardSl{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;}
 .tcardArr{color:var(--tx3);font-size:11px;transition:transform .2s;}
 .tcard.open .tcardArr{transform:rotate(90deg);}
@@ -586,15 +518,15 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 .tcard.open .tcardBody{display:block;}
 .tcardSect{margin-bottom:16px;}
 .tcardSect:last-child{margin-bottom:0;}
-.tcardSectT{font-family:'Fraunces',serif;font-size:13px;color:var(--tx2);font-weight:700;margin-bottom:8px;letter-spacing:-0.01em;}
+.tcardSectT{font-family:'Inter',-apple-system,sans-serif;font-size:13px;color:var(--tx2);font-weight:700;margin-bottom:8px;letter-spacing:-0.01em;}
 .scoreBars{display:flex;flex-direction:column;gap:6px;}
 .sbrow{display:flex;align-items:center;gap:11px;font-size:12px;}
-.sblbl{font-family:'Quicksand',sans-serif;color:var(--tx2);min-width:160px;font-size:12px;font-weight:600;}
+.sblbl{font-family:inherit;color:var(--tx2);min-width:160px;font-size:12px;font-weight:600;}
 .sbout{flex:1;background:var(--sf3);height:10px;border-radius:5px;overflow:hidden;}
 .sbin{height:100%;border-radius:5px;transition:width .5s;}
-.sbcnt{font-family:'DM Mono',monospace;color:var(--tx);font-size:11px;min-width:50px;text-align:right;font-weight:700;}
+.sbcnt{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;color:var(--tx);font-size:11px;min-width:50px;text-align:right;font-weight:700;}
 .chipRow{display:flex;flex-wrap:wrap;gap:6px;}
-.dchip{font-family:'DM Mono',monospace;font-size:11px;padding:4px 10px;border-radius:8px;background:var(--sf3);border:1px solid var(--b);color:var(--tx2);display:inline-flex;align-items:center;gap:6px;font-weight:600;}
+.dchip{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:11px;padding:4px 10px;border-radius:8px;background:var(--sf3);border:1px solid var(--b);color:var(--tx2);display:inline-flex;align-items:center;gap:6px;font-weight:600;}
 .dchip b{color:var(--ac);font-weight:700;}
 .dchip.role{background:var(--acd);border-color:var(--ac);color:var(--ac);}
 
@@ -608,11 +540,11 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 .stateCard:hover{box-shadow:0 6px 18px rgba(0,0,0,0.08);}
 .stateHead{display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;transition:background .15s;flex-wrap:wrap;}
 .stateHead:hover{background:var(--hover);}
-.stateRank{font-family:'Fraunces',serif;font-size:13px;color:var(--tx3);min-width:34px;font-weight:700;}
-.stateBadge{font-family:'Fraunces',serif;font-size:24px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--ocean1),var(--ocean2));padding:6px 14px;border-radius:10px;letter-spacing:-0.02em;min-width:70px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+.stateRank{font-family:'Inter',-apple-system,sans-serif;font-size:13px;color:var(--tx3);min-width:34px;font-weight:700;}
+.stateBadge{font-family:'Inter',-apple-system,sans-serif;font-size:24px;font-weight:700;color:#fff;background:var(--ac);padding:6px 14px;border-radius:10px;letter-spacing:-0.02em;min-width:70px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
 .stateInfo{flex:1;min-width:140px;}
 .stateMetrics{display:flex;gap:14px;flex-wrap:wrap;}
-.stateCost{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--paid);text-align:right;min-width:90px;letter-spacing:-0.02em;}
+.stateCost{font-family:'Inter',-apple-system,sans-serif;font-size:22px;font-weight:700;color:var(--paid);text-align:right;min-width:90px;letter-spacing:-0.02em;}
 .stateCostL{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;text-align:right;font-weight:700;}
 .stateArr{color:var(--tx3);font-size:11px;transition:transform .2s;}
 .stateCard.open .stateArr{transform:rotate(90deg);}
@@ -620,8 +552,8 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 .stateCard.open .stateBody{display:block;}
 .stateGrid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:18px;}
 @media(max-width:920px){.stateGrid{grid-template-columns:1fr;}}
-.stateSec h4{font-family:'Fraunces',serif;font-size:13px;color:var(--tx);font-weight:700;margin-bottom:8px;letter-spacing:-0.01em;display:flex;justify-content:space-between;align-items:baseline;}
-.stateSec h4 span{font-family:'Quicksand',sans-serif;font-size:10px;color:var(--tx3);font-weight:500;font-style:italic;}
+.stateSec h4{font-family:'Inter',-apple-system,sans-serif;font-size:13px;color:var(--tx);font-weight:700;margin-bottom:8px;letter-spacing:-0.01em;display:flex;justify-content:space-between;align-items:baseline;}
+.stateSec h4 span{font-family:inherit;font-size:10px;color:var(--tx3);font-weight:500;font-style:italic;}
 
 /* SCOPE EXPANSION (Sites tab) */
 .scopeRow{cursor:pointer;transition:background .15s;}
@@ -636,7 +568,7 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 .ticketTable td{padding:6px 9px;border-bottom:1px solid var(--b);color:var(--tx);font-size:11px;}
 .ticketTable tr:last-child td{border-bottom:none;}
 .ticketTable tr:hover td{background:var(--hover);}
-.stChip{font-size:9px;padding:2px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-weight:700;letter-spacing:0.02em;}
+.stChip{font-size:9px;padding:2px 6px;border-radius:4px;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-weight:700;letter-spacing:0.02em;}
 .stChip.p{background:rgba(26,168,114,.18);color:var(--paid);}
 .stChip.x{background:rgba(255,107,91,.18);color:var(--canc);}
 .stChip.a{background:rgba(246,176,66,.18);color:var(--wdone);}
@@ -650,13 +582,12 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 
 /* TOP WO PAGE */
 .heroWO{
-  background:linear-gradient(135deg, var(--sun1) 0%, var(--sun2) 50%, var(--sun3) 100%);
+  background:var(--sf2);border:1px solid var(--ac);
   border-radius:20px;padding:28px 32px;margin-bottom:24px;
-  color:#fff;position:relative;overflow:hidden;
-  box-shadow:0 12px 40px rgba(255,107,93,0.25);
+  color:var(--tx);position:relative;overflow:hidden;
 }
 .heroWO::before{
-  content:"🏆";position:absolute;top:-30px;right:20px;font-size:160px;
+  content:"";position:absolute;top:-30px;right:20px;font-size:160px;
   opacity:0.12;line-height:1;transform:rotate(-15deg);
 }
 .heroWO::after{
@@ -665,14 +596,14 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
   background:radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%);
   pointer-events:none;
 }
-.heroLabel{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;opacity:0.9;font-weight:700;text-transform:uppercase;margin-bottom:10px;}
-.heroAmt{font-family:'Fraunces',serif;font-size:64px;font-weight:900;line-height:1;letter-spacing:-0.04em;text-shadow:0 4px 16px rgba(0,0,0,0.18);margin-bottom:6px;}
-.heroAmtSub{font-size:13px;opacity:0.9;font-style:italic;margin-bottom:22px;}
+.heroLabel{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:11px;letter-spacing:0.12em;color:var(--tx3);font-weight:700;text-transform:uppercase;margin-bottom:10px;}
+.heroAmt{font-family:'Inter',-apple-system,sans-serif;font-size:64px;font-weight:900;line-height:1;letter-spacing:-0.04em;color:var(--ac);margin-bottom:6px;}
+.heroAmtSub{font-size:13px;color:var(--tx2);font-style:italic;margin-bottom:22px;}
 .heroGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;position:relative;z-index:2;}
-.heroItem{background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.2);border-radius:12px;padding:11px 14px;}
-.heroItemL{font-size:9px;letter-spacing:0.09em;text-transform:uppercase;opacity:0.85;font-weight:700;margin-bottom:4px;}
-.heroItemV{font-family:'Fraunces',serif;font-size:18px;font-weight:700;letter-spacing:-0.01em;line-height:1.1;}
-.heroItemV.mono{font-family:'DM Mono',monospace;font-size:15px;font-weight:700;}
+.heroItem{background:var(--sf3);border:1px solid var(--b2);border-radius:12px;padding:11px 14px;}
+.heroItemL{font-size:9px;letter-spacing:0.09em;text-transform:uppercase;color:var(--tx3);font-weight:700;margin-bottom:4px;}
+.heroItemV{font-family:'Inter',-apple-system,sans-serif;font-size:18px;font-weight:700;letter-spacing:-0.01em;line-height:1.1;}
+.heroItemV.mono{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:15px;font-weight:700;}
 
 .tierBars{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:24px;}
 .tierBar{background:var(--sf);border:1px solid var(--b2);border-radius:12px;padding:12px 14px;border-top:3px solid var(--paid);box-shadow:0 2px 8px rgba(0,0,0,0.04);}
@@ -680,8 +611,8 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 .tierBar.coral{border-top-color:var(--canc);}
 .tierBar.purple{border-top-color:var(--asgn);}
 .tierBar.blue{border-top-color:var(--appr);}
-.tierBarL{font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;}
-.tierBarN{font-family:'Fraunces',serif;font-size:24px;font-weight:700;color:var(--tx);line-height:1;margin-top:5px;letter-spacing:-0.02em;}
+.tierBarL{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;}
+.tierBarN{font-family:'Inter',-apple-system,sans-serif;font-size:24px;font-weight:700;color:var(--tx);line-height:1;margin-top:5px;letter-spacing:-0.02em;}
 .tierBarSub{font-size:11px;color:var(--tx2);margin-top:3px;font-style:italic;font-weight:500;}
 
 .topWoRow{
@@ -692,28 +623,28 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
   box-shadow:0 1px 4px rgba(0,0,0,0.03);
 }
 .topWoRow:hover{transform:translateX(3px);box-shadow:0 4px 14px rgba(0,0,0,0.08);border-color:var(--ac);}
-.topWoRank{font-family:'Fraunces',serif;font-size:18px;color:var(--tx3);min-width:34px;font-weight:700;}
+.topWoRank{font-family:'Inter',-apple-system,sans-serif;font-size:18px;color:var(--tx3);min-width:34px;font-weight:700;}
 .topWoRow:nth-child(1) .topWoRank,
 .topWoRow:nth-child(2) .topWoRank,
 .topWoRow:nth-child(3) .topWoRank{color:var(--sun2);}
-.topWoPay{font-family:'Fraunces',serif;font-size:24px;font-weight:700;color:var(--paid);letter-spacing:-0.02em;min-width:90px;}
+.topWoPay{font-family:'Inter',-apple-system,sans-serif;font-size:24px;font-weight:700;color:var(--paid);letter-spacing:-0.02em;min-width:90px;}
 .topWoMid{flex:1;min-width:200px;}
 .topWoTitle{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.topWoScope{font-family:'DM Mono',monospace;font-size:13px;color:var(--ac);font-weight:700;}
-.topWoSite{font-family:'DM Mono',monospace;font-size:11px;color:var(--tx2);background:var(--sf2);padding:2px 8px;border-radius:5px;font-weight:700;}
+.topWoScope{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:13px;color:var(--ac);font-weight:700;}
+.topWoSite{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:11px;color:var(--tx2);background:var(--sf2);padding:2px 8px;border-radius:5px;font-weight:700;}
 .topWoLoc{font-size:12px;color:var(--tx);font-weight:500;margin-top:4px;}
 .topWoMeta{font-size:11px;color:var(--tx3);margin-top:2px;font-style:italic;}
 .topWoRight{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
-.topWoTech{font-family:'Quicksand',sans-serif;font-size:12px;color:var(--tx);font-weight:600;}
+.topWoTech{font-family:inherit;font-size:12px;color:var(--tx);font-weight:600;}
 .topWoTech.techLink{cursor:pointer;}
 .topWoTech.techLink:hover{color:var(--ac);}
-.topWoDate{font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);}
+.topWoDate{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:11px;color:var(--tx3);}
 
 
 /* WO LINK BUTTON */
 .woLink{
   display:inline-flex;align-items:center;gap:5px;
-  font-family:'DM Mono',monospace;font-weight:700;
+  font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-weight:700;
   color:var(--ac);text-decoration:none;
   padding:1px 7px;border-radius:5px;
   border:1px solid transparent;
@@ -748,29 +679,29 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 }
 @keyframes slideup{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 .modalHead{
-  background:linear-gradient(135deg,var(--sun1),var(--sun2),var(--sun3));
+  background:var(--sf2);border-bottom:1px solid var(--b2);
   padding:20px 24px;border-radius:18px 18px 0 0;
   display:flex;align-items:center;gap:14px;justify-content:space-between;
-  color:#fff;position:sticky;top:0;z-index:2;
+  color:var(--tx);position:sticky;top:0;z-index:2;
   box-shadow:0 4px 16px rgba(0,0,0,0.15);
 }
-.modalTitle{font-family:'Fraunces',serif;font-size:24px;font-weight:700;letter-spacing:-0.02em;text-shadow:0 2px 8px rgba(0,0,0,0.18);}
-.modalSub{font-size:12px;opacity:0.9;font-style:italic;margin-top:3px;}
-.modalClose{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px;font-weight:700;transition:all .15s;display:flex;align-items:center;justify-content:center;}
-.modalClose:hover{background:rgba(255,255,255,0.35);transform:scale(1.08);}
+.modalTitle{font-family:'Inter',-apple-system,sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.02em;color:var(--tx);}
+.modalSub{font-size:12px;color:var(--tx2);font-style:italic;margin-top:3px;}
+.modalClose{background:var(--sf3);border:1px solid var(--b2);color:var(--tx);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px;font-weight:700;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+.modalClose:hover{background:var(--hover);transform:scale(1.08);}
 .modalBody{padding:24px;}
 
 .modalKpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:22px;}
 .modalKpi{background:var(--sf);border:1px solid var(--b2);border-radius:12px;padding:11px 13px;}
-.mkV{font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:var(--tx);line-height:1;letter-spacing:-0.01em;}
+.mkV{font-family:'Inter',-apple-system,sans-serif;font-size:20px;font-weight:700;color:var(--tx);line-height:1;letter-spacing:-0.01em;}
 .mkL{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-top:5px;}
 .mkV.green{color:var(--paid);} .mkV.gold{color:var(--wdone);} .mkV.coral{color:var(--canc);}
 
 .modalGrid{display:grid;grid-template-columns:1.3fr 1fr;gap:18px;margin-bottom:18px;}
 @media(max-width:820px){.modalGrid{grid-template-columns:1fr;}}
 .modalSec{}
-.modalSecT{font-family:'Fraunces',serif;font-size:14px;color:var(--tx);font-weight:700;margin-bottom:9px;letter-spacing:-0.01em;display:flex;justify-content:space-between;align-items:baseline;}
-.modalSecT span{font-family:'Quicksand',sans-serif;font-size:11px;color:var(--tx3);font-weight:500;font-style:italic;}
+.modalSecT{font-family:'Inter',-apple-system,sans-serif;font-size:14px;color:var(--tx);font-weight:700;margin-bottom:9px;letter-spacing:-0.01em;display:flex;justify-content:space-between;align-items:baseline;}
+.modalSecT span{font-family:inherit;font-size:11px;color:var(--tx3);font-weight:500;font-style:italic;}
 .modalTbl{width:100%;border-collapse:collapse;background:var(--sf);border-radius:10px;overflow:hidden;border:1px solid var(--b);}
 .modalTbl th{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);padding:7px 9px;background:var(--sf2);border-bottom:1px solid var(--b2);text-align:left;font-weight:700;}
 .modalTbl td{padding:7px 9px;border-bottom:1px solid var(--b);color:var(--tx);font-size:12px;}
@@ -780,10 +711,10 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 
 /* UPLOAD UI */
 .uploadBtn{
-  background:linear-gradient(135deg,#fff,#fffaf0);color:var(--sun2);
-  border:1px solid rgba(255,255,255,0.4);border-radius:10px;
+  background:var(--ac);color:#fff;
+  border:1px solid var(--ac);border-radius:10px;
   cursor:pointer;padding:6px 12px;font-size:12px;
-  font-family:'Quicksand',inherit;font-weight:700;
+  font-family:inherit;font-weight:700;
   display:inline-flex;align-items:center;gap:6px;
   transition:all .15s;box-shadow:0 2px 6px rgba(0,0,0,0.12);
 }
@@ -795,7 +726,7 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
   max-width:340px;display:none;z-index:999;
 }
 .uploadStatus.show{display:block;}
-.uploadStatus h5{font-family:'Fraunces',serif;font-size:14px;color:var(--tx);font-weight:700;margin-bottom:6px;}
+.uploadStatus h5{font-family:'Inter',-apple-system,sans-serif;font-size:14px;color:var(--tx);font-weight:700;margin-bottom:6px;}
 .uploadStatus p{font-size:12px;color:var(--tx2);font-weight:500;line-height:1.5;}
 .uploadStatus .uClose{position:absolute;top:6px;right:8px;background:none;border:none;color:var(--tx3);cursor:pointer;font-size:16px;}
 
@@ -803,10 +734,6 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 .techLink{cursor:pointer;border-bottom:1px dashed transparent;transition:border-color .15s, color .15s;}
 .techLink:hover{color:var(--ac) !important;border-bottom-color:var(--ac);}
 
-/* FOOTER WAVE */
-.fwave{margin-top:30px;height:50px;position:relative;overflow:hidden;}
-.fwave svg{width:100%;height:100%;display:block;}
-.fooly{text-align:center;padding:20px;font-family:'Fraunces',serif;font-style:italic;color:var(--tx3);font-size:13px;}
 
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:10px;height:10px;}
@@ -818,7 +745,7 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
 <body>
 
 <header>
-  <div class="logo"><span class="sun"></span> Field Nation <span class="sep">·</span> <span class="proj">PNC Unification</span></div>
+  <div class="logo">Field Nation <span class="sep">·</span> <span class="proj">PNC Unification</span></div>
   <nav class="nav">
     <button class="ntab active" onclick="showPage('overview',this)">Overview</button>
     <button class="ntab" onclick="showPage('financials',this)">💰 Financials</button>
@@ -838,10 +765,8 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
       📂 Add CSV
       <input type="file" id="csvUpload" accept=".csv,.xlsx" multiple style="display:none;" />
     </label>
-    <button class="tbtn" onclick="toggleTheme()">🌅 sunset / 🌊 twilight</button>
   </div>
 </header>
-<div class="wave"><svg viewBox="0 0 1440 24" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><path d="M0,12 C240,24 480,0 720,12 C960,24 1200,0 1440,12 L1440,0 L0,0 Z" fill="currentColor" style="color:var(--sun3);opacity:0.8;"/><path d="M0,18 C240,8 480,22 720,14 C960,6 1200,20 1440,12 L1440,24 L0,24 Z" fill="var(--bg)"/></svg></div>
 
 <div class="sbar">
   <div class="sc"><span class="sv mono">14,738</span><span class="sl">Active WOs</span></div>
@@ -1107,9 +1032,9 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
     </div>
     
     <div class="cumChart">
-      <div style="font-family:'Fraunces',serif;font-size:14px;font-weight:700;color:var(--tx);margin-bottom:10px;">Cumulative Earnings Over Time</div>
+      <div style="font-family:'Inter',-apple-system,sans-serif;font-size:14px;font-weight:700;color:var(--tx);margin-bottom:10px;">Cumulative Earnings Over Time</div>
       <svg class="cumSvg" id="cumChartSvg" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:6px;font-weight:600;">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx3);font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;margin-top:6px;font-weight:600;">
         <span>Jan 20</span><span>Mar 24</span><span>May 26</span><span>Jul 14</span>
       </div>
     </div>
@@ -1209,7 +1134,7 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
   <div class="heroWO">
     <div class="heroLabel">🏆 Highest-Paid Work Order</div>
     <div class="heroAmt">$2,061</div>
-    <div class="heroAmtSub"><a class="woLink lg" style="background:rgba(255,255,255,0.18);border-color:rgba(255,255,255,0.3);color:#fff;font-size:18px;" href="https://app.fieldnation.com/workorders/19051749" target="_blank" rel="noopener">WO #19051749<span class="woArrow" style="opacity:0.7;">↗</span></a> · <span class="stChip p" style="background:rgba(255,255,255,0.25);color:#fff;">Paid</span></div>
+    <div class="heroAmtSub"><a class="woLink lg" style="font-size:18px;" href="https://app.fieldnation.com/workorders/19051749" target="_blank" rel="noopener">WO #19051749<span class="woArrow" style="opacity:0.7;">↗</span></a> · <span class="stChip p">Paid</span></div>
     <div class="heroGrid">
       <div class="heroItem">
         <div class="heroItemL">Scope</div>
@@ -1390,7 +1315,7 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
     <div class="sech">Cancellation Hotspots <span class="sechsub">where WOs are most often cancelled</span></div>
     <div class="threeCol">
       <div>
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);margin-bottom:9px;font-weight:700;font-family:Fraunces,serif;">By City</div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);margin-bottom:9px;font-weight:700;font-family:'Inter',-apple-system,sans-serif;">By City</div>
         <table class="ltable">
           <tbody>
             <tr><td>Alpharetta, GA</td><td class="mv" style="color:var(--canc)">57</td></tr>
@@ -1408,7 +1333,7 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
         </table>
       </div>
       <div>
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);margin-bottom:9px;font-weight:700;font-family:Fraunces,serif;">By Branch (worst rate)</div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);margin-bottom:9px;font-weight:700;font-family:'Inter',-apple-system,sans-serif;">By Branch (worst rate)</div>
         <table class="ltable">
           <tbody>
             <tr><td class="mv">B786</td><td class="mv">Allen Park, MI</td><td class="mv" style="color:var(--canc)">58.3%</td></tr>
@@ -1424,7 +1349,7 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
         </table>
       </div>
       <div>
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);margin-bottom:9px;font-weight:700;font-family:Fraunces,serif;">By Role (cancel rate)</div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);margin-bottom:9px;font-weight:700;font-family:'Inter',-apple-system,sans-serif;">By Role (cancel rate)</div>
         <table class="ltable">
           <tbody>
             <tr><td class="mv">PNC - DEC</td><td class="mv" style="color:var(--canc)">100.0%</td><td class="mv" style="color:var(--tx3)">6/6</td></tr>
@@ -1876,7 +1801,7 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
       <div class="brow"><div class="brtop"><div><div class="brcode">YL40</div><div class="brcity">Lees Summit, MO</div></div><div><div class="brrate" style="color:var(--canc)">42.9%</div><div class="brratel">cancel</div></div></div><div class="brsplit"><div style="width:32.1%;background:var(--paid);height:100%;"></div><div style="width:42.9%;background:var(--canc);height:100%;"></div><div style="width:25.0%;background:var(--appr);height:100%;"></div></div><div class="brmeta"><span>9 / 12 / 28</span><span style="color:var(--paid)">$7.4K</span></div></div>
       <div class="brow"><div class="brtop"><div><div class="brcode">E556</div><div class="brcity">South Houston, TX</div></div><div><div class="brrate" style="color:var(--canc)">39.3%</div><div class="brratel">cancel</div></div></div><div class="brsplit"><div style="width:35.7%;background:var(--paid);height:100%;"></div><div style="width:39.3%;background:var(--canc);height:100%;"></div><div style="width:25.0%;background:var(--appr);height:100%;"></div></div><div class="brmeta"><span>10 / 11 / 28</span><span style="color:var(--paid)">$8.0K</span></div></div>
     </div>
-    <div style="font-size:11px;color:var(--tx3);font-family:Fraunces,serif;font-style:italic;margin-top:12px;">format: paid / cancelled / total · work pay</div>
+    <div style="font-size:11px;color:var(--tx3);font-family:'Inter',-apple-system,sans-serif;font-style:italic;margin-top:12px;">format: paid / cancelled / total · work pay</div>
   </div>
 </div>
 
@@ -1930,83 +1855,83 @@ input[type="text"]:focus, select:focus{border-color:var(--ac);box-shadow:0 0 0 3
   <div class="sec">
     <div class="sech">Top 20 Sites by Total Cost</div>
     <div class="timeBars"><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">1. <b style="font-family:Fraunces,serif;">U721</b> · Decatur, GA</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">1. <b style="font-family:'Inter',-apple-system,sans-serif;">U721</b> · Decatur, GA</div>
         <div class="tbout"><div class="tbin" style="width:100.0%;">$51,510</div></div>
         <div class="tbcnt">100 visits · <span style="color:var(--paid)">14 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">2. <b style="font-family:Fraunces,serif;">C538</b> · Arlington, VA</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">2. <b style="font-family:'Inter',-apple-system,sans-serif;">C538</b> · Arlington, VA</div>
         <div class="tbout"><div class="tbin" style="width:84.4%;">$43,450</div></div>
         <div class="tbcnt">91 visits · <span style="color:var(--paid)">17 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">3. <b style="font-family:Fraunces,serif;">C557</b> · Ashburn, VA</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">3. <b style="font-family:'Inter',-apple-system,sans-serif;">C557</b> · Ashburn, VA</div>
         <div class="tbout"><div class="tbin" style="width:79.4%;">$40,886</div></div>
         <div class="tbcnt">79 visits · <span style="color:var(--paid)">10 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">4. <b style="font-family:Fraunces,serif;">U878</b> · Nashville, NC</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">4. <b style="font-family:'Inter',-apple-system,sans-serif;">U878</b> · Nashville, NC</div>
         <div class="tbout"><div class="tbin" style="width:77.2%;">$39,765</div></div>
         <div class="tbcnt">85 visits · <span style="color:var(--paid)">17 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">5. <b style="font-family:Fraunces,serif;">F292</b> · Newtown, PA</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">5. <b style="font-family:'Inter',-apple-system,sans-serif;">F292</b> · Newtown, PA</div>
         <div class="tbout"><div class="tbin" style="width:77.0%;">$39,674</div></div>
         <div class="tbcnt">74 visits · <span style="color:var(--paid)">16 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">6. <b style="font-family:Fraunces,serif;">C588</b> · Centreville, VA</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">6. <b style="font-family:'Inter',-apple-system,sans-serif;">C588</b> · Centreville, VA</div>
         <div class="tbout"><div class="tbin" style="width:77.0%;">$39,666</div></div>
         <div class="tbcnt">75 visits · <span style="color:var(--paid)">10 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">7. <b style="font-family:Fraunces,serif;">C549</b> · Sterling, VA</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">7. <b style="font-family:'Inter',-apple-system,sans-serif;">C549</b> · Sterling, VA</div>
         <div class="tbout"><div class="tbin" style="width:76.3%;">$39,304</div></div>
         <div class="tbcnt">78 visits · <span style="color:var(--paid)">12 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">8. <b style="font-family:Fraunces,serif;">U993</b> · Marietta, GA</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">8. <b style="font-family:'Inter',-apple-system,sans-serif;">U993</b> · Marietta, GA</div>
         <div class="tbout"><div class="tbin" style="width:73.8%;">$38,000</div></div>
         <div class="tbcnt">72 visits · <span style="color:var(--paid)">11 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">9. <b style="font-family:Fraunces,serif;">P756</b> · Palm Coast, FL</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">9. <b style="font-family:'Inter',-apple-system,sans-serif;">P756</b> · Palm Coast, FL</div>
         <div class="tbout"><div class="tbin" style="width:73.6%;">$37,915</div></div>
         <div class="tbcnt">77 visits · <span style="color:var(--paid)">19 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">10. <b style="font-family:Fraunces,serif;">F042</b> · Philadelphia, PA</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">10. <b style="font-family:'Inter',-apple-system,sans-serif;">F042</b> · Philadelphia, PA</div>
         <div class="tbout"><div class="tbin" style="width:71.0%;">$36,575</div></div>
         <div class="tbcnt">71 visits · <span style="color:var(--paid)">13 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">11. <b style="font-family:Fraunces,serif;">B434</b> · Wooster, OH</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">11. <b style="font-family:'Inter',-apple-system,sans-serif;">B434</b> · Wooster, OH</div>
         <div class="tbout"><div class="tbin" style="width:70.8%;">$36,489</div></div>
         <div class="tbcnt">79 visits · <span style="color:var(--paid)">15 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">12. <b style="font-family:Fraunces,serif;">P298</b> · Tampa, FL</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">12. <b style="font-family:'Inter',-apple-system,sans-serif;">P298</b> · Tampa, FL</div>
         <div class="tbout"><div class="tbin" style="width:66.0%;">$34,000</div></div>
         <div class="tbcnt">62 visits · <span style="color:var(--paid)">18 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">13. <b style="font-family:Fraunces,serif;">J452</b> · Secaucus, NJ</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">13. <b style="font-family:'Inter',-apple-system,sans-serif;">J452</b> · Secaucus, NJ</div>
         <div class="tbout"><div class="tbin" style="width:64.8%;">$33,403</div></div>
         <div class="tbcnt">65 visits · <span style="color:var(--paid)">7 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">14. <b style="font-family:Fraunces,serif;">P956</b> · Cocoa, FL</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">14. <b style="font-family:'Inter',-apple-system,sans-serif;">P956</b> · Cocoa, FL</div>
         <div class="tbout"><div class="tbin" style="width:64.6%;">$33,262</div></div>
         <div class="tbcnt">74 visits · <span style="color:var(--paid)">14 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">15. <b style="font-family:Fraunces,serif;">P576</b> · Orlando, FL</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">15. <b style="font-family:'Inter',-apple-system,sans-serif;">P576</b> · Orlando, FL</div>
         <div class="tbout"><div class="tbin" style="width:64.5%;">$33,200</div></div>
         <div class="tbcnt">63 visits · <span style="color:var(--paid)">18 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">16. <b style="font-family:Fraunces,serif;">PLRD</b> · Winter Park, FL</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">16. <b style="font-family:'Inter',-apple-system,sans-serif;">PLRD</b> · Winter Park, FL</div>
         <div class="tbout"><div class="tbin" style="width:63.2%;">$32,550</div></div>
         <div class="tbcnt">62 visits · <span style="color:var(--paid)">14 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">17. <b style="font-family:Fraunces,serif;">F049</b> · West Chester, PA</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">17. <b style="font-family:'Inter',-apple-system,sans-serif;">F049</b> · West Chester, PA</div>
         <div class="tbout"><div class="tbin" style="width:61.6%;">$31,750</div></div>
         <div class="tbcnt">58 visits · <span style="color:var(--paid)">14 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">18. <b style="font-family:Fraunces,serif;">U012</b> · Gap, PA</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">18. <b style="font-family:'Inter',-apple-system,sans-serif;">U012</b> · Gap, PA</div>
         <div class="tbout"><div class="tbin" style="width:59.4%;">$30,600</div></div>
         <div class="tbcnt">62 visits · <span style="color:var(--paid)">13 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">19. <b style="font-family:Fraunces,serif;">J071</b> · Fairfield, NJ</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">19. <b style="font-family:'Inter',-apple-system,sans-serif;">J071</b> · Fairfield, NJ</div>
         <div class="tbout"><div class="tbin" style="width:58.8%;">$30,306</div></div>
         <div class="tbcnt">60 visits · <span style="color:var(--paid)">12 techs</span></div>
       </div><div class="tbrow">
-        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">20. <b style="font-family:Fraunces,serif;">U722</b> · Doraville, GA</div>
+        <div class="tblbl" style="min-width:160px;color:var(--tx);font-size:11px;">20. <b style="font-family:'Inter',-apple-system,sans-serif;">U722</b> · Doraville, GA</div>
         <div class="tbout"><div class="tbin" style="width:58.1%;">$29,950</div></div>
         <div class="tbcnt">57 visits · <span style="color:var(--paid)">5 techs</span></div>
       </div></div>
@@ -2405,7 +2330,7 @@ function openTechModal(name) {
   </div>`;
   
   const siteRows = t.sites.map(s => `<tr>
-    <td style="font-family:'DM Mono',monospace;color:var(--ac);font-weight:700;">${s[0]}</td>
+    <td style="font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;color:var(--ac);font-weight:700;">${s[0]}</td>
     <td><span style="font-size:11px;color:var(--tx);">${s[1]||'-'}</span> <span class="badge bco">${s[2]||''}</span></td>
     <td class="mv">${s[3]}</td>
     <td class="mv" style="color:var(--paid);">${s[4]}</td>
@@ -2413,7 +2338,7 @@ function openTechModal(name) {
   </tr>`).join('');
   
   const roleRows = t.roles.map(r => `<tr>
-    <td><span style="font-family:'DM Mono',monospace;color:var(--ac);font-weight:700;">${r[0]}</span></td>
+    <td><span style="font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;color:var(--ac);font-weight:700;">${r[0]}</span></td>
     <td class="mv">${r[1]}</td>
     <td class="mv" style="color:var(--paid);">${r[2]}</td>
     <td class="mv" style="color:var(--paid);font-weight:700;">${fmtMoney(r[3])}</td>
@@ -2429,7 +2354,7 @@ function openTechModal(name) {
   const topRows = t.tops.map(w => `<tr>
     <td>${woLink(w[0])}</td>
     <td class="mv" style="color:var(--tx3);">${w[1]}</td>
-    <td><span style="font-family:'DM Mono',monospace;color:var(--ac);font-weight:700;">${w[2]}</span></td>
+    <td><span style="font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;color:var(--ac);font-weight:700;">${w[2]}</span></td>
     <td class="mv">${w[3]}</td>
     <td><span class="stChip ${(w[4]==='Paid'?'p':w[4]==='Canc'?'x':w[4]==='Appr'?'a':w[4]==='Assi'?'s':w[4]==='Work'?'w':w[4]==='Crea'?'r':'b')}">${statusFull[w[4]]||w[4]}</span></td>
     <td class="mv" style="color:var(--paid);font-weight:700;">${fmtMoney(w[5])}</td>
@@ -2639,7 +2564,7 @@ function renderUploadedSection() {
         <div style="max-height:420px;overflow-y:auto;">
           <table class="ltable"><thead><tr><th>Site</th><th>City, State</th><th>WOs</th><th>Paid</th><th>Earned</th></tr></thead>
           <tbody>${sites.map(s=>`<tr>
-            <td style="font-family:'DM Mono',monospace;color:var(--ac);font-weight:700;">${s.b}</td>
+            <td style="font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;color:var(--ac);font-weight:700;">${s.b}</td>
             <td><span style="font-size:11px;">${s.c||'-'}</span> ${s.s?'<span class="badge bco">'+s.s+'</span>':''}</td>
             <td class="mv">${s.wos.length}</td>
             <td class="mv" style="color:var(--paid);">${s.p}</td>
@@ -2663,7 +2588,7 @@ function renderUploadedSection() {
       <div class="sec"><div class="sech">By Scope</div>
         <table class="ltable"><thead><tr><th>Scope</th><th>WOs</th><th>Earned</th></tr></thead>
         <tbody>${roles.map(r=>`<tr>
-          <td><span style="font-family:'DM Mono',monospace;color:var(--ac);font-weight:700;">${r.r}</span></td>
+          <td><span style="font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;color:var(--ac);font-weight:700;">${r.r}</span></td>
           <td class="mv">${r.wos}</td>
           <td class="mv" style="color:var(--paid);font-weight:700;">${fmtMoney(r.$)}</td>
         </tr>`).join('')}</tbody></table>
@@ -2734,7 +2659,7 @@ function renderSites() {
         <td class="mv" style="color:${tk.p>0?'var(--paid)':'var(--tx3)'};font-weight:700;">${fmtMoneyFull(tk.p)}</td>
       </tr>`).join('');
       return `<tr class="scopeRow" data-key="${scopeKey}" onclick="toggleScope(this)">
-        <td><span class="scopeArr">▶</span><span style="font-family:'DM Mono',monospace;color:var(--ac);font-weight:700;">${d.r}</span></td>
+        <td><span class="scopeArr">▶</span><span style="font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;color:var(--ac);font-weight:700;">${d.r}</span></td>
         <td class="mv">${d.v}</td>
         <td class="mv" style="color:var(--paid);">${d.p}</td>
         <td class="mv" style="color:${d.x>0?'var(--canc)':'var(--tx3)'};">${d.x}</td>
@@ -2743,7 +2668,7 @@ function renderSites() {
       </tr>
       <tr class="scopeDetail" data-key="${scopeKey}">
         <td colspan="6">
-          <div style="font-size:11px;color:var(--tx3);font-style:italic;margin-bottom:6px;font-family:Fraunces,serif;">${tickets.length} ticket${tickets.length!==1?'s':''} in ${d.r} scope at ${s.b}</div>
+          <div style="font-size:11px;color:var(--tx3);font-style:italic;margin-bottom:6px;font-family:'Inter',-apple-system,sans-serif;">${tickets.length} ticket${tickets.length!==1?'s':''} in ${d.r} scope at ${s.b}</div>
           <table class="ticketTable">
             <thead><tr><th>WO ID</th><th>Date</th><th>Tech</th><th>Status</th><th>Pay</th></tr></thead>
             <tbody>${ticketRows}</tbody>
@@ -2874,7 +2799,7 @@ function renderStates() {
     
     const maxRoleV = st.roles[0] ? st.roles[0].v : 1;
     const roleRows = st.roles.map(r => `<tr>
-      <td><span style="font-family:'DM Mono',monospace;color:var(--ac);font-weight:700;">${r.r}</span></td>
+      <td><span style="font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;color:var(--ac);font-weight:700;">${r.r}</span></td>
       <td class="mv">${r.v}</td>
       <td class="mv" style="color:var(--paid);">${r.p}</td>
       <td class="mv" style="color:var(--paid);font-weight:700;">${fmtMoneyFull(r.$)}</td>
@@ -2970,7 +2895,7 @@ function showFinSub(id, btn) {
     bar.className = 'wfBar';
     bar.innerHTML = `
       <div class="wfTip">
-        <div style="color:var(--tx);font-weight:700;margin-bottom:3px;font-family:Fraunces,serif;">Week of ${w.week}</div>
+        <div style="color:var(--tx);font-weight:700;margin-bottom:3px;font-family:'Inter',-apple-system,sans-serif;">Week of ${w.week}</div>
         <div>WOs: <b>${w.wos.toLocaleString()}</b></div>
         <div>Gross: <b>${fmtMoneyFull(w.wp)}</b></div>
         <div style="color:var(--paid);">Paid: <b>${fmtMoneyFull(w.paid_wp)}</b></div>
@@ -3028,8 +2953,8 @@ function showFinSub(id, btn) {
       <polyline points="${paidPoints} ${W-padR},${H-padB} ${padL},${H-padB}" fill="url(#paidGrad)" stroke="none"/>
       <polyline points="${totalPoints}" fill="none" stroke="var(--ac)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       <polyline points="${paidPoints}" fill="none" stroke="var(--paid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="${W-100}" y="20" fill="var(--ac)" font-family="DM Mono" font-size="11" font-weight="700">Cumulative Gross</text>
-      <text x="${W-100}" y="36" fill="var(--paid)" font-family="DM Mono" font-size="11" font-weight="700">Cumulative Paid</text>`;
+      <text x="${W-100}" y="20" fill="var(--ac)" font-family="ui-monospace, Cascadia Code, Fira Code, monospace" font-size="11" font-weight="700">Cumulative Gross</text>
+      <text x="${W-100}" y="36" fill="var(--paid)" font-family="ui-monospace, Cascadia Code, Fira Code, monospace" font-size="11" font-weight="700">Cumulative Paid</text>`;
   }
 })();
 
@@ -3090,7 +3015,7 @@ function renderRoutes() {
     const maxRoleV = r.roles[0] ? r.roles[0]['v'] : 1;
     
     const siteRows = r.sites.map(s => `<tr>
-      <td style="font-family:'DM Mono',monospace;color:var(--ac);font-weight:700;">${s.b}</td>
+      <td style="font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;color:var(--ac);font-weight:700;">${s.b}</td>
       <td style="color:var(--tx);font-size:11px;">${s.c||'-'}<span style="color:var(--tx3);"> · ${s.s||''}</span></td>
       <td class="mv">${s.v}</td>
       <td class="mv" style="color:var(--paid);">${s.p}</td>
@@ -3099,7 +3024,7 @@ function renderRoutes() {
     </tr>`).join('');
     
     const roleRows = r.roles.map(rl => `<tr>
-      <td><span style="font-family:'DM Mono',monospace;color:var(--ac);font-weight:700;">${rl.r}</span></td>
+      <td><span style="font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;color:var(--ac);font-weight:700;">${rl.r}</span></td>
       <td class="mv">${rl.v}</td>
       <td class="mv" style="color:var(--paid);">${rl.p}</td>
       <td class="mv" style="color:var(--paid);font-weight:700;">${fmtMoneyFull(rl.$)}</td>
@@ -3121,7 +3046,7 @@ function renderRoutes() {
         <div class="routeBadge">${r.r}</div>
         <div>
           <div class="routeHubChip">${r.hl || '—'}</div>
-          <div style="font-size:11px;color:var(--tx3);margin-top:4px;font-family:'Quicksand',sans-serif;font-style:italic;">${r.ns} site${r.ns!==1?'s':''} · ${r.v.toLocaleString()} visits · ${r.nt} tech${r.nt!==1?'s':''}</div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:4px;font-family:inherit;font-style:italic;">${r.ns} site${r.ns!==1?'s':''} · ${r.v.toLocaleString()} visits · ${r.nt} tech${r.nt!==1?'s':''}</div>
         </div>
         <div style="display:flex;gap:12px;margin-left:auto;flex-wrap:wrap;">
           <div class="siteStat"><span class="siteSv" style="color:var(--paid);">${fmtMoney(r.paid_wp)}</span><span class="siteSl">Paid</span></div>
@@ -3130,7 +3055,7 @@ function renderRoutes() {
           <div class="siteStat"><span class="siteSv">${fmtMoneyFull(r.avg)}</span><span class="siteSl">Avg/WO</span></div>
         </div>
         <div style="text-align:right;">
-          <div style="font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--paid);letter-spacing:-0.02em;">${fmtMoney(r.wp)}</div>
+          <div style="font-family:'Inter',-apple-system,sans-serif;font-size:22px;font-weight:700;color:var(--paid);letter-spacing:-0.02em;">${fmtMoney(r.wp)}</div>
           <div style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;text-align:right;font-weight:700;">gross pay</div>
         </div>
         <div class="routeArr">▶</div>
@@ -3143,7 +3068,7 @@ function renderRoutes() {
         </div>
         <div class="routeGrid3">
           <div>
-            <div style="font-family:'Fraunces',serif;font-size:13px;color:var(--tx);font-weight:700;margin-bottom:8px;">Sites on Route <span style="font-family:'Quicksand',sans-serif;font-size:10px;color:var(--tx3);font-weight:500;font-style:italic;">${r.sites.length} of ${r.ns}</span></div>
+            <div style="font-family:'Inter',-apple-system,sans-serif;font-size:13px;color:var(--tx);font-weight:700;margin-bottom:8px;">Sites on Route <span style="font-family:inherit;font-size:10px;color:var(--tx3);font-weight:500;font-style:italic;">${r.sites.length} of ${r.ns}</span></div>
             <table class="scopeTable">
               <thead><tr><th>Site</th><th>Location</th><th>WOs</th><th>Paid</th><th>Canc</th><th>Cost</th></tr></thead>
               <tbody>${siteRows}</tbody>
@@ -3151,14 +3076,14 @@ function renderRoutes() {
             ${showAll}
           </div>
           <div>
-            <div style="font-family:'Fraunces',serif;font-size:13px;color:var(--tx);font-weight:700;margin-bottom:8px;">Scopes on Route <span style="font-family:'Quicksand',sans-serif;font-size:10px;color:var(--tx3);font-weight:500;font-style:italic;">${r.roles.length}</span></div>
+            <div style="font-family:'Inter',-apple-system,sans-serif;font-size:13px;color:var(--tx);font-weight:700;margin-bottom:8px;">Scopes on Route <span style="font-family:inherit;font-size:10px;color:var(--tx3);font-weight:500;font-style:italic;">${r.roles.length}</span></div>
             <table class="scopeTable">
               <thead><tr><th>Scope</th><th>WOs</th><th>Paid</th><th>Cost</th></tr></thead>
               <tbody>${roleRows}</tbody>
             </table>
           </div>
           <div>
-            <div style="font-family:'Fraunces',serif;font-size:13px;color:var(--tx);font-weight:700;margin-bottom:8px;">Techs on Route <span style="font-family:'Quicksand',sans-serif;font-size:10px;color:var(--tx3);font-weight:500;font-style:italic;">${r.techs.length} of ${r.nt}</span></div>
+            <div style="font-family:'Inter',-apple-system,sans-serif;font-size:13px;color:var(--tx);font-weight:700;margin-bottom:8px;">Techs on Route <span style="font-family:inherit;font-size:10px;color:var(--tx3);font-weight:500;font-style:italic;">${r.techs.length} of ${r.nt}</span></div>
             <table class="scopeTable">
               <thead><tr><th>Tech</th><th>WOs</th><th>Paid</th><th>Canc</th><th>Earned</th></tr></thead>
               <tbody>${techRows}</tbody>
@@ -3224,7 +3149,7 @@ renderUploadedSection();
           <div style="width:${paidPct}%;background:var(--paid);" title="Paid"></div>
           <div style="width:${pendPct}%;background:var(--wdone);" title="Pending"></div>
         </div>
-        <div style="font-family:'Fraunces',serif;font-size:13px;color:var(--tx);font-weight:700;margin-bottom:8px;">States in ${r.rg}</div>
+        <div style="font-family:'Inter',-apple-system,sans-serif;font-size:13px;color:var(--tx);font-weight:700;margin-bottom:8px;">States in ${r.rg}</div>
         <table class="scopeTable">
           <thead><tr><th>State</th><th>WOs</th><th>Paid</th><th>Canc</th><th>Gross</th><th>Paid Amt</th></tr></thead>
           <tbody>${stateRows}</tbody>
@@ -3328,16 +3253,8 @@ function showPage(id, btn) {
   btn.classList.add('active');
   window.scrollTo(0,0);
 }
-function toggleTheme() {
-  const el = document.documentElement;
-  el.dataset.theme = el.dataset.theme === 'light' ? 'dark' : 'light';
-}
+
 </script>
-<div class="fwave"><svg viewBox="0 0 1440 50" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M0,25 C180,5 360,45 540,25 C720,5 900,45 1080,25 C1260,5 1440,45 1440,25 L1440,50 L0,50 Z" fill="var(--ocean1)" opacity="0.35"/>
-    <path d="M0,35 C180,20 360,50 540,35 C720,20 900,50 1080,35 C1260,20 1440,50 1440,35 L1440,50 L0,50 Z" fill="var(--ac)" opacity="0.5"/>
-  </svg></div>
-<div class="fooly">Catch you on the next tide 🌴</div>
 
 <!-- TECH DETAIL MODAL -->
 <div class="modalOverlay" id="techModal" onclick="if(event.target===this)closeTechModal()">

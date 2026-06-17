@@ -1,133 +1,86 @@
 /**
  * POST /api/comms/sms-inbound
- * Twilio webhook — called when a tech replies to a message
- *
- * Register this URL in Twilio: https://wwt-ops-hub.vercel.app/api/comms/sms-inbound
- * Set as "A message comes in" webhook on your Twilio number
- *
- * Parses reply and updates tech_confirmations status automatically
+ * Twilio webhook — called when a tech replies to a message.
  */
 
-import { createClient } from '@supabase/supabase-js'
 import { URLSearchParams } from 'url'
+import { query } from '../_lib/db.js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
-
-// Keywords → confirmation status
-const CONFIRM_WORDS = new Set(['yes','y','confirm','confirmed','ok','sure','yep','yep','will do','on my way','omw'])
+const CONFIRM_WORDS = new Set(['yes','y','confirm','confirmed','ok','sure','yep','will do','on my way','omw'])
 const DECLINE_WORDS = new Set(['no','n','cant','cannot','nope','decline','cancel','unable','no can do'])
 const ETA_WORDS     = ['eta','leaving','otw','on the way','30','45','60','minutes','mins','hour']
 
 function parseIntent(text) {
   const lower = text.toLowerCase().trim()
-  if (CONFIRM_WORDS.has(lower))                             return 'confirmed'
-  if (DECLINE_WORDS.has(lower))                            return 'declined'
-  if (ETA_WORDS.some(w => lower.includes(w)))              return 'confirmed' // ETA = coming
-  // Number-only reply (e.g. "30" meaning 30 minutes)
-  if (/^\d+$/.test(lower.trim()))                          return 'confirmed'
+  if (CONFIRM_WORDS.has(lower))                  return 'confirmed'
+  if (DECLINE_WORDS.has(lower))                  return 'declined'
+  if (ETA_WORDS.some(w => lower.includes(w)))    return 'confirmed'
+  if (/^\d+$/.test(lower.trim()))                return 'confirmed'
   return null
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
 
-  // Parse Twilio form-encoded body
   let body = req.body
-  if (typeof body === 'string') {
-    const params = new URLSearchParams(body)
-    body = Object.fromEntries(params)
-  }
+  if (typeof body === 'string') { const params = new URLSearchParams(body); body = Object.fromEntries(params) }
 
   const fromNumber = body?.From ?? ''
   const msgBody    = body?.Body ?? ''
   const twilioSid  = body?.MessageSid ?? ''
 
-  if (!fromNumber || !msgBody) {
-    return res.status(200).send('<Response></Response>')
-  }
-
-  console.log(`[SMS Inbound] From: ${fromNumber} | "${msgBody}"`)
+  if (!fromNumber || !msgBody) return res.status(200).send('<Response></Response>')
 
   const normalized = fromNumber.replace(/\s/g, '')
 
-  // Log the inbound message
-  await supabase.from('tech_messages').insert({
-    channel:    'sms',
-    direction:  'inbound',
-    to_number:  process.env.TWILIO_FROM_NUMBER ?? 'WWT',
-    from_number: normalized, // repurposing to_number for clarity
-    to_name:    'WWT Ops Hub',
-    body:       msgBody,
-    status:     'received',
-    twilio_sid: twilioSid,
-    sent_at:    new Date().toISOString(),
-  })
+  await query(
+    'INSERT INTO tech_messages (channel, direction, to_number, to_name, body, status, twilio_sid, sent_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+    ['sms', 'inbound', process.env.TWILIO_FROM_NUMBER ?? 'WWT', 'WWT Ops Hub', msgBody, 'received', twilioSid, new Date().toISOString()]
+  )
 
-  // Find pending confirmations for this phone number
-  const { data: pending } = await supabase
-    .from('tech_confirmations')
-    .select('id, site_id, tech_name, status')
-    .eq('tech_phone', normalized)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false })
-    .limit(1)
+  const { rows: pending } = await query(
+    "SELECT id, site_id, tech_name, status FROM tech_confirmations WHERE tech_phone = $1 AND status = 'pending' ORDER BY created_at DESC LIMIT 1",
+    [normalized]
+  )
 
   let replyText = null
 
-  if (pending?.length) {
+  if (pending.length) {
     const conf   = pending[0]
     const intent = parseIntent(msgBody)
 
     if (intent) {
-      await supabase.from('tech_confirmations').update({
-        status:        intent,
-        responded_at:  new Date().toISOString(),
-        response_text: msgBody,
-      }).eq('id', conf.id)
+      await query(
+        'UPDATE tech_confirmations SET status = $1, responded_at = $2, response_text = $3 WHERE id = $4',
+        [intent, new Date().toISOString(), msgBody, conf.id]
+      )
 
-      // Get site name for reply
-      const { data: site } = await supabase
-        .from('sites')
-        .select('branch_name, code')
-        .eq('id', conf.site_id)
-        .single()
-
+      const { rows: [site] } = await query(
+        'SELECT branch_name, code FROM sites WHERE id = $1 LIMIT 1',
+        [conf.site_id]
+      )
       const siteName = site?.branch_name ?? site?.code ?? 'your site'
 
       if (intent === 'confirmed') {
         replyText = `Thanks ${conf.tech_name}! You're confirmed for ${siteName}. We'll send a reminder the day before.`
-
-        // Fire alert if site was previously unconfirmed
-        await supabase.from('alert_log').insert({
-          alert_type: 'site_added', // reuse as 'tech_confirmed'
-          site_id:    conf.site_id,
-          title:      `Tech confirmed: ${conf.tech_name} → ${siteName}`,
-          detail:     `Reply: "${msgBody}"`,
-        })
+        await query(
+          "INSERT INTO alert_log (alert_type, site_id, title, detail) VALUES ('site_added', $1, $2, $3)",
+          [conf.site_id, `Tech confirmed: ${conf.tech_name} → ${siteName}`, `Reply: "${msgBody}"`]
+        )
       } else if (intent === 'declined') {
         replyText = `Thanks for letting us know ${conf.tech_name}. We'll reach out about rescheduling.`
-
-        // Fire alert so PM knows
-        await supabase.from('alert_log').insert({
-          alert_type: 'provider_cancelled',
-          site_id:    conf.site_id,
-          title:      `Tech declined: ${conf.tech_name} → ${siteName}`,
-          detail:     `Reply: "${msgBody}"`,
-        })
+        await query(
+          "INSERT INTO alert_log (alert_type, site_id, title, detail) VALUES ('provider_cancelled', $1, $2, $3)",
+          [conf.site_id, `Tech declined: ${conf.tech_name} → ${siteName}`, `Reply: "${msgBody}"`]
+        )
       }
     } else {
-      // Unrecognized reply — log it but don't update status
       replyText = `Message received. Reply YES to confirm or NO if you can't make it.`
     }
   } else {
-    // No pending confirmation — just acknowledge
     replyText = `Message received by WWT Field Services. For assistance contact your FST directly.`
   }
 
-  // Twilio TwiML response
   const twiml = replyText
     ? `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${replyText}</Message></Response>`
     : `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`

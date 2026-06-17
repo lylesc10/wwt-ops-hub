@@ -1,16 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useState, useEffect, useCallback } from 'react'
+import { dab } from '@/lib/dab'
 
 export function useAlerts({ activeOnly = true } = {}) {
   const [alerts,  setAlerts]  = useState([])
   const [count,   setCount]   = useState(0)
   const [loading, setLoading] = useState(true)
-  const channelRef = useRef(null)
 
   const fetchAlerts = useCallback(async () => {
-    let query = supabase
+    let query = dab
       .from('alert_log')
-      .select('*, site:sites(code, branch_name)')
+      .select('*')
       .limit(500)
       .order('created_at', { ascending: false })
 
@@ -18,44 +17,33 @@ export function useAlerts({ activeOnly = true } = {}) {
 
     const { data, error } = await query
     if (error) { console.error('[useAlerts]', error.message); setLoading(false); return }
-    setAlerts(data ?? [])
-    setCount((data ?? []).filter(a => a.status === 'active').length)
+
+    // Fetch site codes for all alerts (DAB doesn't support PostgREST embedding)
+    const siteIds = [...new Set((data ?? []).map(a => a.site_id).filter(Boolean))]
+    const { data: sites } = siteIds.length
+      ? await dab.from('sites').select('id,code,branch_name').in('id', siteIds)
+      : { data: [] }
+    const siteMap = Object.fromEntries((sites ?? []).map(s => [s.id, s]))
+
+    const hydrated = (data ?? []).map(a => ({ ...a, site: siteMap[a.site_id] ?? null }))
+    setAlerts(hydrated)
+    setCount(hydrated.filter(a => a.status === 'active').length)
     setLoading(false)
   }, [activeOnly])
 
   useEffect(() => {
     fetchAlerts()
-
-    // Use a unique channel name to avoid conflicts across hook instances
-    const channelName = `alert-changes-${Math.random().toString(36).slice(2, 8)}`
-
-    // Clean up any previous channel first
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current)
-      channelRef.current = null
-    }
-
-    const channel = supabase
-      .channel(channelName)
-      .on('postgres_changes', {
-        event:  '*',
-        schema: 'public',
-        table:  'alert_log',
-      }, fetchAlerts)
-      .subscribe()
-
-    channelRef.current = channel
-
+    const interval = setInterval(fetchAlerts, 30_000)
+    const onVisibility = () => { if (!document.hidden) fetchAlerts() }
+    document.addEventListener('visibilitychange', onVisibility)
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
-        channelRef.current = null
-      }
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [fetchAlerts])
 
   const acknowledge = useCallback(async (alertId, userId) => {
-    await supabase.from('alert_log').update({
+    await dab.from('alert_log').update({
       status:          'acknowledged',
       acknowledged_by: userId,
       acknowledged_at: new Date().toISOString(),
@@ -64,7 +52,7 @@ export function useAlerts({ activeOnly = true } = {}) {
   }, [fetchAlerts])
 
   const resolve = useCallback(async (alertId) => {
-    await supabase.from('alert_log').update({
+    await dab.from('alert_log').update({
       status:      'resolved',
       resolved_at: new Date().toISOString(),
     }).eq('id', alertId)

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { dab, getToken } from '@/lib/dab'
 import { PageHeader } from '@/components/PageHeader'
 import {
   Upload, RefreshCw, Cpu, Check, AlertTriangle,
@@ -38,18 +38,17 @@ export default function FNExportAnalyzer() {
 
   // Load upload history
   useEffect(() => {
-    supabase.from('fn_upload_batches').select('*').order('created_at',{ascending:false}).limit(10)
-      .then(({data}) => setBatches(data ?? []))
+    dab.from('fn_upload_batches').select('*').order('created_at', { ascending: false }).limit(10)
+      .then(({ data }) => setBatches(data ?? []))
   }, [])
 
   // Load from DB without re-uploading
   const loadFromDB = useCallback(async () => {
     setLoadingDB(true); setError('')
     try {
-      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/ai/load-fn-history', {
         method:'POST',
-        headers:{'Content-Type':'application/json', Authorization:`Bearer ${session?.access_token??''}`},
+        headers:{'Content-Type':'application/json', Authorization:`Bearer ${getToken()??''}`},
         body: JSON.stringify({}),
       })
       const data = await res.json()
@@ -65,7 +64,7 @@ export default function FNExportAnalyzer() {
 
     try {
       const XLSX = await import('xlsx')
-      const { data:{ session } } = await supabase.auth.getSession()
+      const token = getToken()
       let lastResult = null
 
       for (const file of Array.from(files)) {
@@ -76,7 +75,7 @@ export default function FNExportAnalyzer() {
 
         const res = await fetch('/api/ai/analyze-fn-export', {
           method:'POST',
-          headers:{'Content-Type':'application/json', Authorization:`Bearer ${session?.access_token??''}`},
+          headers:{'Content-Type':'application/json', Authorization:`Bearer ${token??''}`},
           body: JSON.stringify({ rows, fileName: file.name }),
         })
         const data = await res.json()
@@ -86,7 +85,7 @@ export default function FNExportAnalyzer() {
 
       if (lastResult) setResult(lastResult)
 
-      const { data: newBatches } = await supabase.from('fn_upload_batches').select('*').order('created_at',{ascending:false}).limit(10)
+      const { data: newBatches } = await dab.from('fn_upload_batches').select('*').order('created_at', { ascending: false }).limit(10)
       setBatches(newBatches ?? [])
     } catch(e) { setError(e.message) }
     setProcessing(false)

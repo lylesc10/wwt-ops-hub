@@ -3,29 +3,13 @@
  * Body: { project_id?: string }
  *
  * Pulls work order statuses from FieldNation and writes them
- * back to the sites table in Supabase.
- *
- * Mapping:
- *   FN status       → our status
- *   draft           → scheduled
- *   published       → scheduled
- *   routed          → staffed
- *   assigned        → staffed
- *   work_done       → in_progress
- *   approved        → completed
- *   cancelled       → cancelled
- *   expired         → cancelled
- *   paid            → completed
+ * back to the sites table.
  */
 
-import { createClient } from '@supabase/supabase-js'
 import { fnFetch } from './auth.js'
 import { withSecurity, requireAuth } from '../_lib/middleware.js'
-
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+import { query } from '../_lib/db.js'
+import { getFNCredentials } from '../_lib/credentials.js'
 
 const FN_STATUS_MAP = {
   draft:      'scheduled',
@@ -47,24 +31,18 @@ async function handler(req, res) {
   try {
     const creds = await getFNCredentials()
 
-    // Load sites that have FN work order IDs
-    let sitesQuery = supabase
-      .from('sites')
-      .select('id, code, fn_wo_id, status, project_id')
-      .not('fn_wo_id', 'is', null)
+    const sql = project_id
+      ? 'SELECT id, code, fn_wo_id, status, project_id, onsite_tech FROM sites WHERE fn_wo_id IS NOT NULL AND project_id = $1'
+      : 'SELECT id, code, fn_wo_id, status, project_id, onsite_tech FROM sites WHERE fn_wo_id IS NOT NULL'
+    const { rows: sites } = await query(sql, project_id ? [project_id] : [])
 
-    if (project_id) sitesQuery = sitesQuery.eq('project_id', project_id)
-
-    const { data: sites } = await sitesQuery
-
-    if (!sites?.length) {
+    if (!sites.length) {
       return res.json({ ok: true, synced: 0, message: 'No sites with FN work order IDs found.' })
     }
 
     let synced = 0, changes = 0
     const errors = []
 
-    // Process in batches of 20
     for (let i = 0; i < sites.length; i += 20) {
       const batch = sites.slice(i, i + 20)
 
@@ -73,51 +51,38 @@ async function handler(req, res) {
           const fnRes = await fnFetch(`/workorders/${site.fn_wo_id}`, {}, creds)
           if (!fnRes.ok) {
             if (fnRes.status === 404) {
-              // WO was deleted from FN
-              await supabase.from('sites').update({ fn_wo_id: null }).eq('id', site.id)
+              await query('UPDATE sites SET fn_wo_id = NULL WHERE id = $1', [site.id])
             }
             return
           }
 
-          const wo = await fnRes.json()
-          const fnStatusRaw = wo.status?.name ?? wo.status ?? ''
-          const newStatus   = FN_STATUS_MAP[fnStatusRaw.toLowerCase()] ?? site.status
-
-          // Get assigned provider name if any
+          const wo           = await fnRes.json()
+          const fnStatusRaw  = wo.status?.name ?? wo.status ?? ''
+          const newStatus    = FN_STATUS_MAP[fnStatusRaw.toLowerCase()] ?? site.status
           const assignedTech = wo.routing?.assigned?.provider?.name ?? null
 
           const updates = {}
-          if (newStatus !== site.status) {
-            updates.status = newStatus
-            changes++
-          }
-          if (assignedTech && assignedTech !== site.onsite_tech) {
-            updates.onsite_tech = assignedTech
-          }
+          if (newStatus !== site.status) { updates.status = newStatus; changes++ }
+          if (assignedTech && assignedTech !== site.onsite_tech) updates.onsite_tech = assignedTech
 
           if (Object.keys(updates).length) {
-            await supabase.from('sites').update({
-              ...updates,
-              updated_at: new Date().toISOString(),
-            }).eq('id', site.id)
+            const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 1}`)
+            const vals = [...Object.values(updates), new Date().toISOString(), site.id]
+            await query(
+              `UPDATE sites SET ${setClauses.join(', ')}, updated_at = $${vals.length - 1} WHERE id = $${vals.length}`,
+              vals
+            )
 
-            // Log the change
-            await supabase.from('sync_log').insert({
-              project_id: site.project_id,
-              site_id:    site.id,
-              field_name: 'fn_status_sync',
-              old_value:  site.status,
-              new_value:  newStatus,
-            })
+            await query(
+              'INSERT INTO sync_log (project_id, site_id, field_name, old_value, new_value) VALUES ($1, $2, $3, $4, $5)',
+              [site.project_id, site.id, 'fn_status_sync', site.status, newStatus]
+            )
 
-            // Fire alert if status changed to a notable state
             if (newStatus === 'completed' && site.status !== 'completed') {
-              await supabase.from('alert_log').insert({
-                alert_type: 'site_completed',
-                site_id:    site.id,
-                title:      `Site completed: ${site.code}`,
-                detail:     `FN WO ${site.fn_wo_id} marked as ${fnStatusRaw}`,
-              })
+              await query(
+                "INSERT INTO alert_log (alert_type, site_id, title, detail) VALUES ('site_completed', $1, $2, $3)",
+                [site.id, `Site completed: ${site.code}`, `FN WO ${site.fn_wo_id} marked as ${fnStatusRaw}`]
+              )
             }
           }
 
@@ -141,43 +106,6 @@ async function handler(req, res) {
     console.error('[FN sync-status]', err)
     return res.status(500).json({ ok: false, message: err.message })
   }
-}
-
-
-// Reads FN credentials from the `credentials` table (migration 003+)
-async function getFNCredentials() {
-  if (process.env.FN_CLIENT_ID) {
-    return {
-      clientId:     process.env.FN_CLIENT_ID,
-      clientSecret: process.env.FN_CLIENT_SECRET,
-      username:     process.env.FN_USERNAME,
-      password:     process.env.FN_PASSWORD,
-      baseUrl:      process.env.FN_BASE_URL || 'sandbox',
-    }
-  }
-  const { data, error } = await supabase
-    .from('credentials')
-    .select('encrypted_data, is_active')
-    .eq('service', 'fieldnation')
-    .single()
-  if (error || !data?.encrypted_data) throw new Error('FN credentials not configured. Add them in Settings → API & Webhooks.')
-  const creds = parseFNCreds(data.encrypted_data)
-  if (!creds?.client_id || !creds?.client_secret) throw new Error('Incomplete FN credentials stored.')
-  if (!creds?.username || !creds?.password) throw new Error('FN username and password required. Re-save in Settings → API & Webhooks → FieldNation.')
-  const isSandbox = !creds.environment || creds.environment === 'sandbox'
-  return {
-    clientId:     creds.client_id,
-    clientSecret: creds.client_secret,
-    username:     creds.username,
-    password:     creds.password,
-    baseUrl:      isSandbox ? 'sandbox' : 'prod',
-  }
-}
-
-function parseFNCreds(encrypted_data) {
-  try { return JSON.parse(Buffer.from(String(encrypted_data), 'base64').toString('utf-8')) } catch {}
-  try { return JSON.parse(String(encrypted_data)) } catch {}
-  return null
 }
 
 export default withSecurity(requireAuth(handler, 'pm'))

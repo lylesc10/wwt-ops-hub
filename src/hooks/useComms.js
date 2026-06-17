@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { dab, getToken } from '@/lib/dab'
+import { useAuth } from '@/hooks/useAuth'
 
 export function useComms(siteId = null) {
+  const { user } = useAuth()
   const [messages,       setMessages]       = useState([])
   const [confirmations,  setConfirmations]  = useState([])
   const [templates,      setTemplates]      = useState([])
@@ -10,7 +12,7 @@ export function useComms(siteId = null) {
   const [blasting,       setBlasting]       = useState(false)
 
   const fetchMessages = useCallback(async () => {
-    let q = supabase
+    let q = dab
       .from('tech_messages')
       .select('*')
       .order('sent_at', { ascending: false })
@@ -24,7 +26,7 @@ export function useComms(siteId = null) {
 
   const fetchConfirmations = useCallback(async () => {
     if (!siteId) return
-    const { data } = await supabase
+    const { data } = await dab
       .from('tech_confirmations')
       .select('*')
       .eq('site_id', siteId)
@@ -33,7 +35,7 @@ export function useComms(siteId = null) {
   }, [siteId])
 
   const fetchTemplates = useCallback(async () => {
-    const { data } = await supabase
+    const { data } = await dab
       .from('message_templates')
       .select('*')
       .eq('is_active', true)
@@ -47,38 +49,32 @@ export function useComms(siteId = null) {
     fetchMessages()
     if (siteId) fetchConfirmations()
 
-    // Realtime subscription for new messages
-    const channel = supabase
-      .channel(`comms-${siteId ?? 'all'}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'tech_messages',
-        ...(siteId ? { filter: `site_id=eq.${siteId}` } : {}),
-      }, fetchMessages)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'tech_confirmations',
-        ...(siteId ? { filter: `site_id=eq.${siteId}` } : {}),
-      }, fetchConfirmations)
-      .subscribe()
-
-    return () => supabase.removeChannel(channel)
+    const poll = () => { fetchMessages(); if (siteId) fetchConfirmations() }
+    const interval = setInterval(poll, 30_000)
+    const onVisibility = () => { if (!document.hidden) poll() }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [siteId, fetchMessages, fetchConfirmations, fetchTemplates])
 
   const sendSMS = useCallback(async ({ siteId: sid, recipients, body, templateKey, scheduleConfirmation = false }) => {
     setSending(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
+      const token = getToken()
       const res = await fetch('/api/comms/send-sms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token ?? ''}`,
+          Authorization: `Bearer ${token ?? ''}`,
         },
         body: JSON.stringify({
           site_id:               sid,
           recipients,
           body,
           template_key:          templateKey,
-          sent_by:               session?.user?.id,
+          sent_by:               user?.id,
           schedule_confirmation: scheduleConfirmation,
         }),
       })
@@ -89,23 +85,23 @@ export function useComms(siteId = null) {
     } finally {
       setSending(false)
     }
-  }, [fetchMessages, fetchConfirmations])
+  }, [user?.id, fetchMessages, fetchConfirmations])
 
   const blastConfirmations = useCallback(async ({ projectId, templateKey = 'site_confirmation', daysAhead = 14 }) => {
     setBlasting(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
+      const token = getToken()
       const res = await fetch('/api/comms/blast-confirmations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token ?? ''}`,
+          Authorization: `Bearer ${token ?? ''}`,
         },
         body: JSON.stringify({
           project_id:   projectId,
           template_key: templateKey,
           days_ahead:   daysAhead,
-          sent_by:      session?.user?.id,
+          sent_by:      user?.id,
         }),
       })
       const data = await res.json()
@@ -114,13 +110,13 @@ export function useComms(siteId = null) {
     } finally {
       setBlasting(false)
     }
-  }, [fetchMessages])
+  }, [user?.id, fetchMessages])
 
   const mergeTemplate = useCallback((template, site) => {
     if (!template?.body || !site) return template?.body ?? ''
     return template.body.replace(/\{\{(\w+)\}\}/g, (_, key) => {
       const map = {
-        tech_name: '', // filled in at send time per-tech
+        tech_name: '',
         site_name: site.branch_name ?? site.code ?? '',
         address:   site.address ?? '',
         city:      site.city ?? '',

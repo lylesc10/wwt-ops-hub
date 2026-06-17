@@ -6,12 +6,10 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-ARG VITE_SUPABASE_URL
-ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_API_BASE
 ARG VITE_APP_ENV
 ARG VITE_FN_MOCK
-ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
-    VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY \
+ENV VITE_API_BASE=$VITE_API_BASE \
     VITE_APP_ENV=$VITE_APP_ENV \
     VITE_FN_MOCK=$VITE_FN_MOCK
 
@@ -26,13 +24,14 @@ WORKDIR /app
 ENV NODE_ENV=production \
     PORT=8080
 
-# Production deps only (express + @supabase/supabase-js).
+# Production deps: express, pg, jsonwebtoken, bcryptjs (no supabase-js at runtime).
 COPY package*.json ./
 RUN npm ci --omit=dev
 
 # App code: the API handlers, their shared lib, and the production server.
 COPY --from=build /app/dist ./dist
 COPY api ./api
+COPY azure/dab-config.json ./azure/dab-config.json
 COPY server.js ./
 
 EXPOSE 8080

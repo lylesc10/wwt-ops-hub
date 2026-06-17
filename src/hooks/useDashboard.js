@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { dab } from '@/lib/dab'
 import { startOfWeek, endOfWeek, addWeeks, format, parseISO, isWithinInterval } from 'date-fns'
 
 export function useDashboard() {
@@ -10,13 +10,12 @@ export function useDashboard() {
     setLoading(true)
     try {
 
-    // Fetch all active sites (paginated)
     const PAGE = 1000
     let sites = [], from = 0
     while (true) {
-      const { data: rows, error } = await supabase
+      const { data: rows, error } = await dab
         .from('sites')
-        .select('id, code, status, scheduled_start, scheduled_end, state, fst_owner, onsite_tech, fn_wo_id, project_id')
+        .select('id,code,status,scheduled_start,scheduled_end,state,fst_owner,onsite_tech,fn_wo_id,project_id')
         .range(from, from + PAGE - 1)
         .order('code')
       if (error) { console.error('[Dashboard] sites fetch error:', error.message); break }
@@ -27,14 +26,13 @@ export function useDashboard() {
     }
 
     const [alertsRes, projectsRes] = await Promise.all([
-      supabase.from('alert_log').select('id, alert_type, status, created_at').order('created_at', { ascending: false }).limit(200),
-      supabase.from('projects').select('id, name, client, color').eq('is_active', true),
+      dab.from('alert_log').select('id,alert_type,status,created_at').order('created_at', { ascending: false }).limit(200),
+      dab.from('projects').select('id,name,client,color').eq('is_active', true),
     ])
 
     const alerts   = alertsRes.data   ?? []
     const projects = projectsRes.data ?? []
 
-    // Status breakdown
     const statusCounts = sites.reduce((acc, s) => {
       acc[s.status] = (acc[s.status] ?? 0) + 1
       return acc
@@ -51,7 +49,6 @@ export function useDashboard() {
     const withFNWO  = sites.filter(s => s.fn_wo_id).length
     const noDate    = sites.filter(s => !s.scheduled_start && !['completed','cancelled'].includes(s.status)).length
 
-    // Weekly data (8 weeks centered on now)
     const now = new Date()
     const weeklyData = Array.from({ length: 8 }, (_, i) => {
       const wkStart = startOfWeek(addWeeks(now, i - 1), { weekStartsOn: 1 })
@@ -86,7 +83,6 @@ export function useDashboard() {
       catch { return false }
     })
 
-    // State breakdown
     const stateCounts = sites.reduce((acc, s) => {
       if (s.state) acc[s.state] = (acc[s.state] ?? 0) + 1
       return acc
@@ -99,7 +95,6 @@ export function useDashboard() {
         pct: Math.round((count / total) * 100),
       }))
 
-    // FST breakdown
     const fstCounts = sites.reduce((acc, s) => {
       const fst = s.fst_owner || 'Unassigned'
       if (!acc[fst]) acc[fst] = { total: 0, completed: 0, unstaffed: 0 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, Save } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { dab } from '@/lib/dab'
 import { useAuth } from '@/hooks/useAuth'
 import { SiteWorkOrdersPanel } from './SiteWorkOrdersPanel'
 import styles from './SiteEditModal.module.css'
@@ -47,7 +47,7 @@ export function SiteEditModal({ site, onClose, onSaved }) {
     if (!isPM) return
     setSaving(true)
     setError(null)
-    const { error } = await supabase
+    const { error } = await dab
       .from('sites')
       .update({ ...form, updated_at: new Date().toISOString() })
       .eq('id', site.id)

@@ -18,13 +18,8 @@
  *   workorder.message         → log to alert_log
  */
 
-import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
-
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+import { query } from '../_lib/db.js'
 
 const FN_WEBHOOK_SECRET = process.env.FN_WEBHOOK_SECRET
 
@@ -49,8 +44,6 @@ export default async function handler(req, res) {
       .update(body)
       .digest('hex')
 
-    // timingSafeEqual requires equal-length buffers — check length first
-    // to avoid a crash-based oracle that leaks whether sig is the right length
     const sigBuf = Buffer.from(sig, 'hex')
     const expBuf = Buffer.from(expected, 'hex')
     const valid = sigBuf.length === expBuf.length &&
@@ -62,7 +55,7 @@ export default async function handler(req, res) {
     }
   }
 
-  const event = req.body
+  const event     = req.body
   const eventType = event?.event_type ?? event?.type ?? ''
   const wo        = event?.work_order ?? event?.data?.work_order ?? {}
   const woId      = String(wo.id ?? event?.work_order_id ?? '')
@@ -72,12 +65,11 @@ export default async function handler(req, res) {
   if (!woId) return res.json({ ok: true, message: 'No WO ID in payload' })
 
   try {
-    // Find the site with this FN WO ID
-    const { data: site } = await supabase
-      .from('sites')
-      .select('id, code, branch_name, status, project_id, onsite_tech')
-      .eq('fn_wo_id', woId)
-      .single()
+    const { rows } = await query(
+      'SELECT id, code, branch_name, status, project_id, onsite_tech FROM sites WHERE fn_wo_id = $1 LIMIT 1',
+      [woId]
+    )
+    const site = rows[0]
 
     if (!site) {
       console.log(`[FN Webhook] No site found for WO ${woId}`)
@@ -86,65 +78,51 @@ export default async function handler(req, res) {
 
     const updates = {}
 
-    // ── Map event to status change ─────────────────────────
     const newStatus = FN_STATUS_MAP[eventType]
-    if (newStatus && newStatus !== site.status) {
-      updates.status = newStatus
-    }
+    if (newStatus && newStatus !== site.status) updates.status = newStatus
 
-    // ── Provider assigned ──────────────────────────────────
     if (eventType === 'workorder.assigned') {
       const provider = wo.routing?.assigned?.provider ?? event?.provider ?? {}
       const techName = [provider.first_name, provider.last_name].filter(Boolean).join(' ')
-      if (techName && techName !== site.onsite_tech) {
-        updates.onsite_tech = techName
-      }
+      if (techName && techName !== site.onsite_tech) updates.onsite_tech = techName
     }
 
-    // ── Provider removed — unstaffed ───────────────────────
-    if (eventType === 'workorder.provider_removed') {
-      updates.onsite_tech = null
-    }
+    if (eventType === 'workorder.provider_removed') updates.onsite_tech = null
 
-    // ── Apply DB updates ───────────────────────────────────
     if (Object.keys(updates).length) {
-      await supabase.from('sites').update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      }).eq('id', site.id)
+      const keys  = Object.keys(updates)
+      const vals  = [...Object.values(updates), new Date().toISOString(), site.id]
+      const setClauses = keys.map((k, i) => `${k} = $${i + 1}`)
+      await query(
+        `UPDATE sites SET ${setClauses.join(', ')}, updated_at = $${vals.length - 1} WHERE id = $${vals.length}`,
+        vals
+      )
 
-      await supabase.from('sync_log').insert({
-        project_id: site.project_id,
-        site_id:    site.id,
-        field_name: `fn_webhook_${eventType}`,
-        old_value:  site.status,
-        new_value:  updates.status ?? site.status,
-      })
+      await query(
+        'INSERT INTO sync_log (project_id, site_id, field_name, old_value, new_value) VALUES ($1, $2, $3, $4, $5)',
+        [site.project_id, site.id, `fn_webhook_${eventType}`, site.status, updates.status ?? site.status]
+      )
     }
 
-    // ── Fire alerts for important events ──────────────────
     const alertMap = {
-      'workorder.cancelled':       { type: 'provider_cancelled',  title: `WO Cancelled: ${site.code} — ${site.branch_name}` },
-      'workorder.counter_offer':   { type: 'payment_flag',        title: `Counter offer on: ${site.code} — ${site.branch_name}` },
-      'workorder.provider_removed':{ type: 'unstaffed_approaching', title: `Tech removed from: ${site.code} — ${site.branch_name}` },
-      'workorder.approved':        { type: 'site_completed',      title: `Site completed: ${site.code} — ${site.branch_name}` },
+      'workorder.cancelled':        { type: 'provider_cancelled',    title: `WO Cancelled: ${site.code} — ${site.branch_name}` },
+      'workorder.counter_offer':    { type: 'payment_flag',          title: `Counter offer on: ${site.code} — ${site.branch_name}` },
+      'workorder.provider_removed': { type: 'unstaffed_approaching', title: `Tech removed from: ${site.code} — ${site.branch_name}` },
+      'workorder.approved':         { type: 'site_completed',        title: `Site completed: ${site.code} — ${site.branch_name}` },
     }
 
     const alertDef = alertMap[eventType]
     if (alertDef) {
-      await supabase.from('alert_log').insert({
-        alert_type: alertDef.type,
-        site_id:    site.id,
-        title:      alertDef.title,
-        detail:     `FN webhook: ${eventType} — WO ${woId}`,
-      })
+      await query(
+        'INSERT INTO alert_log (alert_type, site_id, title, detail) VALUES ($1, $2, $3, $4)',
+        [alertDef.type, site.id, alertDef.title, `FN webhook: ${eventType} — WO ${woId}`]
+      )
     }
 
     return res.json({ ok: true, site_id: site.id, updates })
 
   } catch (err) {
     console.error('[FN Webhook]', err)
-    // Return 200 so FN doesn't keep retrying — log the error internally
     return res.json({ ok: false, message: err.message })
   }
 }

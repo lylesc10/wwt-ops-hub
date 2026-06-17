@@ -91,6 +91,29 @@ async function registerRoutes() {
   }
 }
 
+// ── Sync Job mode (SYNC_JOB=true set by the Container Apps Job) ──────────────
+if (process.env.SYNC_JOB === 'true') {
+  console.log('[server] Running in sync job mode — triggering smartsheet sync for all active projects')
+  try {
+    const { query } = await import('./api/_lib/db.js')
+    const { rows: projects } = await query('SELECT id FROM projects WHERE is_active = true')
+    const baseUrl = process.env.INTERNAL_API_URL ?? `http://localhost:${PORT}`
+    for (const { id } of projects) {
+      const r = await fetch(`${baseUrl}/api/sync/smartsheet`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: id }),
+      })
+      const data = await r.json()
+      console.log(`[sync-job] project ${id}:`, data.message ?? data.ok)
+    }
+  } catch (err) {
+    console.error('[sync-job] failed:', err.message)
+    process.exit(1)
+  }
+  process.exit(0)
+}
+
 await registerRoutes()
 
 // Static SPA + client-side routing fallback.
