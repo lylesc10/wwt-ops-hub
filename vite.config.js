@@ -78,10 +78,20 @@ function apiDevPlugin(env) {
         if (!resolved) return next()
 
         const { file, params } = resolved
-        // Inject dynamic params into req.query and req.params (Vercel-style)
+
+        // Parse query string into req.query (raw IncomingMessage has none)
+        if (!req.query) req.query = {}
+        const qIdx = req.url.indexOf('?')
+        if (qIdx !== -1) {
+          for (const [k, v] of new URLSearchParams(req.url.slice(qIdx + 1))) {
+            req.query[k] = v
+          }
+        }
+
+        // Inject dynamic path params into req.query and req.params (Vercel-style)
         if (!req.params) req.params = {}
         Object.assign(req.params, params)
-        Object.assign(req.query ?? {}, params)
+        Object.assign(req.query, params)
 
         // Vercel-compatible res shim
         let statusCode = 200

@@ -18,14 +18,17 @@ import { withSecurity, requireAuth, buildClientPrincipal } from '../_lib/middlew
 const DAB_INTERNAL_URL = process.env.DAB_INTERNAL_URL ?? 'http://localhost:5000'
 
 export default withSecurity(requireAuth(async function handler(req, res) {
+  // req.path is Express-only; Vite dev plugin passes raw Node http.IncomingMessage which only has req.url
+  const reqPath = req.path ?? req.url?.split('?')[0] ?? ''
+
   // entity comes from :entity param (named route) or first path segment after /api/data/ (wildcard route)
-  const entity = req.params?.entity ?? req.path.split('/')[3]
+  const entity = req.params?.entity ?? reqPath.split('/')[3]
   if (!entity) {
     return res.status(400).json({ message: 'entity is required' })
   }
 
   // Build the upstream DAB URL, preserving path after entity and the query string
-  const entityPath  = req.path.replace(/^\/api\/data/, '/api')
+  const entityPath  = reqPath.replace(/^\/api\/data/, '/api')
   const queryString = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''
   const upstream    = `${DAB_INTERNAL_URL}${entityPath}${queryString}`
 
