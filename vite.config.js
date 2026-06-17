@@ -57,6 +57,15 @@ function apiDevPlugin(env) {
       set('DATABASE_URL',      env.DATABASE_URL)
       set('JWT_SECRET',        env.JWT_SECRET)
       set('JWT_REFRESH_SECRET',env.JWT_REFRESH_SECRET)
+      set('FN_CLIENT_ID',      env.FN_CLIENT_ID)
+      set('FN_CLIENT_SECRET',  env.FN_CLIENT_SECRET)
+      set('FN_USERNAME',       env.FN_USERNAME)
+      set('FN_PASSWORD',       env.FN_PASSWORD)
+      set('FN_BASE_URL',       env.FN_BASE_URL)
+      set('SMARTSHEET_ACCESS_TOKEN', env.SMARTSHEET_ACCESS_TOKEN)
+      set('TWILIO_ACCOUNT_SID',env.TWILIO_ACCOUNT_SID)
+      set('TWILIO_AUTH_TOKEN', env.TWILIO_AUTH_TOKEN)
+      set('TWILIO_FROM_NUMBER',env.TWILIO_FROM_NUMBER)
 
       server.middlewares.use(async (req, res, next) => {
         if (!req.url.startsWith('/api/')) return next()

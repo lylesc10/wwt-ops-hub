@@ -192,7 +192,8 @@ export function getMockResponse(entity, method = 'GET') {
   const rows = MOCK_ENTITIES[entity]
 
   if (rows === undefined) {
-    return { status: 404, body: { title: `Entity '${entity}' not found in mock data` } }
+    // Unknown entity in mock mode — return empty collection so the UI doesn't break
+    return { status: 200, body: { value: [], mock: true } }
   }
 
   if (method === 'GET') {

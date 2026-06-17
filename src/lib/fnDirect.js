@@ -94,20 +94,8 @@ export async function listClients() {
 }
 
 export async function listManagers() {
-  try {
-    const token = await getToken()
-    const res = await fetch(`${FN_API_BASE}/managers?access_token=${token}`, {
-      headers: { Accept: 'application/json' },
-    })
-    if (!res.ok) return []
-    const data = await res.json()
-    return (data.results ?? []).map(m => ({
-      id:   m.id,
-      name: m.name ?? (`${m.first_name ?? ''} ${m.last_name ?? ''}`.trim() || `Manager ${m.id}`),
-    }))
-  } catch {
-    return []
-  }
+  // FN v2 sandbox does not expose a /managers endpoint — return empty list
+  return []
 }
 
 export async function deleteWorkOrderDirect(woId, cancelReason = 'Deleted via WWT Ops Hub') {
@@ -178,7 +166,8 @@ export const isFNConfigured = () =>
 
 /**
  * Fetch all draft work orders from the FN sandbox.
- * Uses status_id=2 (Draft) and requests schedule/pay/location in one call.
+ * Fetches all WOs and filters client-side by status name — status_id for Draft
+ * varies by FN environment and is not reliable as a server-side filter param.
  */
 export async function listDraftWorkOrders() {
   const token = await getToken()
@@ -186,7 +175,6 @@ export async function listDraftWorkOrders() {
     access_token: token,
     per_page:     '100',
   })
-  params.append('f[status_id][]', '2')
   params.append('include[]', 'schedule')
   params.append('include[]', 'pay')
   params.append('include[]', 'location')
@@ -199,7 +187,11 @@ export async function listDraftWorkOrders() {
     throw new Error(`FN ${res.status}: ${err.message ?? res.statusText}`)
   }
   const data = await res.json()
-  return data.results ?? []
+  const all = data.results ?? []
+  return all.filter(wo => {
+    const name = (wo.status?.name ?? wo.status ?? '').toLowerCase()
+    return name === 'draft'
+  })
 }
 
 /**
