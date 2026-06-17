@@ -96,6 +96,14 @@ export function withSecurity(handler) {
  */
 export function requireAuth(handler, minRole = null) {
   return async (req, res) => {
+    // Dev bypass: when JWT_SECRET is not configured, allow all requests as admin.
+    // Enables running localhost without a real database or auth setup.
+    if (!process.env.JWT_SECRET) {
+      req.user     = { sub: 'dev-bypass', email: 'dev@local', roles: ['admin'], full_name: 'Dev User' }
+      req.userRole = 'admin'
+      return handler(req, res)
+    }
+
     const authHeader = req.headers['authorization']
     if (!authHeader?.startsWith('Bearer ')) {
       return res.status(401).json({ message: 'Missing authorization header' })
