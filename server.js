@@ -43,6 +43,9 @@ function collectRoutes(dir, base = '') {
     const full = path.join(dir, entry)
     if (statSync(full).isDirectory()) {
       if (entry === '_lib') continue
+      // The data/ directory is registered separately as a wildcard catch-all
+      // so that /api/data/:entity AND /api/data/:entity/:id both resolve.
+      if (entry === 'data' && base === '') continue
       routes.push(...collectRoutes(full, `${base}/${entry}`))
       continue
     }
@@ -57,6 +60,28 @@ function collectRoutes(dir, base = '') {
 }
 
 async function registerRoutes() {
+  // DAB proxy: /api/data/* must catch both /entity and /entity/:id, so we
+  // register it manually before the auto-collected routes.
+  const dataProxyFile = path.join(API_DIR, 'data', '[entity].js')
+  if (existsSync(dataProxyFile)) {
+    try {
+      const mod = await import(pathToFileURL(dataProxyFile).href)
+      const handler = mod.default ?? mod
+      if (typeof handler === 'function') {
+        app.all('/api/data/*', (req, res) => {
+          Object.assign(req.query, req.params)
+          Promise.resolve(handler(req, res)).catch((err) => {
+            console.error('[server] /api/data/*', err)
+            if (!res.headersSent) res.status(500).json({ message: err.message })
+          })
+        })
+        console.log(`[server] route  /api/data/*                        -> api/data/[entity].js`)
+      }
+    } catch (err) {
+      console.warn(`[server] failed to load data proxy — skipped: ${err.message}`)
+    }
+  }
+
   const routes = collectRoutes(API_DIR)
   // Register static segments before dynamic (:param) ones so a literal path
   // can't be swallowed by a sibling param route.

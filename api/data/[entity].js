@@ -18,8 +18,8 @@ import { withSecurity, requireAuth, buildClientPrincipal } from '../_lib/middlew
 const DAB_INTERNAL_URL = process.env.DAB_INTERNAL_URL ?? 'http://localhost:5000'
 
 export default withSecurity(requireAuth(async function handler(req, res) {
-  // entity comes from the dynamic route segment (Express :entity param)
-  const entity = req.params?.entity
+  // entity comes from :entity param (named route) or first path segment after /api/data/ (wildcard route)
+  const entity = req.params?.entity ?? req.path.split('/')[3]
   if (!entity) {
     return res.status(400).json({ message: 'entity is required' })
   }
