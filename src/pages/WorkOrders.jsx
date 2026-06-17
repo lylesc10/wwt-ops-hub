@@ -11,7 +11,7 @@ import {
 import { parsePaste, parseCSVImport } from '@/cpwog/parsers'
 import { Download, History, Route, Plus, X, Trash2, Check, ChevronDown, AlertTriangle, Loader, ExternalLink, ShieldAlert, ClipboardList, RefreshCw, Send } from 'lucide-react'
 import { useFNSync } from '@/hooks/useFNSync'
-import { createWorkOrderDirect, deleteWorkOrderDirect, isFNConfigured, listClients, listManagers } from '@/lib/fnDirect'
+import { createWorkOrderDirect, deleteWorkOrderDirect, isFNConfigured, listClients, listManagers, listDraftWorkOrders, updateWorkOrderDirect, publishWorkOrderDirect } from '@/lib/fnDirect'
 import styles from './WorkOrders.module.css'
 
 const JOKES = [
@@ -761,8 +761,48 @@ export default function WorkOrders() {
   )
 }
 
+// ── FN WO → normalised row ─────────────────────────────────────
+function normalizeFNWorkOrder(wo) {
+  const typeMatch     = wo.title?.match(/\b(LVT|LVL|INT|INL|DEL|BRK)\b/i)
+  const wo_type       = typeMatch?.[1]?.toUpperCase() ?? '—'
+  const sw            = wo.schedule?.service_window ?? wo.schedule ?? {}
+  const startDate     = sw.start?.local?.date ?? sw.exact?.start?.split('T')?.[0] ?? ''
+  const startTime     = sw.start?.local?.time ?? sw.exact?.start?.split('T')?.[1]?.slice(0, 5) ?? ''
+  const pay           = wo.pay ?? {}
+  const isHourly      = pay.type === 'hourly'
+  const loc           = wo.location ?? {}
+  return {
+    id:             String(wo.id),
+    fn_wo_id:       String(wo.id),
+    fn_status:      'draft',
+    fn_url:         `https://ui-sandbox.fndev.net/workorders/${wo.id}`,
+    wo_type,
+    wo_number:      1,
+    day_number:     1,
+    site_id:        null,
+    project_id:     null,
+    scheduled_date: startDate,
+    start_time:     startTime,
+    budget_tech:    isHourly ? '' : String(pay.base?.amount ?? ''),
+    pay_rate:       isHourly ? 'hourly' : 'daily',
+    approx_hours:   isHourly ? String(pay.base?.max_units ?? '') : '',
+    notes:          wo.description ?? '',
+    // synthetic site used for display — no local DB join needed
+    _site: {
+      code:        wo.title ?? String(wo.id),
+      branch_name: wo.title ?? `Work Order ${wo.id}`,
+      address:     [loc.address1, loc.address2].filter(Boolean).join(', '),
+      city:        loc.city ?? '',
+      state:       loc.state ?? '',
+      zip:         loc.zip ?? '',
+    },
+  }
+}
+
 // ── WorkOrderList ─────────────────────────────────────────────
 function WorkOrderList({ styles }) {
+  const fnMode = isFNConfigured()
+
   const [wos,        setWos]        = useState([])
   const [siteMap,    setSiteMap]    = useState({})
   const [projectMap, setProjectMap] = useState({})
@@ -773,34 +813,50 @@ function WorkOrderList({ styles }) {
   const load = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const [woRes, siteRes, projRes] = await Promise.all([
-        dab.from('site_work_orders').select('*'),
-        dab.from('sites').select('id,code,branch_name,city,state,address,zip,scheduled_start,project_id'),
-        dab.from('projects').select('id,name,color'),
-      ])
-      if (woRes.error)   throw new Error(woRes.error.message)
-      if (siteRes.error) throw new Error(siteRes.error.message)
-      // Filter client-side so mock mode (which ignores $filter) works too
-      setWos((woRes.data ?? []).filter(w => w.fn_status === 'draft'))
-      setSiteMap(Object.fromEntries((siteRes.data  ?? []).map(s => [s.id, s])))
-      setProjectMap(Object.fromEntries((projRes.data ?? []).map(p => [p.id, p])))
+      if (fnMode) {
+        // Live data from FieldNation sandbox
+        const fnWOs = await listDraftWorkOrders()
+        setWos(fnWOs.map(normalizeFNWorkOrder))
+      } else {
+        // Fall back to local mock / DAB data
+        const [woRes, siteRes, projRes] = await Promise.all([
+          dab.from('site_work_orders').select('*'),
+          dab.from('sites').select('id,code,branch_name,city,state,address,zip,scheduled_start,project_id'),
+          dab.from('projects').select('id,name,color'),
+        ])
+        if (woRes.error)   throw new Error(woRes.error.message)
+        if (siteRes.error) throw new Error(siteRes.error.message)
+        setWos((woRes.data ?? []).filter(w => w.fn_status === 'draft'))
+        setSiteMap(Object.fromEntries((siteRes.data  ?? []).map(s => [s.id, s])))
+        setProjectMap(Object.fromEntries((projRes.data ?? []).map(p => [p.id, p])))
+      }
     } catch (e) { setError(e.message) }
     setLoading(false)
-  }, [])
+  }, [fnMode])
 
   useEffect(() => { load() }, [load])
 
   const handleSave = useCallback(async (wo, changes) => {
-    await dab.from('site_work_orders').update(changes).eq('id', wo.id)
-    setWos(prev => prev.map(w => w.id === wo.id ? { ...w, ...changes } : w))
+    if (fnMode) {
+      await updateWorkOrderDirect(wo.fn_wo_id, changes)
+      setWos(prev => prev.map(w => w.id === wo.id ? { ...w, ...changes, _site: w._site } : w))
+    } else {
+      await dab.from('site_work_orders').update(changes).eq('id', wo.id)
+      setWos(prev => prev.map(w => w.id === wo.id ? { ...w, ...changes } : w))
+    }
     setSelected(null)
-  }, [])
+  }, [fnMode])
 
   const handleApprove = useCallback(async (wo, changes) => {
-    await dab.from('site_work_orders').update({ ...changes, fn_status: 'published' }).eq('id', wo.id)
+    if (fnMode) {
+      await updateWorkOrderDirect(wo.fn_wo_id, changes)
+      await publishWorkOrderDirect(wo.fn_wo_id)
+    } else {
+      await dab.from('site_work_orders').update({ ...changes, fn_status: 'published' }).eq('id', wo.id)
+    }
     setWos(prev => prev.filter(w => w.id !== wo.id))
     setSelected(null)
-  }, [])
+  }, [fnMode])
 
   const totalPay = wos.reduce((s, w) => s + (parseFloat(w.budget_tech) || 0), 0)
 
@@ -822,10 +878,12 @@ function WorkOrderList({ styles }) {
             <div className={styles.statCardLabel}>Estimated Pay</div>
             <div className={styles.statCardValue}>{loading ? '—' : `$${totalPay.toLocaleString('en-US',{maximumFractionDigits:0})}`}</div>
           </div>
-          <div className={styles.statCard}>
-            <div className={styles.statCardLabel}>Projects</div>
-            <div className={styles.statCardValue}>{loading ? '—' : new Set(wos.map(w=>w.project_id)).size}</div>
-          </div>
+          {fnMode && (
+            <div className={styles.statCard}>
+              <div className={styles.statCardLabel}>Source</div>
+              <div className={styles.statCardValue} style={{fontSize:13,color:'var(--green)'}}>FN Live</div>
+            </div>
+          )}
         </div>
         <button className={styles.ghostBtn} onClick={load} disabled={loading}>
           <RefreshCw size={12} className={loading ? styles.spinning : undefined}/> Refresh
@@ -839,7 +897,11 @@ function WorkOrderList({ styles }) {
       )}
 
       {!loading && wos.length === 0 && !error && (
-        <div className={styles.statsEmpty}>No draft work orders found. Push work orders from the WO Generator to see them here.</div>
+        <div className={styles.statsEmpty}>
+          {fnMode
+            ? 'No draft work orders in the FieldNation sandbox. Push work orders from the WO Generator to see them here.'
+            : 'No draft work orders found. Push work orders from the WO Generator to see them here.'}
+        </div>
       )}
 
       {!loading && wos.length > 0 && (
@@ -849,7 +911,7 @@ function WorkOrderList({ styles }) {
               <tr>
                 <th>Work Order ID</th>
                 <th>Type</th>
-                <th>Site</th>
+                <th>Title / Site</th>
                 <th>Location</th>
                 <th>Date</th>
                 <th>Pay</th>
@@ -858,7 +920,7 @@ function WorkOrderList({ styles }) {
             </thead>
             <tbody>
               {wos.map(wo => {
-                const site = siteMap[wo.site_id]
+                const site = wo._site ?? siteMap[wo.site_id]
                 const date = wo.scheduled_date ?? site?.scheduled_start
                 return (
                   <tr key={wo.id} className={styles.woListRow}>
@@ -872,7 +934,7 @@ function WorkOrderList({ styles }) {
                       <div className={styles.woSiteCode}>{site?.code ?? '—'}</div>
                       <div className={styles.woSiteName}>{site?.branch_name ?? '—'}</div>
                     </td>
-                    <td className={styles.woLocation}>{site ? `${site.city}, ${site.state}` : '—'}</td>
+                    <td className={styles.woLocation}>{site?.city && site?.state ? `${site.city}, ${site.state}` : '—'}</td>
                     <td className={styles.woDate}>{fmtDate(date)}</td>
                     <td className={styles.woPay}>{wo.budget_tech ? `$${Number(wo.budget_tech).toLocaleString()}` : '—'}</td>
                     <td><span className={styles.woDraftBadge}>Draft</span></td>
@@ -887,7 +949,7 @@ function WorkOrderList({ styles }) {
       {selected && (
         <WODetailModal
           wo={selected}
-          site={siteMap[selected.site_id]}
+          site={selected._site ?? siteMap[selected.site_id]}
           project={projectMap[selected.project_id]}
           styles={styles}
           onClose={() => setSelected(null)}

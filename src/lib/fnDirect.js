@@ -175,3 +175,94 @@ export async function createWorkOrderDirect({
 
 export const isFNConfigured = () =>
   !!(import.meta.env.VITE_FN_CLIENT_ID && import.meta.env.VITE_FN_USERNAME)
+
+/**
+ * Fetch all draft work orders from the FN sandbox.
+ * Uses status_id=2 (Draft) and requests schedule/pay/location in one call.
+ */
+export async function listDraftWorkOrders() {
+  const token = await getToken()
+  const params = new URLSearchParams({
+    access_token: token,
+    per_page:     '100',
+  })
+  params.append('f[status_id][]', '2')
+  params.append('include[]', 'schedule')
+  params.append('include[]', 'pay')
+  params.append('include[]', 'location')
+
+  const res = await fetch(`${FN_API_BASE}/workorders?${params}`, {
+    headers: { Accept: 'application/json' },
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`FN ${res.status}: ${err.message ?? res.statusText}`)
+  }
+  const data = await res.json()
+  return data.results ?? []
+}
+
+/**
+ * Update a draft WO's schedule, pay, and/or description.
+ * Each changed attribute is sent to its own FN sub-resource endpoint.
+ */
+export async function updateWorkOrderDirect(woId, { scheduled_date, start_time, budget_tech, pay_rate, approx_hours, notes }) {
+  const token = await getToken()
+  const tasks = []
+
+  if (scheduled_date) {
+    const start = normalizeTime(start_time || '09:00')
+    const end   = addHoursToTime(start, Number(approx_hours) || 8)
+    tasks.push(fetch(`${FN_API_BASE}/workorders/${woId}/schedule?access_token=${token}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        service_window: {
+          mode:  'exact',
+          start: { local: { date: scheduled_date, time: start } },
+          end:   { local: { date: scheduled_date, time: end   } },
+        },
+      }),
+    }))
+  }
+
+  if (budget_tech) {
+    const isHourly = pay_rate === 'hourly'
+    tasks.push(fetch(`${FN_API_BASE}/workorders/${woId}/pay?access_token=${token}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(
+        isHourly
+          ? { type: 'hourly', base: { rate: Number(budget_tech), max_units: Number(approx_hours) || 8 } }
+          : { type: 'fixed',  base: { amount: Number(budget_tech) } }
+      ),
+    }))
+  }
+
+  if (notes !== undefined) {
+    tasks.push(fetch(`${FN_API_BASE}/workorders/${woId}?access_token=${token}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ description: notes }),
+    }))
+  }
+
+  const results = await Promise.allSettled(tasks)
+  const failed  = results.find(r => r.status === 'rejected')
+  if (failed) throw new Error(failed.reason?.message ?? 'FN update failed')
+}
+
+/**
+ * Publish a draft WO — moves it from Draft → Published so techs can see it.
+ */
+export async function publishWorkOrderDirect(woId) {
+  const token = await getToken()
+  const res = await fetch(
+    `${FN_API_BASE}/workorders/${woId}/publishworkorder?access_token=${token}`,
+    { method: 'GET', headers: { Accept: 'application/json' } }
+  )
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`FN publish ${res.status}: ${err.message ?? res.statusText}`)
+  }
+}
