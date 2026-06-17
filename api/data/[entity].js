@@ -53,6 +53,11 @@ export default withSecurity(requireAuth(async function handler(req, res) {
       body,
     })
   } catch (err) {
+    // DAB_INTERNAL_URL not explicitly configured → dev/mock mode, return empty data
+    if (!process.env.DAB_INTERNAL_URL) {
+      res.setHeader('Content-Type', 'application/json')
+      return res.status(200).send(JSON.stringify({ value: [], mock: true }))
+    }
     console.error('[data proxy] DAB unreachable:', err.message)
     return res.status(502).json({ message: 'Data service unavailable' })
   }
