@@ -1,6 +1,27 @@
+import { Component } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { Shell } from './components/Shell'
+
+class PageErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError(error) { return { error } }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 40, color: 'var(--red)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
+          <div style={{ marginBottom: 8, fontWeight: 600 }}>Page error</div>
+          <div style={{ color: 'var(--text-muted)' }}>{this.state.error.message}</div>
+          <button
+            style={{ marginTop: 16, padding: '6px 14px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12 }}
+            onClick={() => this.setState({ error: null })}
+          >Dismiss</button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import SiteBoard from './pages/SiteBoard'
@@ -38,25 +59,27 @@ export default function App() {
       <Route path="/*" element={
         <RequireAuth>
           <Shell>
-            <Routes>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard"    element={<Dashboard />} />
-              <Route path="sites"        element={<SiteBoard />} />
-              <Route path="gantt"        element={<TechGantt />} />
-              <Route path="routes"       element={<RouteGantt />} />
-              <Route path="work-orders"  element={<WorkOrders />} />
-              <Route path="alerts"       element={<Alerts />} />
-              <Route path="comms"        element={<Comms />} />
-              <Route path="staffing"     element={<Staffing />} />
-              <Route path="tech-pool"     element={<TechPool />} />
-              <Route path="coverage"     element={<WOCoverage />} />
-              <Route path="fn-analyzer"   element={<FNExportAnalyzer />} />
-              <Route path="tech-analysis"  element={<TechAnalysis />} />
-              <Route path="pnc-dashboard"  element={<PNCDashboard />} />
-              <Route path="parsers"      element={<ParserStudio />} />
-              <Route path="settings"     element={<Settings />} />
-              <Route path="*"            element={<Navigate to="/dashboard" replace />} />
-            </Routes>
+            <PageErrorBoundary>
+              <Routes>
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard"    element={<Dashboard />} />
+                <Route path="sites"        element={<SiteBoard />} />
+                <Route path="gantt"        element={<TechGantt />} />
+                <Route path="routes"       element={<RouteGantt />} />
+                <Route path="work-orders"  element={<WorkOrders />} />
+                <Route path="alerts"       element={<Alerts />} />
+                <Route path="comms"        element={<Comms />} />
+                <Route path="staffing"     element={<Staffing />} />
+                <Route path="tech-pool"    element={<TechPool />} />
+                <Route path="coverage"     element={<WOCoverage />} />
+                <Route path="fn-analyzer"  element={<FNExportAnalyzer />} />
+                <Route path="tech-analysis" element={<TechAnalysis />} />
+                <Route path="pnc-dashboard" element={<PNCDashboard />} />
+                <Route path="parsers"      element={<ParserStudio />} />
+                <Route path="settings"     element={<Settings />} />
+                <Route path="*"            element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </PageErrorBoundary>
           </Shell>
         </RequireAuth>
       } />
