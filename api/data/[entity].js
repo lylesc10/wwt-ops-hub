@@ -14,6 +14,7 @@
  */
 
 import { withSecurity, requireAuth, buildClientPrincipal } from '../_lib/middleware.js'
+import { getMockResponse } from '../_lib/mock.js'
 
 const DAB_INTERNAL_URL = process.env.DAB_INTERNAL_URL ?? 'http://localhost:5000'
 
@@ -53,10 +54,11 @@ export default withSecurity(requireAuth(async function handler(req, res) {
       body,
     })
   } catch (err) {
-    // DAB_INTERNAL_URL not explicitly configured → dev/mock mode, return empty data
+    // DAB_INTERNAL_URL not explicitly configured → dev/mock mode, return realistic seed data
     if (!process.env.DAB_INTERNAL_URL) {
+      const mock = getMockResponse(entity, req.method)
       res.setHeader('Content-Type', 'application/json')
-      return res.status(200).send(JSON.stringify({ value: [], mock: true }))
+      return res.status(mock.status).send(JSON.stringify(mock.body))
     }
     console.error('[data proxy] DAB unreachable:', err.message)
     return res.status(502).json({ message: 'Data service unavailable' })
