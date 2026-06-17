@@ -272,6 +272,37 @@
 .topTab:hover { color: var(--text-primary); }
 .topTabActive { color: var(--amber); border-bottom-color: var(--amber); }
 
+/* ── Work Order List panel ─────────────────────────────────── */
+.woListPanel { display: flex; flex-direction: column; gap: 16px; padding: 20px 24px; flex: 1; overflow: hidden; }
+.woListToolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+
+.woListTable { width: 100%; border-collapse: collapse; font-size: 12px; }
+.woListTable thead tr { background: var(--bg-elevated); border-bottom: 1px solid var(--border); }
+.woListTable th { padding: 9px 14px; text-align: left; font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); white-space: nowrap; }
+.woListTable td { padding: 9px 14px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+.woListTable tbody tr:last-child td { border-bottom: none; }
+.woListRow:hover td { background: var(--bg-hover); }
+
+.woIdBtn { background: transparent; border: none; color: var(--blue); font-family: var(--font-mono); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.woIdBtn:hover { color: var(--amber); }
+
+.woTypeBadge { display: inline-block; font-family: var(--font-head); font-size: 11px; font-weight: 700; letter-spacing: 1.5px; padding: 2px 7px; border-radius: 4px; background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+
+.woSiteCode { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.woSiteName { font-size: 11px; color: var(--text-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+
+.woLocation { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
+.woDate { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.woPay { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--green); white-space: nowrap; }
+
+.woDraftBadge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: color-mix(in srgb, var(--amber) 12%, transparent); color: var(--amber); border: 1px solid var(--amber-border); font-family: var(--font-mono); }
+
+/* WO Detail Modal */
+.woModalLocation { background: var(--bg-elevated); border-radius: var(--r-sm); padding: 10px 14px; border-left: 3px solid var(--amber); margin-bottom: 4px; }
+.woModalBranch { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+.woModalAddr { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+.woModalFooter { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--border); }
+
 /* ── Project Stats panel ────────────────────────────────────── */
 .statsPanel { display: flex; flex-direction: column; gap: 16px; padding: 20px 24px; flex: 1; overflow: hidden; }
 .statsToolbar { display: flex; align-items: center; gap: 10px; }

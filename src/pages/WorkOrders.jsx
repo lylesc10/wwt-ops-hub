@@ -9,7 +9,7 @@ import {
   rowComplete, isPastDate, triggerDownload,
 } from '@/cpwog/engine'
 import { parsePaste, parseCSVImport } from '@/cpwog/parsers'
-import { Download, History, Route, Plus, X, Trash2, Check, ChevronDown, AlertTriangle, Loader, ExternalLink, ShieldAlert, BarChart2, RefreshCw, Send } from 'lucide-react'
+import { Download, History, Route, Plus, X, Trash2, Check, ChevronDown, AlertTriangle, Loader, ExternalLink, ShieldAlert, ClipboardList, RefreshCw, Send } from 'lucide-react'
 import { useFNSync } from '@/hooks/useFNSync'
 import { createWorkOrderDirect, deleteWorkOrderDirect, isFNConfigured, listClients, listManagers } from '@/lib/fnDirect'
 import styles from './WorkOrders.module.css'
@@ -332,7 +332,7 @@ export default function WorkOrders() {
         {/* Top-level tab switcher */}
         <div className={styles.topTabBar}>
           <button className={`${styles.topTab} ${activeTab==='generator'?styles.topTabActive:''}`} onClick={()=>setActiveTab('generator')}>WO Generator</button>
-          <button className={`${styles.topTab} ${activeTab==='stats'?styles.topTabActive:''}`} onClick={()=>setActiveTab('stats')}><BarChart2 size={13}/> Project Stats</button>
+          <button className={`${styles.topTab} ${activeTab==='wolist'?styles.topTabActive:''}`} onClick={()=>setActiveTab('wolist')}><ClipboardList size={13}/> Work Order List</button>
         </div>
 
         {/* Step bar — only shown in generator tab */}
@@ -346,8 +346,8 @@ export default function WorkOrders() {
           ))}
         </div>}
 
-        {/* Project Stats tab */}
-        {activeTab==='stats'&&<ProjectStats styles={styles}/>}
+        {/* Work Order List tab */}
+        {activeTab==='wolist'&&<WorkOrderList styles={styles}/>}
 
         <div className={styles.content} style={{display: activeTab==='generator' ? undefined : 'none'}}>
           {/* STEP 0 */}
@@ -761,101 +761,72 @@ export default function WorkOrders() {
   )
 }
 
-// ── ProjectStats ──────────────────────────────────────────────
-function ProjectStats({ styles }) {
-  const [loading, setLoading] = useState(false)
-  const [stats,   setStats]   = useState(null)
-  const [error,   setError]   = useState('')
-  const [sortBy,  setSortBy]  = useState('total_cost')
-  const [sortDir, setSortDir] = useState('desc')
-  const [search,  setSearch]  = useState('')
+// ── WorkOrderList ─────────────────────────────────────────────
+function WorkOrderList({ styles }) {
+  const [wos,        setWos]        = useState([])
+  const [siteMap,    setSiteMap]    = useState({})
+  const [projectMap, setProjectMap] = useState({})
+  const [loading,    setLoading]    = useState(true)
+  const [error,      setError]      = useState('')
+  const [selected,   setSelected]   = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      // 1. Get PNC projects
-      const { data: projects, error: pe } = await dab
-        .from('projects').select('id,name,client').ilike('client', '%PNC%')
-      if (pe) throw new Error(pe.message)
-
-      if (!projects?.length) { setStats([]); setLoading(false); return }
-
-      const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]))
-
-      // 2. Get all site codes for PNC projects
-      const { data: sites, error: se } = await dab
-        .from('sites').select('id,code,project_id').in('project_id', projects.map(p => p.id))
-      if (se) throw new Error(se.message)
-
-      if (!sites?.length) { setStats([]); setLoading(false); return }
-
-      const codeToProject = {}
-      sites.forEach(s => { codeToProject[s.code.toUpperCase()] = projectMap[s.project_id] ?? '—' })
-      const siteCodes = sites.map(s => s.code)
-
-      // 3. Get fn_work_history rows for those site codes
-      const { data: history, error: he } = await dab
-        .from('fn_work_history')
-        .select('fn_wo_id,provider_name,wo_type,status,site_code,site_name,total_pay,work_date')
-        .in('site_code', siteCodes)
-      if (he) throw new Error(he.message)
-
-      // 4. Aggregate per site
-      const bySite = {}
-      for (const row of history ?? []) {
-        const code = (row.site_code ?? '').toUpperCase()
-        if (!bySite[code]) bySite[code] = {
-          site_code:   code,
-          project:     codeToProject[code] ?? '—',
-          total_cost:  0,
-          trip_count:  0,
-          dates:       new Set(),
-          techs:       new Set(),
-        }
-        bySite[code].total_cost  += parseFloat(row.total_pay ?? 0)
-        bySite[code].trip_count  += 1
-        if (row.work_date)    bySite[code].dates.add(row.work_date)
-        if (row.provider_name) bySite[code].techs.add(row.provider_name)
-      }
-
-      setStats(Object.values(bySite).map(s => ({
-        ...s, dates: [...s.dates].sort(), techs: [...s.techs].sort(),
-      })))
+      const [woRes, siteRes, projRes] = await Promise.all([
+        dab.from('site_work_orders').select('*'),
+        dab.from('sites').select('id,code,branch_name,city,state,address,zip,scheduled_start,project_id'),
+        dab.from('projects').select('id,name,color'),
+      ])
+      if (woRes.error)   throw new Error(woRes.error.message)
+      if (siteRes.error) throw new Error(siteRes.error.message)
+      // Filter client-side so mock mode (which ignores $filter) works too
+      setWos((woRes.data ?? []).filter(w => w.fn_status === 'draft'))
+      setSiteMap(Object.fromEntries((siteRes.data  ?? []).map(s => [s.id, s])))
+      setProjectMap(Object.fromEntries((projRes.data ?? []).map(p => [p.id, p])))
     } catch (e) { setError(e.message) }
     setLoading(false)
   }, [])
 
   useEffect(() => { load() }, [load])
 
-  const toggle = (col) => {
-    if (sortBy === col) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
-    else { setSortBy(col); setSortDir('desc') }
-  }
+  const handleSave = useCallback(async (wo, changes) => {
+    await dab.from('site_work_orders').update(changes).eq('id', wo.id)
+    setWos(prev => prev.map(w => w.id === wo.id ? { ...w, ...changes } : w))
+    setSelected(null)
+  }, [])
 
-  const filtered = (stats ?? []).filter(s =>
-    !search.trim() || s.site_code.includes(search.toUpperCase()) || s.project.toLowerCase().includes(search.toLowerCase())
-  )
-  const sorted = [...filtered].sort((a, b) => {
-    const av = a[sortBy], bv = b[sortBy]
-    const mult = sortDir === 'desc' ? -1 : 1
-    if (typeof av === 'number') return mult * (av - bv)
-    return mult * String(av ?? '').localeCompare(String(bv ?? ''))
-  })
+  const handleApprove = useCallback(async (wo, changes) => {
+    await dab.from('site_work_orders').update({ ...changes, fn_status: 'published' }).eq('id', wo.id)
+    setWos(prev => prev.filter(w => w.id !== wo.id))
+    setSelected(null)
+  }, [])
 
-  const totalCost  = filtered.reduce((s, r) => s + r.total_cost,  0)
-  const totalTrips = filtered.reduce((s, r) => s + r.trip_count, 0)
-
-  const arrow = (col) => sortBy !== col ? '' : sortDir === 'desc' ? ' ↓' : ' ↑'
+  const totalPay = wos.reduce((s, w) => s + (parseFloat(w.budget_tech) || 0), 0)
 
   const fmtDate = (d) => {
-    try { return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }
+    if (!d) return '—'
+    try { return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
     catch { return d }
   }
 
   return (
-    <div className={styles.statsPanel}>
-      <div className={styles.statsToolbar}>
-        <input className={styles.input} style={{maxWidth:220}} placeholder="Search site or project…" value={search} onChange={e=>setSearch(e.target.value)}/>
+    <div className={styles.woListPanel}>
+      <div className={styles.woListToolbar}>
+        <div className={styles.statsSummary} style={{margin:0}}>
+          <div className={styles.statCard}>
+            <div className={styles.statCardLabel}>Draft Work Orders</div>
+            <div className={styles.statCardValue}>{loading ? '—' : wos.length}</div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={styles.statCardLabel}>Estimated Pay</div>
+            <div className={styles.statCardValue}>{loading ? '—' : `$${totalPay.toLocaleString('en-US',{maximumFractionDigits:0})}`}</div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={styles.statCardLabel}>Projects</div>
+            <div className={styles.statCardValue}>{loading ? '—' : new Set(wos.map(w=>w.project_id)).size}</div>
+          </div>
+        </div>
         <button className={styles.ghostBtn} onClick={load} disabled={loading}>
           <RefreshCw size={12} className={loading ? styles.spinning : undefined}/> Refresh
         </button>
@@ -863,56 +834,177 @@ function ProjectStats({ styles }) {
 
       {error && <p className={styles.statsError}>{error}</p>}
 
-      {stats !== null && (
-        <div className={styles.statsSummary}>
-          <div className={styles.statCard}><div className={styles.statCardLabel}>Total Actual Spend</div><div className={styles.statCardValue}>${totalCost.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</div></div>
-          <div className={styles.statCard}><div className={styles.statCardLabel}>Total Trips</div><div className={styles.statCardValue}>{totalTrips.toLocaleString()}</div></div>
-          <div className={styles.statCard}><div className={styles.statCardLabel}>Sites</div><div className={styles.statCardValue}>{filtered.length.toLocaleString()}</div></div>
-        </div>
+      {loading && (
+        <div className={styles.statsLoading}><Loader size={16} className={styles.spinning}/> Loading work orders…</div>
       )}
 
-      {loading && <div className={styles.statsLoading}><Loader size={16} className={styles.spinning}/> Loading PNC stats…</div>}
-
-      {!loading && stats !== null && sorted.length === 0 && (
-        <div className={styles.statsEmpty}>{search ? 'No sites match your search.' : 'No PNC work order history found. Upload an FN export in the FN Export Analyzer to populate this view.'}</div>
+      {!loading && wos.length === 0 && !error && (
+        <div className={styles.statsEmpty}>No draft work orders found. Push work orders from the WO Generator to see them here.</div>
       )}
 
-      {!loading && sorted.length > 0 && (
+      {!loading && wos.length > 0 && (
         <div className={styles.statsTableWrap}>
-          <table className={styles.statsTable}>
+          <table className={styles.woListTable}>
             <thead>
               <tr>
-                <th onClick={()=>toggle('site_code')}>Site{arrow('site_code')}</th>
-                <th onClick={()=>toggle('project')}>Project{arrow('project')}</th>
-                <th onClick={()=>toggle('total_cost')}>Actual Spend{arrow('total_cost')}</th>
-                <th onClick={()=>toggle('trip_count')}>Trips{arrow('trip_count')}</th>
-                <th>Work Dates</th>
-                <th>Techs</th>
+                <th>Work Order ID</th>
+                <th>Type</th>
+                <th>Site</th>
+                <th>Location</th>
+                <th>Date</th>
+                <th>Pay</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {sorted.map(row => (
-                <tr key={row.site_code}>
-                  <td className={styles.statsCode}>{row.site_code}</td>
-                  <td className={styles.statsProject}>{row.project}</td>
-                  <td className={styles.statsCost}>${row.total_cost.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                  <td className={styles.statsTrips}>{row.trip_count}</td>
-                  <td className={styles.statsDates}>
-                    {row.dates.length === 0 ? '—' : row.dates.length <= 3
-                      ? row.dates.map(fmtDate).join(', ')
-                      : `${row.dates.slice(0,2).map(fmtDate).join(', ')} +${row.dates.length - 2} more`}
-                  </td>
-                  <td className={styles.statsTechs}>
-                    {row.techs.length === 0 ? '—' : row.techs.length <= 2
-                      ? row.techs.join(', ')
-                      : `${row.techs.slice(0,2).join(', ')} +${row.techs.length - 2}`}
-                  </td>
-                </tr>
-              ))}
+              {wos.map(wo => {
+                const site = siteMap[wo.site_id]
+                const date = wo.scheduled_date ?? site?.scheduled_start
+                return (
+                  <tr key={wo.id} className={styles.woListRow}>
+                    <td>
+                      <button className={styles.woIdBtn} onClick={() => setSelected(wo)}>
+                        {wo.fn_wo_id ?? 'DRAFT'}
+                      </button>
+                    </td>
+                    <td><span className={styles.woTypeBadge}>{wo.wo_type}</span></td>
+                    <td>
+                      <div className={styles.woSiteCode}>{site?.code ?? '—'}</div>
+                      <div className={styles.woSiteName}>{site?.branch_name ?? '—'}</div>
+                    </td>
+                    <td className={styles.woLocation}>{site ? `${site.city}, ${site.state}` : '—'}</td>
+                    <td className={styles.woDate}>{fmtDate(date)}</td>
+                    <td className={styles.woPay}>{wo.budget_tech ? `$${Number(wo.budget_tech).toLocaleString()}` : '—'}</td>
+                    <td><span className={styles.woDraftBadge}>Draft</span></td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      {selected && (
+        <WODetailModal
+          wo={selected}
+          site={siteMap[selected.site_id]}
+          project={projectMap[selected.project_id]}
+          styles={styles}
+          onClose={() => setSelected(null)}
+          onSave={(changes) => handleSave(selected, changes)}
+          onApprove={(changes) => handleApprove(selected, changes)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── WODetailModal ─────────────────────────────────────────────
+function WODetailModal({ wo, site, project, styles, onClose, onSave, onApprove }) {
+  const origRef = useRef({
+    scheduled_date: wo.scheduled_date ?? site?.scheduled_start?.slice(0, 10) ?? '',
+    start_time:     wo.start_time     ?? '09:00',
+    budget_tech:    String(wo.budget_tech  ?? ''),
+    pay_rate:       wo.pay_rate       ?? 'daily',
+    approx_hours:   String(wo.approx_hours ?? ''),
+    notes:          wo.notes          ?? '',
+  })
+
+  const [form,      setForm]      = useState(() => ({ ...origRef.current }))
+  const [saving,    setSaving]    = useState(false)
+  const [approving, setApproving] = useState(false)
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const doSave = async () => {
+    setSaving(true)
+    try { await onSave(form) } catch {}
+    setSaving(false)
+  }
+  const doApprove = async () => {
+    setApproving(true)
+    try { await onApprove(form) } catch {}
+    setApproving(false)
+  }
+  const doUndo = () => setForm({ ...origRef.current })
+
+  const busy = saving || approving
+
+  return (
+    <div className={styles.modalOverlay} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className={styles.modal} style={{ maxWidth: 520 }}>
+        <div className={styles.modalHeader}>
+          <div>
+            <h3>{wo.fn_wo_id ?? 'Draft WO'}</h3>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, fontFamily: 'var(--font-mono)' }}>
+              {wo.wo_type} · Day {wo.day_number ?? 1}{site ? ` · ${site.code}` : ''}{project ? ` — ${project.name}` : ''}
+            </div>
+          </div>
+          <button onClick={onClose}><X size={16}/></button>
+        </div>
+
+        <div className={styles.modalBody}>
+          {site && (
+            <div className={styles.woModalLocation}>
+              <div className={styles.woModalBranch}>{site.branch_name}</div>
+              <div className={styles.woModalAddr}>{site.address} · {site.city}, {site.state}{site.zip ? ` ${site.zip}` : ''}</div>
+            </div>
+          )}
+
+          <div className={styles.configGrid}>
+            <div className={styles.field}>
+              <label>Date</label>
+              <input type="date" className={styles.input} value={form.scheduled_date} onChange={set('scheduled_date')}/>
+            </div>
+            <div className={styles.field}>
+              <label>Start Time</label>
+              <input className={styles.input} value={form.start_time} onChange={set('start_time')} placeholder="09:00"/>
+            </div>
+            <div className={styles.field}>
+              <label>Tech Budget ($)</label>
+              <input type="number" className={styles.input} value={form.budget_tech} onChange={set('budget_tech')} placeholder="800" min="0" step="10"/>
+            </div>
+            <div className={styles.field}>
+              <label>Pay Rate</label>
+              <select className={styles.input} value={form.pay_rate} onChange={set('pay_rate')}>
+                <option value="daily">Daily</option>
+                <option value="hourly">Hourly</option>
+                <option value="fixed">Fixed</option>
+              </select>
+            </div>
+            <div className={styles.field}>
+              <label>Approx Hours</label>
+              <input type="number" className={styles.input} value={form.approx_hours} onChange={set('approx_hours')} placeholder="6" min="1" step="0.5"/>
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label>Notes for Technician</label>
+            <textarea
+              className={styles.input}
+              rows={2}
+              value={form.notes}
+              onChange={set('notes')}
+              placeholder="Optional instructions or access notes…"
+              style={{ resize: 'vertical' }}
+            />
+          </div>
+        </div>
+
+        <div className={styles.woModalFooter}>
+          <button className={styles.ghostBtn} onClick={doUndo} disabled={busy}>
+            Undo Changes
+          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className={styles.ghostBtn} onClick={doSave} disabled={busy}>
+              {saving ? <Loader size={12} className={styles.spinning}/> : <Check size={12}/>} Save Changes
+            </button>
+            <button className={styles.primaryBtn} onClick={doApprove} disabled={busy}>
+              {approving ? <Loader size={12} className={styles.spinning}/> : <Send size={12}/>} Save & Approve
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
