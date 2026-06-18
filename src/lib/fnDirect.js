@@ -198,7 +198,7 @@ export async function listDraftWorkOrders() {
  * Update a draft WO's schedule, pay, and/or description.
  * Each changed attribute is sent to its own FN sub-resource endpoint.
  */
-export async function updateWorkOrderDirect(woId, { scheduled_date, start_time, budget_tech, pay_rate, approx_hours, notes }) {
+export async function updateWorkOrderDirect(woId, { scheduled_date, start_time, budget_tech, pay_rate, approx_hours, notes, address, address2, city, state, zip, country }) {
   const token = await getToken()
   const tasks = []
 
@@ -239,6 +239,22 @@ export async function updateWorkOrderDirect(woId, { scheduled_date, start_time, 
     }))
   }
 
+  if (address || city || state || zip) {
+    tasks.push(fetch(`${FN_API_BASE}/workorders/${woId}/location?access_token=${token}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        mode:     'custom',
+        address1: address  ?? '',
+        address2: address2 ?? '',
+        city:     city     ?? '',
+        state:    (state   ?? '').toUpperCase(),
+        zip:      zip      ?? '',
+        country:  (country ?? 'US').toUpperCase(),
+      }),
+    }))
+  }
+
   const results = await Promise.allSettled(tasks)
   const failed  = results.find(r => r.status === 'rejected')
   if (failed) throw new Error(failed.reason?.message ?? 'FN update failed')
@@ -250,8 +266,8 @@ export async function updateWorkOrderDirect(woId, { scheduled_date, start_time, 
 export async function publishWorkOrderDirect(woId) {
   const token = await getToken()
   const res = await fetch(
-    `${FN_API_BASE}/workorders/${woId}/publishworkorder?access_token=${token}`,
-    { method: 'GET', headers: { Accept: 'application/json' } }
+    `${FN_API_BASE}/workorders/${woId}/publish?access_token=${token}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' } }
   )
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))

@@ -950,6 +950,12 @@ function WODetailModal({ wo, site, project, styles, onClose, onSave, onApprove }
     pay_rate:       wo.pay_rate       ?? 'daily',
     approx_hours:   String(wo.approx_hours ?? ''),
     notes:          wo.notes          ?? '',
+    address:        site?.address     ?? '',
+    address2:       site?.address2    ?? '',
+    city:           site?.city        ?? '',
+    state:          site?.state       ?? '',
+    zip:            site?.zip         ?? '',
+    country:        'US',
   })
 
   const [form,      setForm]      = useState(() => ({ ...origRef.current }))
@@ -1031,6 +1037,36 @@ function WODetailModal({ wo, site, project, styles, onClose, onSave, onApprove }
               style={{ resize: 'vertical' }}
             />
           </div>
+
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 14, marginTop: 4 }}>
+            <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Location</div>
+            <div className={styles.field}>
+              <label>Address</label>
+              <input className={styles.input} value={form.address} onChange={set('address')} placeholder="123 Main St"/>
+            </div>
+            <div className={styles.field}>
+              <label>Address 2</label>
+              <input className={styles.input} value={form.address2} onChange={set('address2')} placeholder="Suite 100 (optional)"/>
+            </div>
+            <div className={styles.configGrid}>
+              <div className={styles.field} style={{marginBottom:0}}>
+                <label>City</label>
+                <input className={styles.input} value={form.city} onChange={set('city')} placeholder="Baltimore"/>
+              </div>
+              <div className={styles.field} style={{marginBottom:0}}>
+                <label>State</label>
+                <input className={styles.input} value={form.state} onChange={set('state')} placeholder="MD" maxLength={2} style={{textTransform:'uppercase'}}/>
+              </div>
+              <div className={styles.field} style={{marginBottom:0}}>
+                <label>Zip</label>
+                <input className={styles.input} value={form.zip} onChange={set('zip')} placeholder="21202"/>
+              </div>
+              <div className={styles.field} style={{marginBottom:0}}>
+                <label>Country</label>
+                <input className={styles.input} value={form.country} onChange={set('country')} placeholder="US" maxLength={2} style={{textTransform:'uppercase'}}/>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className={styles.woModalFooter}>
@@ -1042,7 +1078,7 @@ function WODetailModal({ wo, site, project, styles, onClose, onSave, onApprove }
               {saving ? <Loader size={12} className={styles.spinning}/> : <Check size={12}/>} Save Changes
             </button>
             <button className={styles.primaryBtn} onClick={doApprove} disabled={busy}>
-              {approving ? <Loader size={12} className={styles.spinning}/> : <Send size={12}/>} Save & Approve
+              {approving ? <Loader size={12} className={styles.spinning}/> : <Send size={12}/>} Save & Publish
             </button>
           </div>
         </div>
