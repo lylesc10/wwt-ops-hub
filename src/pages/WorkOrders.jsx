@@ -806,6 +806,7 @@ function WorkOrderList({ styles }) {
   const [error,    setError]    = useState('')
   const [selected, setSelected] = useState(null)
   const [statuses, setStatuses] = useState([])
+  const [deleting, setDeleting] = useState({})
 
   const load = useCallback(async () => {
     setLoading(true); setError('')
@@ -835,6 +836,18 @@ function WorkOrderList({ styles }) {
     await publishWorkOrderDirect(wo.fn_wo_id)
     setWos(prev => prev.filter(w => w.id !== wo.id))
     setSelected(null)
+  }, [])
+
+  const handleDelete = useCallback(async (wo) => {
+    if (!window.confirm(`Delete work order ${wo.fn_wo_id}? This cannot be undone.`)) return
+    setDeleting(prev => ({ ...prev, [wo.id]: true }))
+    try {
+      await deleteWorkOrderDirect(wo.fn_wo_id)
+      setWos(prev => prev.filter(w => w.id !== wo.id))
+    } catch (e) {
+      setError(`Delete failed: ${e.message}`)
+    }
+    setDeleting(prev => ({ ...prev, [wo.id]: false }))
   }, [])
 
   const totalPay = wos.reduce((s, w) => s + (parseFloat(w.budget_tech) || 0), 0)
@@ -896,6 +909,7 @@ function WorkOrderList({ styles }) {
                 <th>Date</th>
                 <th>Pay</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -918,6 +932,17 @@ function WorkOrderList({ styles }) {
                     <td className={styles.woDate}>{fmtDate(date)}</td>
                     <td className={styles.woPay}>{wo.budget_tech ? `$${Number(wo.budget_tech).toLocaleString()}` : '—'}</td>
                     <td><span className={styles.woDraftBadge}>Draft</span></td>
+                    <td>
+                      <button
+                        className={styles.ghostBtn}
+                        style={{ color: 'var(--red)', borderColor: 'transparent', padding: '4px 8px' }}
+                        onClick={() => handleDelete(wo)}
+                        disabled={deleting[wo.id]}
+                        title="Delete work order"
+                      >
+                        {deleting[wo.id] ? <Loader size={12} className={styles.spinning}/> : <Trash2 size={12}/>}
+                      </button>
+                    </td>
                   </tr>
                 )
               })}
