@@ -961,20 +961,20 @@ function WODetailModal({ wo, site, project, styles, onClose, onSave, onApprove }
   const [form,      setForm]      = useState(() => ({ ...origRef.current }))
   const [saving,    setSaving]    = useState(false)
   const [approving, setApproving] = useState(false)
+  const [modalErr,  setModalErr]  = useState('')
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
 
   const doSave = async () => {
-    setSaving(true)
-    try { await onSave(form) } catch {}
+    setSaving(true); setModalErr('')
+    try { await onSave(form) } catch (e) { setModalErr(e.message) }
     setSaving(false)
   }
   const doApprove = async () => {
-    setApproving(true)
-    try { await onApprove(form) } catch {}
-    setApproving(false)
+    setApproving(true); setModalErr('')
+    try { await onApprove(form) } catch (e) { setModalErr(e.message); setApproving(false) }
   }
-  const doUndo = () => setForm({ ...origRef.current })
+  const doUndo = () => { setForm({ ...origRef.current }); setModalErr('') }
 
   const busy = saving || approving
 
@@ -1069,6 +1069,11 @@ function WODetailModal({ wo, site, project, styles, onClose, onSave, onApprove }
           </div>
         </div>
 
+        {modalErr && (
+          <div style={{ padding: '8px 20px', fontSize: 12, color: 'var(--red)', background: 'var(--red-bg, #2a1515)', borderTop: '1px solid var(--border)' }}>
+            {modalErr}
+          </div>
+        )}
         <div className={styles.woModalFooter}>
           <button className={styles.ghostBtn} onClick={doUndo} disabled={busy}>
             Undo Changes

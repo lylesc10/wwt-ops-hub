@@ -270,7 +270,8 @@ export async function publishWorkOrderDirect(woId) {
     { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' } }
   )
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(`FN publish ${res.status}: ${err.message ?? res.statusText}`)
+    const body = await res.json().catch(() => ({}))
+    const msg  = body.message ?? body.error ?? body.title ?? res.statusText
+    throw new Error(`FN publish ${res.status}: ${msg}`)
   }
 }
