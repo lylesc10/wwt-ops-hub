@@ -1,0 +1,17 @@
+node_modules
+dist
+.git
+.gitignore
+.env
+*.env
+.env.*
+*.tsv
+.DS_Store
+.claude
+supabase
+scripts
+deploy.sh
+README.md
+ENVIRONMENTS.md
+CLAUDE.md
+npm-debug.log*

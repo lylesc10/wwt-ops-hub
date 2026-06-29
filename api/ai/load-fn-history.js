@@ -1,25 +1,18 @@
 /**
  * POST /api/ai/load-fn-history
- * No body required.
  * Aggregates tech stats from the fn_work_history table without needing a file upload.
  */
-import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
-
-const STATUS_COLORS_ORDER = ['Completed','Assigned','Confirmed','Cancelled','Draft','Published','Routed','Unknown']
+import { query } from '../_lib/db.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' })
 
-  const { data: rows, error } = await supabase
-    .from('fn_work_history')
-    .select('provider_name,provider_id,provider_phone,wo_type,wo_category,status,site_code,site_name,site_city,site_state,pay_rate,total_pay,work_date,wo_title,fn_wo_id')
+  const { rows, error: dbErr } = await query(
+    'SELECT provider_name,provider_id,provider_phone,wo_type,wo_category,status,site_code,site_name,site_city,site_state,pay_rate,total_pay,work_date,wo_title,fn_wo_id FROM fn_work_history'
+  ).catch(e => ({ rows: null, error: e }))
 
-  if (error) return res.status(500).json({ message: error.message })
+  if (dbErr) return res.status(500).json({ message: dbErr.message })
   if (!rows?.length) return res.json({ ok:true, techs:[], summary:{ unique_techs:0, total_jobs:0, total_completed:0, total_cancelled:0, total_assigned:0, total_draft:0, total_pay:0, total_lv:0, total_ins:0, total_del:0, statuses:[], job_types:[] } })
 
   const techMap = new Map()

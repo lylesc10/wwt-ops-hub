@@ -1,10 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useState, useEffect, useCallback } from 'react'
+import { dab } from '@/lib/dab'
 
-/**
- * Fetches all sites, optionally filtered by project.
- * Subscribes to realtime updates.
- */
 export function useSites({ projectId = null } = {}) {
   const [sites, setSites] = useState([])
   const [loading, setLoading] = useState(true)
@@ -13,26 +9,35 @@ export function useSites({ projectId = null } = {}) {
   const fetchSites = useCallback(async () => {
     setLoading(true)
 
-    // Get active project IDs first — avoids unreliable joined-table filter
-    const { data: activeProjects } = await supabase
+    const { data: activeProjects } = await dab
       .from('projects')
-      .select('id')
+      .select('id,name,client,color')
       .eq('is_active', true)
 
     const activeIds = (activeProjects ?? []).map(p => p.id)
     if (!activeIds.length) { setSites([]); setLoading(false); return }
 
+    const projectMap = Object.fromEntries((activeProjects ?? []).map(p => [p.id, p]))
+
+    // Fetch work_orders for all active projects in one query (no PostgREST-style embedding in DAB)
+    const { data: allWOs } = await dab
+      .from('work_orders')
+      .select('id,wo_type,status,fn_wo_id,site_id')
+      .in('project_id', activeIds)
+
+    const wosBySite = {}
+    for (const wo of allWOs ?? []) {
+      if (!wosBySite[wo.site_id]) wosBySite[wo.site_id] = []
+      wosBySite[wo.site_id].push(wo)
+    }
+
     const PAGE = 1000
     let allSites = [], from = 0
 
     while (true) {
-      let query = supabase
+      let query = dab
         .from('sites')
-        .select(`
-          *,
-          project:projects(id, name, client, color),
-          work_orders(id, wo_type, status, fn_wo_id)
-        `)
+        .select('*')
         .in('project_id', activeIds)
         .order('code', { ascending: true })
         .range(from, from + PAGE - 1)
@@ -42,7 +47,14 @@ export function useSites({ projectId = null } = {}) {
       const { data, error } = await query
       if (error) { setError(error.message); break }
       if (!data?.length) break
-      allSites = [...allSites, ...data]
+
+      const hydrated = data.map(site => ({
+        ...site,
+        project:     projectMap[site.project_id] ?? null,
+        work_orders: wosBySite[site.id] ?? [],
+      }))
+
+      allSites = [...allSites, ...hydrated]
       if (data.length < PAGE) break
       from += PAGE
     }
@@ -52,14 +64,13 @@ export function useSites({ projectId = null } = {}) {
 
   useEffect(() => {
     fetchSites()
-
-    // Realtime subscription
-    const channel = supabase
-      .channel(`sites-changes-${Math.random().toString(36).slice(2,8)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sites' }, fetchSites)
-      .subscribe()
-
-    return () => supabase.removeChannel(channel)
+    const interval = setInterval(fetchSites, 60_000)
+    const onVisibility = () => { if (!document.hidden) fetchSites() }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [fetchSites])
 
   return { sites, loading, error, refetch: fetchSites }

@@ -212,11 +212,11 @@ export default function Comms() {
                       </div>
                       <div className={styles.recentInfo}>
                         <span className={styles.recentTo}>{msg.to_name || msg.to_number}</span>
-                        <span className={styles.recentBody}>{msg.body.slice(0, 60)}{msg.body.length > 60 ? '…' : ''}</span>
+                        <span className={styles.recentBody}>{(msg.body ?? '').slice(0, 60)}{(msg.body ?? '').length > 60 ? '…' : ''}</span>
                       </div>
                       <div className={styles.recentRight}>
                         <span className={`${styles.recentStatus} ${msg.status === 'failed' ? styles.recentStatusFail : ''}`}>{msg.status}</span>
-                        <span className={styles.recentTime}>{formatDistanceToNow(new Date(msg.sent_at), { addSuffix: true })}</span>
+                        <span className={styles.recentTime}>{msg.sent_at ? formatDistanceToNow(new Date(msg.sent_at), { addSuffix: true }) : '—'}</span>
                       </div>
                     </div>
                   ))}

@@ -275,9 +275,9 @@ export function SiteCommsPanel({ site, onClose }) {
                     {conf.response_text && <span className={styles.confReply}>"{conf.response_text}"</span>}
                   </div>
                   <span className={styles.confTime}>
-                    {conf.responded_at
-                      ? formatDistanceToNow(new Date(conf.responded_at), { addSuffix: true })
-                      : formatDistanceToNow(new Date(conf.created_at), { addSuffix: true })}
+                    {(conf.responded_at || conf.created_at)
+                      ? formatDistanceToNow(new Date(conf.responded_at ?? conf.created_at), { addSuffix: true })
+                      : '—'}
                   </span>
                 </div>
               )
@@ -305,7 +305,7 @@ export function SiteCommsPanel({ site, onClose }) {
                         </span>
                       </div>
                       <div className={styles.msgBody}>{msg.body}</div>
-                      <div className={styles.msgTime}>{format(new Date(msg.sent_at), 'M/d h:mm a')}</div>
+                      <div className={styles.msgTime}>{msg.sent_at ? format(new Date(msg.sent_at), 'M/d h:mm a') : '—'}</div>
                     </div>
                   </div>
                 ))

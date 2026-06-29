@@ -224,7 +224,7 @@ export function parsePaste(pasteText, defaults = {}) {
   const dataLines = isHeaderRow(lines[0]) ? lines.slice(1) : lines
   const isFormat6  = /^(true|false)$/i.test((dataLines[0] || [])[2] || '')
   const isFormat7  = !isFormat6 && (dataLines[0] || []).length <= 3 && (dataLines[0] || []).length >= 2 && ((dataLines[0] || [])[dataLines[0].length - 1] || '').includes(',')
-  const isCompact  = !isFormat6 && !isFormat7 && dataLines.length > 0 && dataLines[0].length <= 7
+  const isCompact  = !isFormat6 && !isFormat7 && dataLines.length > 0 && dataLines[0].length <= 9
 
   // Format 7: code | [date | branchName |] "address, city, ST zip"
   if (isFormat7) {
@@ -260,13 +260,16 @@ export function parsePaste(pasteText, defaults = {}) {
     return { sites: valid, error: null }
   }
 
-  // Format 3b (compact tab, 6-7 cols): code, name, address, city, state, zip
+  // Format 3b (compact tab, 6-9 cols): code, name, address, city, state, zip[, budget[, payRate[, date]]]
   if (isCompact) {
     const sites = dataLines.map(cols => ({
-      code: cols[0] || '', branchName: cols[1] || '',
-      address: cols[2] || '', address2: '', city: cols[3] || '',
-      state: cols[4] || '', zip: cols[5] || '',
-      date: parseDate('', fallbackDate), ...siteDefaults
+      code:       cols[0] || '', branchName: cols[1] || '',
+      address:    cols[2] || '', address2: '', city: cols[3] || '',
+      state:      cols[4] || '', zip: cols[5] || '',
+      budgetTech: cols[6] || '',
+      payRate:    cols[7] || '',
+      date:       parseDate(cols[8] || '', fallbackDate),
+      ...siteDefaults
     }))
     const valid = sites.filter(s => s.code || s.address)
     if (!valid.length) return { sites: [], error: 'No rows parsed from compact format.' }

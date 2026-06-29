@@ -1,0 +1,289 @@
+{
+  "$schema": "https://github.com/Azure/data-api-builder/releases/download/v1.3.19/dab.draft.schema.json",
+  "data-source": {
+    "database-type": "postgresql",
+    "connection-string": "@env('DATABASE_URL')",
+    "options": {
+      "set-session-context": false
+    }
+  },
+  "runtime": {
+    "rest": {
+      "enabled": true,
+      "path": "/api"
+    },
+    "graphql": {
+      "enabled": false
+    },
+    "host": {
+      "cors": {
+        "origins": ["@env('ALLOWED_ORIGINS')"],
+        "allow-credentials": true
+      },
+      "authentication": {
+        "provider": "StaticWebApps"
+      }
+    }
+  },
+
+  "entities": {
+
+    "projects": {
+      "source": { "object": "projects", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["create", "read", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "sites": {
+      "source": { "object": "sites", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["create", "read", "update", "delete"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "work_orders": {
+      "source": { "object": "work_orders", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["create", "read", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "wo_batches": {
+      "source": { "object": "wo_batches", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["create", "read", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "wo_types": {
+      "source": { "object": "wo_types", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "assignments": {
+      "source": { "object": "assignments", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["create", "read", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "sync_log": {
+      "source": { "object": "sync_log", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "alert_log": {
+      "source": { "object": "alert_log", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["read", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "notification_prefs": {
+      "source": { "object": "notification_prefs", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read", "create", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "notification_log": {
+      "source": { "object": "notification_log", "type": "table" },
+      "permissions": [
+        { "role": "pm",    "actions": ["read"] },
+        { "role": "admin", "actions": ["*"] }
+      ]
+    },
+
+    "audit_log": {
+      "source": { "object": "audit_log", "type": "table" },
+      "permissions": [
+        { "role": "admin", "actions": ["read"] }
+      ]
+    },
+
+    "credentials": {
+      "source": { "object": "credentials", "type": "table" },
+      "permissions": [
+        { "role": "admin", "actions": ["*"] }
+      ]
+    },
+
+    "parsers": {
+      "source": { "object": "parsers", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["create", "read", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "parser_runs": {
+      "source": { "object": "parser_runs", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read", "create"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "routes": {
+      "source": { "object": "routes", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["create", "read", "update", "delete"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "users": {
+      "source": { "object": "users", "type": "table" },
+      "mappings": {
+        "password_hash": "password_hash"
+      },
+      "permissions": [
+        { "role": "authenticated", "actions": [
+          {
+            "action": "read",
+            "fields": {
+              "exclude": ["password_hash"]
+            }
+          }
+        ]},
+        { "role": "admin", "actions": ["*"] }
+      ]
+    },
+
+    "technicians": {
+      "source": { "object": "technicians", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["create", "read", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "tech_messages": {
+      "source": { "object": "tech_messages", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["create", "read", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "tech_confirmations": {
+      "source": { "object": "tech_confirmations", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["create", "read", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "message_templates": {
+      "source": { "object": "message_templates", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "site_work_orders": {
+      "source": { "object": "site_work_orders", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["create", "read", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "column_maps": {
+      "source": { "object": "column_maps", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["create", "read", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "fn_upload_batches": {
+      "source": { "object": "fn_upload_batches", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read", "create"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "fn_work_history": {
+      "source": { "object": "fn_work_history", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["create", "read"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "user_dashboard_prefs": {
+      "source": { "object": "user_dashboard_prefs", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read", "create", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "job_history": {
+      "source": { "object": "job_history", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read", "create"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "project_history": {
+      "source": { "object": "project_history", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["read", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "template_id_history": {
+      "source": { "object": "template_id_history", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["read", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    },
+
+    "custom_wo_types": {
+      "source": { "object": "custom_wo_types", "type": "table" },
+      "permissions": [
+        { "role": "authenticated", "actions": ["read"] },
+        { "role": "pm",            "actions": ["read", "update"] },
+        { "role": "admin",         "actions": ["*"] }
+      ]
+    }
+
+  }
+}

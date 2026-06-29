@@ -1,7 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
+import { query } from '../_lib/db.js'
 import { requireAuth } from '../_lib/middleware.js'
-
-const supabase = createClient(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
 const SERVICE_FIELDS = {
   smartsheet:  ['access_token'],
@@ -22,16 +20,23 @@ async function handler(req, res) {
   const sanitized = {}
   for (const f of allowedFields) { const v = String(data[f]??'').trim(); sanitized[f] = v || null }
   const encoded = Buffer.from(JSON.stringify(sanitized)).toString('base64')
-  const { data: existing } = await supabase.from('credentials').select('id').eq('service',service).single()
-  let dbError
-  if (existing) {
-    const { error } = await supabase.from('credentials').update({ encrypted_data:encoded, is_active:true, test_status:'untested', test_message:null, updated_at:new Date().toISOString() }).eq('service',service)
-    dbError = error
+
+  const { rows: existing } = await query('SELECT id FROM credentials WHERE service = $1 LIMIT 1', [service])
+  let dbErr = null
+  if (existing.length) {
+    const res2 = await query(
+      "UPDATE credentials SET encrypted_data = $1, is_active = true, test_status = 'untested', test_message = NULL, updated_at = $2 WHERE service = $3",
+      [encoded, new Date().toISOString(), service]
+    ).catch(e => ({ error: e }))
+    dbErr = res2?.error
   } else {
-    const { error } = await supabase.from('credentials').insert({ service, label:service, encrypted_data:encoded, is_active:true, test_status:'untested' })
-    dbError = error
+    const res2 = await query(
+      "INSERT INTO credentials (service, label, encrypted_data, is_active, test_status) VALUES ($1, $1, $2, true, 'untested')",
+      [service, encoded]
+    ).catch(e => ({ error: e }))
+    dbErr = res2?.error
   }
-  if (dbError) { console.error('[Credentials] DB error:', dbError); return res.status(500).json({ message: dbError.message }) }
+  if (dbErr) { console.error('[Credentials] DB error:', dbErr); return res.status(500).json({ message: dbErr.message }) }
   return res.json({ ok:true, service })
 }
 

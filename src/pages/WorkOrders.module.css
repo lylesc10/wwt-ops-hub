@@ -62,6 +62,7 @@
 .payTypeRow { display: flex; gap: 8px; }
 .payTypeBtn { flex: 1; padding: 7px; border-radius: var(--r-sm); border: 2px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; font-family: var(--font-head); font-size: 14px; letter-spacing: 1px; transition: all 0.12s; }
 .payTypeBtnActive { border-color: var(--amber); color: var(--amber); background: var(--amber-bg); }
+.payNote { font-size: 11px; color: var(--text-muted); opacity: 0.75; line-height: 1.4; }
 
 /* Companion toggles */
 .companionToggle { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--r-sm); cursor: pointer; background: var(--bg-elevated); transition: all 0.12s; }
@@ -164,6 +165,29 @@
 .downloadBtn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 .startOverRow { display: flex; justify-content: center; }
 
+/* FN Push Panel */
+.fnPushPanel { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.fnPanelHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fnPanelTitle { display: flex; align-items: center; gap: 8px; font-size: 12px; font-family: var(--font-mono); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.fnSuccessBadge { background: var(--green); color: #fff; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 1px 7px; }
+.fnErrorBadge { background: var(--red); color: #fff; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 1px 7px; }
+.fnPanelHint { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); line-height: 1.6; margin: 0; }
+.fnResultList { display: flex; flex-direction: column; gap: 3px; max-height: 280px; overflow-y: auto; }
+.fnResultRow { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: var(--r-sm); background: var(--bg-elevated); font-size: 11px; font-family: var(--font-mono); }
+.fnResultRowOk { background: color-mix(in srgb, var(--green) 8%, var(--bg-elevated)); border-left: 2px solid var(--green); }
+.fnResultRowErr { background: color-mix(in srgb, var(--red) 8%, var(--bg-elevated)); border-left: 2px solid var(--red); }
+.fnResultCode { font-weight: 600; color: var(--amber); flex-shrink: 0; }
+.fnResultDate { color: var(--text-muted); flex-shrink: 0; font-size: 10px; }
+.fnResultId { color: var(--text-secondary); flex-shrink: 0; }
+.fnResultLink { display: inline-flex; align-items: center; gap: 3px; color: var(--blue); text-decoration: none; flex-shrink: 0; font-size: 10px; margin-left: auto; }
+.fnResultLink:hover { text-decoration: underline; }
+.fnResultError { color: var(--red); font-size: 10px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fnResultRowDeleted { opacity: 0.45; }
+.fnResultDeleted { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); margin-left: auto; }
+.fnDeleteBtn { margin-left: auto; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: var(--r-sm); border: 1px solid rgba(239,68,68,.3); background: transparent; color: var(--red); cursor: pointer; flex-shrink: 0; transition: all 0.12s; }
+.fnDeleteBtn:hover:not(:disabled) { background: var(--red-bg); border-color: var(--red); }
+.fnDeleteBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* Nav */
 .navRow { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
 .backBtn { font-size: 13px; padding: 9px 20px; border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-muted); background: var(--bg-elevated); cursor: pointer; font-family: var(--font-ui); transition: all 0.12s; }
@@ -241,3 +265,65 @@
 .dupeLink:hover { text-decoration: underline; }
 .spinning { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Top-level tab switcher ─────────────────────────────────── */
+.topTabBar { display: flex; border-bottom: 1px solid var(--border); background: var(--bg-surface); padding: 0 20px; flex-shrink: 0; }
+.topTab { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; padding: 12px 18px; border: none; border-bottom: 2px solid transparent; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.12s; margin-bottom: -1px; font-family: var(--font-ui); }
+.topTab:hover { color: var(--text-primary); }
+.topTabActive { color: var(--amber); border-bottom-color: var(--amber); }
+
+/* ── Work Order List panel ─────────────────────────────────── */
+.woListPanel { display: flex; flex-direction: column; gap: 16px; padding: 20px 24px; flex: 1; overflow: hidden; }
+.woListToolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+
+.woListTable { width: 100%; border-collapse: collapse; font-size: 12px; }
+.woListTable thead tr { background: var(--bg-elevated); border-bottom: 1px solid var(--border); }
+.woListTable th { padding: 9px 14px; text-align: left; font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); white-space: nowrap; }
+.woListTable td { padding: 9px 14px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+.woListTable tbody tr:last-child td { border-bottom: none; }
+.woListRow:hover td { background: var(--bg-hover); }
+
+.woIdBtn { background: transparent; border: none; color: var(--blue); font-family: var(--font-mono); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.woIdBtn:hover { color: var(--amber); }
+
+.woTypeBadge { display: inline-block; font-family: var(--font-head); font-size: 11px; font-weight: 700; letter-spacing: 1.5px; padding: 2px 7px; border-radius: 4px; background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+
+.woSiteCode { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.woSiteName { font-size: 11px; color: var(--text-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+
+.woLocation { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
+.woDate { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.woPay { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--green); white-space: nowrap; }
+
+.woDraftBadge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: color-mix(in srgb, var(--amber) 12%, transparent); color: var(--amber); border: 1px solid var(--amber-border); font-family: var(--font-mono); }
+
+/* WO Detail Modal */
+.woModalLocation { background: var(--bg-elevated); border-radius: var(--r-sm); padding: 10px 14px; border-left: 3px solid var(--amber); margin-bottom: 4px; }
+.woModalBranch { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+.woModalAddr { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+.woModalFooter { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--border); }
+
+/* ── Project Stats panel ────────────────────────────────────── */
+.statsPanel { display: flex; flex-direction: column; gap: 16px; padding: 20px 24px; flex: 1; overflow: hidden; }
+.statsToolbar { display: flex; align-items: center; gap: 10px; }
+.statsError { font-size: 12px; color: var(--red); font-family: var(--font-mono); }
+.statsLoading { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); padding: 40px 0; justify-content: center; }
+.statsEmpty { font-size: 13px; color: var(--text-muted); text-align: center; padding: 48px 0; }
+.statsSummary { display: flex; gap: 12px; flex-shrink: 0; }
+.statCard { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 18px; min-width: 160px; }
+.statCardLabel { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 6px; }
+.statCardValue { font-size: 22px; font-weight: 700; color: var(--amber); font-family: var(--font-mono); }
+.statsTableWrap { flex: 1; overflow: auto; border: 1px solid var(--border); border-radius: var(--r-lg); }
+.statsTable { width: 100%; border-collapse: collapse; font-size: 12px; }
+.statsTable thead tr { background: var(--bg-elevated); border-bottom: 1px solid var(--border); }
+.statsTable th { padding: 9px 14px; text-align: left; font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); white-space: nowrap; cursor: pointer; user-select: none; }
+.statsTable th:hover { color: var(--text-primary); }
+.statsTable td { padding: 9px 14px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+.statsTable tbody tr:last-child td { border-bottom: none; }
+.statsTable tbody tr:hover td { background: var(--bg-hover); }
+.statsCode { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+.statsProject { color: var(--text-secondary); max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.statsCost { font-family: var(--font-mono); font-weight: 600; color: var(--green); white-space: nowrap; }
+.statsTrips { font-family: var(--font-mono); color: var(--text-secondary); text-align: center; }
+.statsDates { color: var(--text-muted); font-size: 11px; max-width: 220px; }
+.statsTechs { color: var(--text-secondary); font-size: 11px; max-width: 200px; }

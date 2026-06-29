@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { dab } from '@/lib/dab'
 import { startOfWeek, endOfWeek, addWeeks, format, parseISO, isWithinInterval } from 'date-fns'
 
 export function useDashboard({ projectId = null, viewScope = 'all', userId = null, userName = null } = {}) {
@@ -20,7 +20,7 @@ export function useDashboard({ projectId = null, viewScope = 'all', userId = nul
       // Fetch all sites across all pages (with project + scope filter)
       (async () => {
         // First get active project IDs
-        const { data: activeProjs } = await supabase
+        const { data: activeProjs } = await dab
           .from('projects').select('id').eq('is_active', true)
         const activeIds = (activeProjs ?? []).map(p => p.id)
         if (!activeIds.length) return { data: [] }
@@ -28,7 +28,7 @@ export function useDashboard({ projectId = null, viewScope = 'all', userId = nul
         const PAGE = 1000
         let all = [], from = 0
         while (true) {
-          let q = supabase.from('sites')
+          let q = dab.from('sites')
             .select('id, code, status, scheduled_start, scheduled_end, state, fst_owner, onsite_tech, fn_wo_id, project_id, assigned_rft_id')
             .in('project_id', projectId ? [projectId] : activeIds)
             .range(from, from + PAGE - 1)
@@ -42,9 +42,9 @@ export function useDashboard({ projectId = null, viewScope = 'all', userId = nul
         }
         return { data: all }
       })(),
-      supabase.from('alert_log').select('id, alert_type, status, created_at').order('created_at', { ascending: false }).limit(200),
-      supabase.from('projects').select('id, name, client, color').eq('is_active', true),
-      supabase.from('sync_log').select('id, field_name, old_value, new_value, created_at').order('created_at', { ascending: false }).limit(50),
+      dab.from('alert_log').select('id, alert_type, status, created_at').order('created_at', { ascending: false }).limit(200),
+      dab.from('projects').select('id, name, client, color').eq('is_active', true),
+      dab.from('sync_log').select('id, field_name, old_value, new_value, created_at').order('created_at', { ascending: false }).limit(50),
     ])
 
     let sites = sitesRes.data ?? []

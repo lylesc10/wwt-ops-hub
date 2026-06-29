@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { supabase } from '@/lib/supabase'
+import { dab } from '@/lib/dab'
 import { PageHeader } from '@/components/PageHeader'
 import { Phone, MapPin, TrendingUp, RefreshCw, Search, X, ChevronRight } from 'lucide-react'
 import styles from './TechAnalysis.module.css'
@@ -48,11 +48,11 @@ export default function TechAnalysis() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase
+    const { data } = await dab
       .from('fn_work_history')
       .select('*')
-      .not('provider_name','is',null)   // only assigned WOs for tech profiles
-      .order('work_date',{ascending:false})
+      .not('provider_name', 'is', null)
+      .order('work_date', { ascending: false })
     setAllRows(data ?? [])
     setLoading(false)
   }, [])

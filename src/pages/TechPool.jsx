@@ -5,7 +5,7 @@ import {
   Plus, Search, X, Phone, Mail, ExternalLink,
   MapPin, Edit2, Trash2, Check, RefreshCw, ChevronDown, User, Star
 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { getToken } from '@/lib/dab'
 import styles from './TechPool.module.css'
 
 const REGIONS = ['Eastern', 'Central', 'Mountain', 'Pacific']
@@ -43,9 +43,8 @@ export default function TechPool() {
     setPullingFN(tech.id)
     setPullResult(r => ({ ...r, [tech.id]: null }))
     try {
-      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch(`/api/fn/provider/${tech.fn_provider_id}`, {
-        headers: { Authorization: `Bearer ${session?.access_token ?? ''}` }
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` }
       })
       const result = await res.json()
       setPullResult(r => ({ ...r, [tech.id]: result }))

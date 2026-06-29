@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { dab } from '@/lib/dab'
 import { useAuth } from '@/hooks/useAuth'
 
 export function useNotificationPrefs() {
@@ -12,13 +12,14 @@ export function useNotificationPrefs() {
   const fetchPrefs = useCallback(async () => {
     if (!user?.id) return
     setLoading(true)
-    const { data, error } = await supabase
+    const { data, error } = await dab
       .from('notification_prefs')
       .select('*')
       .eq('user_id', user.id)
       .single()
 
-    if (error && error.code !== 'PGRST116') {
+    // Ignore 404 — row simply doesn't exist yet
+    if (error && error.status !== 404) {
       setError(error.message)
     } else {
       setPrefs(data)
@@ -33,10 +34,9 @@ export function useNotificationPrefs() {
     setSaving(true)
     setError(null)
 
-    const { error } = await supabase
+    const { error } = await dab
       .from('notification_prefs')
-      .upsert({ user_id: user.id, ...updates, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id' })
+      .upsert({ user_id: user.id, ...updates, updated_at: new Date().toISOString() })
 
     if (error) setError(error.message)
     else await fetchPrefs()

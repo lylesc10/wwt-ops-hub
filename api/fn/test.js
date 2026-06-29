@@ -1,20 +1,12 @@
 import { fnFetch, getFNToken } from './auth.js'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-
-function parseCreds(d) {
-  if (!d) return null
-  try { return JSON.parse(Buffer.from(String(d),'base64').toString('utf-8')) } catch {}
-  try { return JSON.parse(String(d)) } catch {}
-  return null
-}
+import { query } from '../_lib/db.js'
+import { parseCreds } from '../_lib/credentials.js'
 
 async function getCredentials() {
   if (process.env.FN_CLIENT_ID) return { clientId: process.env.FN_CLIENT_ID, clientSecret: process.env.FN_CLIENT_SECRET, baseUrl: process.env.FN_BASE_URL || 'https://api.fndev.net' }
-  const { data } = await supabase.from('credentials').select('encrypted_data').eq('service','fieldnation').single()
-  if (!data?.encrypted_data) throw new Error('FN credentials not configured in Settings → API')
-  const parsed = parseCreds(data.encrypted_data)
+  const { rows } = await query("SELECT encrypted_data FROM credentials WHERE service = 'fieldnation' LIMIT 1")
+  if (!rows[0]?.encrypted_data) throw new Error('FN credentials not configured in Settings → API')
+  const parsed = parseCreds(rows[0].encrypted_data)
   if (!parsed) throw new Error('Failed to read FN credentials')
   const isSandbox = parsed.environment === 'sandbox'
   return { clientId: parsed.client_id, clientSecret: parsed.client_secret, baseUrl: isSandbox ? 'https://api.fndev.net' : 'https://api.fieldnation.com' }
@@ -58,7 +50,7 @@ export default async function handler(req, res) {
         const payload={
           title: params.title??'TEST-WO-001-LVL(1)',
           description:'Test WO from Ops Manager sandbox',
-          location:{ name:params.location_name??'Test Branch', address:{ address1:params.address??'123 Main St', city:params.city??'Columbus', state_code:params.state??'OH', zip:params.zip??'43215', country:'USA' }},
+          location:{ mode:'custom', address1:params.address??'123 Main St', city:params.city??'Columbus', state:params.state??'OH', zip:params.zip??'43215', country:'US' },
           scheduling:{ requested:{ start:{local_time:`${new Date().toISOString().split('T')[0]}T08:00:00`}, end:{local_time:`${new Date().toISOString().split('T')[0]}T17:00:00`}}},
           pay:{ type:'fixed', fixed:{ amount: params.budget??150 }},
           ...(params.project_id?{project:{id:Number(params.project_id)}}:{}),

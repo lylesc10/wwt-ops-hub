@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useProjects } from '@/hooks/useProjects'
-import { supabase } from '@/lib/supabase'
+import { dab, getToken } from '@/lib/dab'
 import { PageHeader } from '@/components/PageHeader'
 import {
   WO_TYPES, WO_DEFAULTS, WO_HEADERS, SITE_COLS, EMPTY_SITE,
@@ -9,8 +9,9 @@ import {
   rowComplete, isPastDate, triggerDownload,
 } from '@/cpwog/engine'
 import { parsePaste, parseCSVImport } from '@/cpwog/parsers'
-import { Download, History, Route, Plus, X, Trash2, Check, ChevronDown, AlertTriangle, Loader, ExternalLink, ShieldAlert } from 'lucide-react'
+import { Download, History, Route, Plus, X, Trash2, Check, ChevronDown, AlertTriangle, Loader, ExternalLink, ShieldAlert, ClipboardList, RefreshCw, Send } from 'lucide-react'
 import { useFNSync } from '@/hooks/useFNSync'
+import { createWorkOrderDirect, deleteWorkOrderDirect, isFNConfigured, listClients, listManagers, updateWorkOrderDirect, publishWorkOrderDirect } from '@/lib/fnDirect'
 import styles from './WorkOrders.module.css'
 
 const JOKES = [
@@ -66,7 +67,14 @@ export default function WorkOrders() {
   const [startOverConfirm, setStartOverConfirm] = useState(false)
   const [pendingTidLabel, setPendingTidLabel] = useState(null)
   const [tidLabelInput, setTidLabelInput] = useState('')
+  const [activeTab, setActiveTab] = useState('generator')
   const { checking, dupeResults, checkDupes, clearDupes } = useFNSync()
+  const [fnResults,  setFnResults]  = useState({})
+  const [fnPushing,  setFnPushing]  = useState(false)
+  const [fnClients,   setFnClients]   = useState([])
+  const [fnClientId,  setFnClientId]  = useState('')
+  const [fnManagers,  setFnManagers]  = useState([])
+  const [fnManagerId, setFnManagerId] = useState('')
   const fileInputRef = useRef(null)
   const inputRefs = useRef({})
   const prevConfigRef = useRef(woConfig)
@@ -78,16 +86,20 @@ export default function WorkOrders() {
   )
 
   useEffect(() => {
-    supabase.from('job_history').select('*').order('created_at',{ascending:false}).limit(100).then(({data})=>{if(data)setJobHistory(data)})
-    supabase.from('template_id_history').select('data').eq('id',1).then(({data})=>{if(data?.[0]?.data)setTidHistory(data[0].data)})
-    supabase.from('custom_wo_types').select('data').eq('id',1).then(({data})=>{
+    if (isFNConfigured()) {
+      listClients().then(c => { setFnClients(c); if (c.length === 1) setFnClientId(String(c[0].id)) }).catch(()=>{})
+      listManagers().then(m => { setFnManagers(m); if (m.length === 1) setFnManagerId(String(m[0].id)) }).catch(()=>{})
+    }
+    dab.from('job_history').select('*').order('created_at',{ascending:false}).limit(100).then(({data})=>{if(data)setJobHistory(data)})
+    dab.from('template_id_history').select('data').eq('id',1).then(({data})=>{if(data?.[0]?.data)setTidHistory(data[0].data)})
+    dab.from('custom_wo_types').select('data').eq('id',1).then(({data})=>{
       if(!data?.[0]?.data)return
       const d=data[0].data
       if(d.custom)setCustomTypes(d.custom)
       if(d.deletedBuiltins)setDeletedBuiltins(d.deletedBuiltins)
       if(d.overriddenBuiltins)setOverriddenBuiltins(d.overriddenBuiltins)
     })
-    supabase.from('project_history').select('project_ids,display_names').eq('id',1).then(({data})=>{
+    dab.from('project_history').select('project_ids,display_names').eq('id',1).then(({data})=>{
       if(!data?.[0])return
       if(data[0].project_ids)setPidHistory(data[0].project_ids)
       if(data[0].display_names)setDnHistory(data[0].display_names)
@@ -113,7 +125,7 @@ export default function WorkOrders() {
       const entry={id,label:label.trim()}
       const updated=[entry,...existing.filter(x=>(typeof x==='string'?x:x.id)!==id)].slice(0,10)
       const next={...prev,[type]:updated}
-      supabase.from('template_id_history').upsert({id:1,data:next,updated_at:new Date().toISOString()})
+      dab.from('template_id_history').upsert({id:1,data:next,updated_at:new Date().toISOString()})
       return next
     })
   }
@@ -122,7 +134,7 @@ export default function WorkOrders() {
     if(!id?.trim())return
     setPidHistory(prev=>{
       const updated=[id,...prev.filter(x=>x!==id)].slice(0,15)
-      supabase.from('project_history').upsert({id:1,project_ids:updated,updated_at:new Date().toISOString()})
+      dab.from('project_history').upsert({id:1,project_ids:updated,updated_at:new Date().toISOString()})
       return updated
     })
   }
@@ -131,18 +143,18 @@ export default function WorkOrders() {
     if(!name?.trim())return
     setDnHistory(prev=>{
       const updated=[name,...prev.filter(x=>x!==name)].slice(0,15)
-      supabase.from('project_history').upsert({id:1,display_names:updated,updated_at:new Date().toISOString()})
+      dab.from('project_history').upsert({id:1,display_names:updated,updated_at:new Date().toISOString()})
       return updated
     })
   }
 
   const persistWoTypes = (custom,deleted,overridden) => {
-    supabase.from('custom_wo_types').upsert({id:1,data:{custom,deletedBuiltins:deleted,overriddenBuiltins:overridden},updated_at:new Date().toISOString()})
+    dab.from('custom_wo_types').upsert({id:1,data:{custom,deletedBuiltins:deleted,overriddenBuiltins:overridden},updated_at:new Date().toISOString()})
   }
 
   const saveJob = async (extra={}) => {
     const job = {project_id:projectId,display_name:displayName,wo_type:woType,wo_config:woConfig,del_config:includeDEL?delConfig:null,include_del:includeDEL,brk_config:includeBRK?brkConfig:null,include_brk:includeBRK,sites:sites.filter(s=>s.code||s.address),site_count:sites.filter(rowComplete).length,created_at:new Date().toISOString(),...extra}
-    const {data} = await supabase.from('job_history').insert(job).select()
+    const {data} = await dab.from('job_history').insert(job).select()
     if(data?.[0])setJobHistory(prev=>[data[0],...prev].slice(0,100))
   }
 
@@ -265,6 +277,42 @@ export default function WorkOrders() {
     setGenerating(false)
   }, [sites,projectId,displayName,woType,woConfig,includeDEL,delConfig,includeBRK,brkConfig,ALL_WO_TYPES])
 
+  const fnRows = sites.filter(rowComplete).flatMap(s => buildRows(s,projectId,displayName,woType,woConfig,ALL_WO_TYPES).filter(r=>r.length>0))
+
+  const pushAllToFN = useCallback(async () => {
+    const rows = sites.filter(rowComplete).flatMap(s => buildRows(s,projectId,displayName,woType,woConfig,ALL_WO_TYPES).filter(r=>r.length>0))
+    setFnPushing(true)
+    setFnResults({})
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]
+      const key = String(i)
+      setFnResults(prev => ({...prev, [key]: {status:'pushing', title:row[2], date:row[11]}}))
+      try {
+        const result = await createWorkOrderDirect({
+          title:       row[2],
+          address:     row[4],
+          address2:    row[5] || '',
+          city:        row[6],
+          state:       row[7],
+          zip:         row[8],
+          startDate:   row[11],
+          startTime:   row[13],
+          budget:      row[18],
+          payType:     row[28],
+          payRate:     row[21],
+          approxHours: row[26],
+          templateId:  row[0],
+          clientId:    fnClientId  || undefined,
+          managerId:   fnManagerId || undefined,
+        })
+        setFnResults(prev => ({...prev, [key]: {status:'success', title:row[2], date:row[11], wo_id:result.id, url:result.url}}))
+      } catch(err) {
+        setFnResults(prev => ({...prev, [key]: {status:'error', title:row[2], date:row[11], error:err.message}}))
+      }
+    }
+    setFnPushing(false)
+  }, [sites, projectId, displayName, woType, woConfig, ALL_WO_TYPES, fnClientId, fnManagerId])
+
   const totalRows=sites.filter(rowComplete).reduce((sum,s)=>sum+buildRows(s,projectId,displayName,woType,woConfig,ALL_WO_TYPES).filter(r=>r.length>0).length,0)
   const canProceed=[projectId.trim().length>0&&!!woType,sites.every(rowComplete),true]
   const anyUnverified=sites.some(s=>s.address&&s.verified!==true)
@@ -281,8 +329,14 @@ export default function WorkOrders() {
       />
 
       <div className={styles.body}>
-        {/* Step bar */}
-        <div className={styles.stepBar}>
+        {/* Top-level tab switcher */}
+        <div className={styles.topTabBar}>
+          <button className={`${styles.topTab} ${activeTab==='generator'?styles.topTabActive:''}`} onClick={()=>setActiveTab('generator')}>WO Generator</button>
+          <button className={`${styles.topTab} ${activeTab==='wolist'?styles.topTabActive:''}`} onClick={()=>setActiveTab('wolist')}><ClipboardList size={13}/> Work Order List</button>
+        </div>
+
+        {/* Step bar — only shown in generator tab */}
+        {activeTab==='generator'&&<div className={styles.stepBar}>
           {STEP_LABELS.map((label,i)=>(
             <div key={i} className={styles.stepItem}>
               <div className={`${styles.stepNum} ${i<step?styles.stepDone:i===step?styles.stepActive:styles.stepPending}`}>{i<step?<Check size={11}/>:i+1}</div>
@@ -290,9 +344,12 @@ export default function WorkOrders() {
               {i<STEP_LABELS.length-1&&<div className={`${styles.stepLine} ${i<step?styles.stepLineDone:''}`}/>}
             </div>
           ))}
-        </div>
+        </div>}
 
-        <div className={styles.content}>
+        {/* Work Order List tab */}
+        {activeTab==='wolist'&&<WorkOrderList styles={styles}/>}
+
+        <div className={styles.content} style={{display: activeTab==='generator' ? undefined : 'none'}}>
           {/* STEP 0 */}
           {step===0&&(
             <div className={styles.step0}>
@@ -316,6 +373,38 @@ export default function WorkOrders() {
                   {showDnDD&&dnHistory.length>0&&<div className={styles.dropdown}>{dnHistory.map(dn=><div key={dn} className={styles.ddItem} onClick={()=>{setDisplayName(dn);setShowDnDD(false)}}>{dn}</div>)}</div>}
                   <span className={styles.hint}>Defaults to Project ID if blank</span>
                 </div>
+                {isFNConfigured() && fnClients.length > 0 && (
+                  <div className={styles.field}>
+                    <label>FieldNation Client</label>
+                    <select
+                      className={styles.input}
+                      value={fnClientId}
+                      onChange={e => setFnClientId(e.target.value)}
+                    >
+                      <option value=''>— None —</option>
+                      {fnClients.map(c => (
+                        <option key={c.id} value={String(c.id)}>{c.name} (ID: {c.id})</option>
+                      ))}
+                    </select>
+                    <span className={styles.hint}>Assigned to WOs when pushing to FieldNation</span>
+                  </div>
+                )}
+                {isFNConfigured() && fnManagers.length > 0 && (
+                  <div className={styles.field}>
+                    <label>Work Order Manager</label>
+                    <select
+                      className={styles.input}
+                      value={fnManagerId}
+                      onChange={e => setFnManagerId(e.target.value)}
+                    >
+                      <option value=''>— Default —</option>
+                      {fnManagers.map(m => (
+                        <option key={m.id} value={String(m.id)}>{m.name} (ID: {m.id})</option>
+                      ))}
+                    </select>
+                    <span className={styles.hint}>Manager assigned to each pushed WO</span>
+                  </div>
+                )}
               </div>
 
               <div className={styles.card}>
@@ -359,6 +448,9 @@ export default function WorkOrders() {
                       <div className={styles.payTypeRow}>
                         {['Fixed','Hourly'].map(pt=><button key={pt} className={`${styles.payTypeBtn} ${(woConfig.payType||'Fixed')===pt?styles.payTypeBtnActive:''}`} onClick={()=>setWoConfig(p=>({...p,payType:pt}))}>{pt}</button>)}
                       </div>
+                    </div>
+                    <div className={styles.payNote} style={{gridColumn:'span 2'}}>
+                      Budget and pay rate are defaults — values provided in location data will override these.
                     </div>
                   </div>
                   <CompanionToggle label="Also generate BRK (Backboard) on Day 1" enabled={includeBRK} onToggle={()=>setIncludeBRK(v=>!v)} config={brkConfig} setConfig={setBrkConfig} type="BRK" tidHistory={tidHistory} showTidDD={showBrkTidDD} setShowTidDD={setShowBrkTidDD} styles={styles}/>
@@ -496,6 +588,19 @@ export default function WorkOrders() {
 
               <button className={styles.routeBtn} onClick={()=>setShowRoute(true)}><Route size={14}/>{sites.filter(s=>rowComplete(s)&&(s.routeToTechs||[]).some(Boolean)).length>0?`Route WOs — ${sites.filter(s=>rowComplete(s)&&(s.routeToTechs||[]).some(Boolean)).length} assigned`:'Route WOs — optional'}</button>
               <button className={styles.downloadBtn} onClick={downloadCSV} disabled={generating}><Download size={16}/>{generating?'Building CSV…':`Download ${woType}${includeDEL?' + DEL':''}${includeBRK?' + BRK':''} CSV${(includeDEL||includeBRK)?'s':''}`}</button>
+
+              {isFNConfigured() && (
+                <FNPushPanel
+                  rows={fnRows}
+                  fnResults={fnResults}
+                  setFnResults={setFnResults}
+                  fnPushing={fnPushing}
+                  onPushAll={pushAllToFN}
+                  onClear={() => setFnResults({})}
+                  styles={styles}
+                />
+              )}
+
               <div className={styles.startOverRow}><button className={styles.ghostBtn} onClick={()=>setStartOverConfirm(true)}>↩ Start Over</button></div>
             </div>
           )}
@@ -656,6 +761,362 @@ export default function WorkOrders() {
   )
 }
 
+// ── FN WO → normalised row ─────────────────────────────────────
+function normalizeFNWorkOrder(wo) {
+  const typeMatch     = wo.title?.match(/\b(LVT|LVL|INT|INL|DEL|BRK)\b/i)
+  const wo_type       = typeMatch?.[1]?.toUpperCase() ?? '—'
+  const sw            = wo.schedule?.service_window ?? wo.schedule ?? {}
+  const startDate     = sw.start?.local?.date ?? sw.exact?.start?.split('T')?.[0] ?? ''
+  const startTime     = sw.start?.local?.time ?? sw.exact?.start?.split('T')?.[1]?.slice(0, 5) ?? ''
+  const pay           = wo.pay ?? {}
+  const isHourly      = pay.type === 'hourly'
+  const loc           = wo.location ?? {}
+  return {
+    id:             String(wo.id),
+    fn_wo_id:       String(wo.id),
+    fn_status:      'draft',
+    fn_url:         `https://ui-sandbox.fndev.net/workorders/${wo.id}`,
+    wo_type,
+    wo_number:      1,
+    day_number:     1,
+    site_id:        null,
+    project_id:     null,
+    scheduled_date: startDate,
+    start_time:     startTime,
+    budget_tech:    isHourly ? '' : String(pay.base?.amount ?? ''),
+    pay_rate:       isHourly ? 'hourly' : 'daily',
+    approx_hours:   isHourly ? String(pay.base?.max_units ?? '') : '',
+    notes:          wo.description ?? '',
+    // synthetic site used for display — no local DB join needed
+    _site: {
+      code:        wo.title ?? String(wo.id),
+      branch_name: wo.title ?? `Work Order ${wo.id}`,
+      address:     [loc.address1, loc.address2].filter(Boolean).join(', '),
+      city:        loc.city ?? '',
+      state:       loc.state ?? '',
+      zip:         loc.zip ?? '',
+    },
+  }
+}
+
+// ── WorkOrderList ─────────────────────────────────────────────
+function WorkOrderList({ styles }) {
+  const [wos,      setWos]      = useState([])
+  const [loading,  setLoading]  = useState(true)
+  const [error,    setError]    = useState('')
+  const [selected, setSelected] = useState(null)
+  const [statuses, setStatuses] = useState([])
+  const [deleting, setDeleting] = useState({})
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
+    try {
+      const token = getToken()
+      const res = await fetch('/api/fn/draft-wos', {
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`)
+      setWos((data.drafts ?? []).map(normalizeFNWorkOrder))
+      setStatuses(data.statuses ?? [])
+    } catch (e) { setError(e.message) }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const handleSave = useCallback(async (wo, changes) => {
+    await updateWorkOrderDirect(wo.fn_wo_id, changes)
+    setWos(prev => prev.map(w => w.id === wo.id ? { ...w, ...changes, _site: w._site } : w))
+    setSelected(null)
+  }, [])
+
+  const handleApprove = useCallback(async (wo, changes) => {
+    await updateWorkOrderDirect(wo.fn_wo_id, changes)
+    await publishWorkOrderDirect(wo.fn_wo_id)
+    setWos(prev => prev.filter(w => w.id !== wo.id))
+    setSelected(null)
+  }, [])
+
+  const handleDelete = useCallback(async (wo) => {
+    if (!window.confirm(`Delete work order ${wo.fn_wo_id}? This cannot be undone.`)) return
+    setDeleting(prev => ({ ...prev, [wo.id]: true }))
+    try {
+      await deleteWorkOrderDirect(wo.fn_wo_id)
+      setWos(prev => prev.filter(w => w.id !== wo.id))
+    } catch (e) {
+      setError(`Delete failed: ${e.message}`)
+    }
+    setDeleting(prev => ({ ...prev, [wo.id]: false }))
+  }, [])
+
+  const totalPay = wos.reduce((s, w) => s + (parseFloat(w.budget_tech) || 0), 0)
+
+  const fmtDate = (d) => {
+    if (!d) return '—'
+    try { return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
+    catch { return d }
+  }
+
+  return (
+    <div className={styles.woListPanel}>
+      <div className={styles.woListToolbar}>
+        <div className={styles.statsSummary} style={{margin:0}}>
+          <div className={styles.statCard}>
+            <div className={styles.statCardLabel}>Draft Work Orders</div>
+            <div className={styles.statCardValue}>{loading ? '—' : wos.length}</div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={styles.statCardLabel}>Estimated Pay</div>
+            <div className={styles.statCardValue}>{loading ? '—' : `$${totalPay.toLocaleString('en-US',{maximumFractionDigits:0})}`}</div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={styles.statCardLabel}>Source</div>
+            <div className={styles.statCardValue} style={{fontSize:13,color:'var(--green)'}}>FN Sandbox</div>
+          </div>
+        </div>
+        <button className={styles.ghostBtn} onClick={load} disabled={loading}>
+          <RefreshCw size={12} className={loading ? styles.spinning : undefined}/> Refresh
+        </button>
+      </div>
+
+      {error && <p className={styles.statsError}>{error}</p>}
+
+      {loading && (
+        <div className={styles.statsLoading}><Loader size={16} className={styles.spinning}/> Loading work orders…</div>
+      )}
+
+      {!loading && wos.length === 0 && !error && (
+        <div className={styles.statsEmpty}>
+          No draft work orders found in the FieldNation sandbox.
+          {statuses.length > 0 && (
+            <span style={{display:'block',marginTop:6,fontSize:11,opacity:0.6}}>
+              Statuses seen: {statuses.join(', ')}
+            </span>
+          )}
+        </div>
+      )}
+
+      {!loading && wos.length > 0 && (
+        <div className={styles.statsTableWrap}>
+          <table className={styles.woListTable}>
+            <thead>
+              <tr>
+                <th>Work Order ID</th>
+                <th>Type</th>
+                <th>Title / Site</th>
+                <th>Location</th>
+                <th>Date</th>
+                <th>Pay</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {wos.map(wo => {
+                const site = wo._site
+                const date = wo.scheduled_date
+                return (
+                  <tr key={wo.id} className={styles.woListRow}>
+                    <td>
+                      <button className={styles.woIdBtn} onClick={() => setSelected(wo)}>
+                        {wo.fn_wo_id ?? 'DRAFT'}
+                      </button>
+                    </td>
+                    <td><span className={styles.woTypeBadge}>{wo.wo_type}</span></td>
+                    <td>
+                      <div className={styles.woSiteCode}>{site?.code ?? '—'}</div>
+                      <div className={styles.woSiteName}>{site?.branch_name ?? '—'}</div>
+                    </td>
+                    <td className={styles.woLocation}>{site?.city && site?.state ? `${site.city}, ${site.state}` : '—'}</td>
+                    <td className={styles.woDate}>{fmtDate(date)}</td>
+                    <td className={styles.woPay}>{wo.budget_tech ? `$${Number(wo.budget_tech).toLocaleString()}` : '—'}</td>
+                    <td><span className={styles.woDraftBadge}>Draft</span></td>
+                    <td>
+                      <button
+                        className={styles.ghostBtn}
+                        style={{ color: 'var(--red)', borderColor: 'transparent', padding: '4px 8px' }}
+                        onClick={() => handleDelete(wo)}
+                        disabled={deleting[wo.id]}
+                        title="Delete work order"
+                      >
+                        {deleting[wo.id] ? <Loader size={12} className={styles.spinning}/> : <Trash2 size={12}/>}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {selected && (
+        <WODetailModal
+          wo={selected}
+          site={selected._site}
+          project={null}
+          styles={styles}
+          onClose={() => setSelected(null)}
+          onSave={(changes) => handleSave(selected, changes)}
+          onApprove={(changes) => handleApprove(selected, changes)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── WODetailModal ─────────────────────────────────────────────
+function WODetailModal({ wo, site, project, styles, onClose, onSave, onApprove }) {
+  const origRef = useRef({
+    scheduled_date: wo.scheduled_date ?? site?.scheduled_start?.slice(0, 10) ?? '',
+    start_time:     wo.start_time     ?? '09:00',
+    budget_tech:    String(wo.budget_tech  ?? ''),
+    pay_rate:       wo.pay_rate       ?? 'daily',
+    approx_hours:   String(wo.approx_hours ?? ''),
+    notes:          wo.notes          ?? '',
+    address:        site?.address     ?? '',
+    address2:       site?.address2    ?? '',
+    city:           site?.city        ?? '',
+    state:          site?.state       ?? '',
+    zip:            site?.zip         ?? '',
+    country:        'US',
+  })
+
+  const [form,      setForm]      = useState(() => ({ ...origRef.current }))
+  const [saving,    setSaving]    = useState(false)
+  const [approving, setApproving] = useState(false)
+  const [modalErr,  setModalErr]  = useState('')
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const doSave = async () => {
+    setSaving(true); setModalErr('')
+    try { await onSave(form) } catch (e) { setModalErr(e.message) }
+    setSaving(false)
+  }
+  const doApprove = async () => {
+    setApproving(true); setModalErr('')
+    try { await onApprove(form) } catch (e) { setModalErr(e.message); setApproving(false) }
+  }
+  const doUndo = () => { setForm({ ...origRef.current }); setModalErr('') }
+
+  const busy = saving || approving
+
+  return (
+    <div className={styles.modalOverlay} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className={styles.modal} style={{ maxWidth: 520 }}>
+        <div className={styles.modalHeader}>
+          <div>
+            <h3>{wo.fn_wo_id ?? 'Draft WO'}</h3>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, fontFamily: 'var(--font-mono)' }}>
+              {wo.wo_type} · Day {wo.day_number ?? 1}{site ? ` · ${site.code}` : ''}{project ? ` — ${project.name}` : ''}
+            </div>
+          </div>
+          <button onClick={onClose}><X size={16}/></button>
+        </div>
+
+        <div className={styles.modalBody}>
+          {site && (
+            <div className={styles.woModalLocation}>
+              <div className={styles.woModalBranch}>{site.branch_name}</div>
+              <div className={styles.woModalAddr}>{site.address} · {site.city}, {site.state}{site.zip ? ` ${site.zip}` : ''}</div>
+            </div>
+          )}
+
+          <div className={styles.configGrid}>
+            <div className={styles.field}>
+              <label>Date</label>
+              <input type="date" className={styles.input} value={form.scheduled_date} onChange={set('scheduled_date')}/>
+            </div>
+            <div className={styles.field}>
+              <label>Start Time</label>
+              <input className={styles.input} value={form.start_time} onChange={set('start_time')} placeholder="09:00"/>
+            </div>
+            <div className={styles.field}>
+              <label>Tech Budget ($)</label>
+              <input type="number" className={styles.input} value={form.budget_tech} onChange={set('budget_tech')} placeholder="800" min="0" step="10"/>
+            </div>
+            <div className={styles.field}>
+              <label>Pay Rate</label>
+              <select className={styles.input} value={form.pay_rate} onChange={set('pay_rate')}>
+                <option value="daily">Daily</option>
+                <option value="hourly">Hourly</option>
+                <option value="fixed">Fixed</option>
+              </select>
+            </div>
+            <div className={styles.field}>
+              <label>Approx Hours</label>
+              <input type="number" className={styles.input} value={form.approx_hours} onChange={set('approx_hours')} placeholder="6" min="1" step="0.5"/>
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label>Notes for Technician</label>
+            <textarea
+              className={styles.input}
+              rows={2}
+              value={form.notes}
+              onChange={set('notes')}
+              placeholder="Optional instructions or access notes…"
+              style={{ resize: 'vertical' }}
+            />
+          </div>
+
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 14, marginTop: 4 }}>
+            <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Location</div>
+            <div className={styles.field}>
+              <label>Address</label>
+              <input className={styles.input} value={form.address} onChange={set('address')} placeholder="123 Main St"/>
+            </div>
+            <div className={styles.field}>
+              <label>Address 2</label>
+              <input className={styles.input} value={form.address2} onChange={set('address2')} placeholder="Suite 100 (optional)"/>
+            </div>
+            <div className={styles.configGrid}>
+              <div className={styles.field} style={{marginBottom:0}}>
+                <label>City</label>
+                <input className={styles.input} value={form.city} onChange={set('city')} placeholder="Baltimore"/>
+              </div>
+              <div className={styles.field} style={{marginBottom:0}}>
+                <label>State</label>
+                <input className={styles.input} value={form.state} onChange={set('state')} placeholder="MD" maxLength={2} style={{textTransform:'uppercase'}}/>
+              </div>
+              <div className={styles.field} style={{marginBottom:0}}>
+                <label>Zip</label>
+                <input className={styles.input} value={form.zip} onChange={set('zip')} placeholder="21202"/>
+              </div>
+              <div className={styles.field} style={{marginBottom:0}}>
+                <label>Country</label>
+                <input className={styles.input} value={form.country} onChange={set('country')} placeholder="US" maxLength={2} style={{textTransform:'uppercase'}}/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {modalErr && (
+          <div style={{ padding: '8px 20px', fontSize: 12, color: 'var(--red)', background: 'var(--red-bg, #2a1515)', borderTop: '1px solid var(--border)' }}>
+            {modalErr}
+          </div>
+        )}
+        <div className={styles.woModalFooter}>
+          <button className={styles.ghostBtn} onClick={doUndo} disabled={busy}>
+            Undo Changes
+          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className={styles.ghostBtn} onClick={doSave} disabled={busy}>
+              {saving ? <Loader size={12} className={styles.spinning}/> : <Check size={12}/>} Save Changes
+            </button>
+            <button className={styles.primaryBtn} onClick={doApprove} disabled={busy}>
+              {approving ? <Loader size={12} className={styles.spinning}/> : <Send size={12}/>} Save & Publish
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function CompanionToggle({label,enabled,onToggle,config,setConfig,type,tidHistory,showTidDD,setShowTidDD,showDateField,styles}) {
   return(
     <div style={{marginTop:12}}>
@@ -679,6 +1140,97 @@ function CompanionToggle({label,enabled,onToggle,config,setConfig,type,tidHistor
             ))}
             <div className={styles.field} style={{gridColumn:'span 2'}}><label>Pay Type</label><div className={styles.payTypeRow}>{['Fixed','Hourly'].map(pt=><button key={pt} className={`${styles.payTypeBtn} ${(config.payType||'Fixed')===pt?styles.payTypeBtnActive:''}`} onClick={()=>setConfig(p=>({...p,payType:pt}))}>{pt}</button>)}</div></div>
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── FNPushPanel ───────────────────────────────────────────────
+function FNPushPanel({ rows, fnResults, setFnResults, fnPushing, onPushAll, onClear, styles }) {
+  const total      = rows.length
+  const pushed     = Object.values(fnResults).filter(r => r.status === 'success').length
+  const errors     = Object.values(fnResults).filter(r => r.status === 'error').length
+  const hasResults = Object.keys(fnResults).length > 0
+
+  const deleteWO = async (key, woId) => {
+    setFnResults(prev => ({...prev, [key]: {...prev[key], deleting: true}}))
+    try {
+      await deleteWorkOrderDirect(woId)
+      setFnResults(prev => ({...prev, [key]: {...prev[key], status: 'deleted', deleting: false}}))
+    } catch(err) {
+      setFnResults(prev => ({...prev, [key]: {...prev[key], deleting: false, deleteError: err.message}}))
+    }
+  }
+
+  return (
+    <div className={styles.fnPushPanel}>
+      <div className={styles.fnPanelHeader}>
+        <div className={styles.fnPanelTitle}>
+          <Send size={14} />
+          <span>Push to FieldNation Sandbox</span>
+          {pushed > 0 && <span className={styles.fnSuccessBadge}>{pushed} pushed</span>}
+          {errors > 0 && <span className={styles.fnErrorBadge}>{errors} failed</span>}
+        </div>
+        <div style={{display:'flex', gap:6}}>
+          {hasResults && <button className={styles.ghostBtn} onClick={onClear} disabled={fnPushing}>Clear</button>}
+          <button
+            className={styles.primaryBtn}
+            onClick={onPushAll}
+            disabled={fnPushing || total === 0}
+          >
+            {fnPushing
+              ? <><Loader size={12} className={styles.spinning}/> Pushing…</>
+              : <><Send size={12}/> Push {total} WO{total !== 1 ? 's' : ''} to FN</>}
+          </button>
+        </div>
+      </div>
+
+      {!hasResults && !fnPushing && (
+        <p className={styles.fnPanelHint}>
+          Creates {total} work order{total !== 1 ? 's' : ''} directly in FieldNation sandbox — one per row in the CSV above.
+        </p>
+      )}
+
+      {hasResults && (
+        <div className={styles.fnResultList}>
+          {rows.map((row, i) => {
+            const key    = String(i)
+            const result = fnResults[key]
+            if (!result) return null
+            const isDeleted = result.status === 'deleted'
+            return (
+              <div key={i} className={`${styles.fnResultRow} ${result.status === 'success' ? styles.fnResultRowOk : result.status === 'deleted' ? styles.fnResultRowDeleted : result.status === 'error' ? styles.fnResultRowErr : ''}`}>
+                <span className={styles.fnResultCode} style={isDeleted ? {textDecoration:'line-through', opacity:0.5} : {}}>{result.title}</span>
+                <span className={styles.fnResultDate}>{result.date || '—'}</span>
+                {result.status === 'pushing' && <Loader size={11} className={styles.spinning} style={{color:'var(--amber)', flexShrink:0}}/>}
+                {result.status === 'success' && (
+                  <>
+                    <Check size={11} style={{color:'var(--green)', flexShrink:0}}/>
+                    <span className={styles.fnResultId}>WO {result.wo_id}</span>
+                    <a href={result.url} target="_blank" rel="noreferrer" className={styles.fnResultLink}><ExternalLink size={10}/> View</a>
+                    <button
+                      className={styles.fnDeleteBtn}
+                      onClick={() => deleteWO(key, result.wo_id)}
+                      disabled={result.deleting}
+                      title="Delete from FieldNation"
+                    >
+                      {result.deleting ? <Loader size={10} className={styles.spinning}/> : <Trash2 size={10}/>}
+                    </button>
+                  </>
+                )}
+                {result.status === 'deleted' && (
+                  <span className={styles.fnResultDeleted}>deleted</span>
+                )}
+                {result.status === 'error' && (
+                  <span className={styles.fnResultError} title={result.error}>{result.error}</span>
+                )}
+                {result.deleteError && (
+                  <span className={styles.fnResultError} title={result.deleteError}>delete failed</span>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

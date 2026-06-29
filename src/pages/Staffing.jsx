@@ -3,7 +3,7 @@ import { useSites } from '@/hooks/useSites'
 import { useProjects } from '@/hooks/useProjects'
 import { useUsers } from '@/hooks/useUsers'
 import { useAuth } from '@/hooks/useAuth'
-import { supabase } from '@/lib/supabase'
+import { dab } from '@/lib/dab'
 import { PageHeader } from '@/components/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge'
 import {
@@ -113,7 +113,7 @@ export default function Staffing() {
 
   const assignRFT = async (siteId, userId, userName) => {
     setAssigning(a => ({ ...a, [siteId]: true }))
-    await supabase.from('sites').update({
+    await dab.from('sites').update({
       assigned_rft_id: userId,
       fst_owner:       userName,
       rft_assigned_at: new Date().toISOString(),
@@ -125,7 +125,7 @@ export default function Staffing() {
 
   const assignTech = async (siteId, techName) => {
     setAssigning(a => ({ ...a, [`tech-${siteId}`]: true }))
-    await supabase.from('sites').update({
+    await dab.from('sites').update({
       onsite_tech: techName,
       updated_at:  new Date().toISOString(),
     }).eq('id', siteId)

@@ -5,29 +5,15 @@
  * Pulls all rows from Smartsheet via API, runs the same
  * diff/upsert logic as the Excel upload. Uses the access token
  * stored in the credentials table.
- *
- * Call on-demand (Settings → Sync button) or via cron.
  */
 
-import { createClient } from '@supabase/supabase-js'
 import { withSecurity, requireAuth } from '../_lib/middleware.js'
-
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+import { query, insertRows, upsertRows } from '../_lib/db.js'
+import { getSSToken } from '../_lib/credentials.js'
 
 const SS_BASE = 'https://api.smartsheet.com/2.0'
 
-function parseCreds(encrypted_data) {
-  if (!encrypted_data) return null
-  try { return JSON.parse(Buffer.from(String(encrypted_data), 'base64').toString('utf-8')) } catch {}
-  try { return JSON.parse(String(encrypted_data)) } catch {}
-  return null
-}
-
 const STATUS_MAP = {
-
   'completed':'completed','complete':'completed',
   'scheduled':'scheduled','not started':'scheduled',
   'in progress':'in_progress',
@@ -61,34 +47,12 @@ function cleanZip(v) {
   return String(v).replace(/\.0+$/, '').split('.')[0].trim() || null
 }
 
-async function getToken() {
-  // Try env first
-  if (process.env.SMARTSHEET_ACCESS_TOKEN) return process.env.SMARTSHEET_ACCESS_TOKEN
-
-  // Then credentials table
-  const { data } = await supabase
-    .from('credentials')
-    .select('encrypted_data')
-    .eq('service', 'smartsheet')
-    .single()
-
-  if (!data?.encrypted_data) throw new Error('Smartsheet token not configured. Add it in Settings → API & Webhooks.')
-
+function isoWeek(dateStr) {
+  if (!dateStr) return null
   try {
-    const parsed = parseCreds(data.encrypted_data)
-    return parsed.access_token
-  } catch {
-    throw new Error('Failed to read Smartsheet credentials')
-  }
-}
-
-async function getSheetId(projectId) {
-  const { data } = await supabase
-    .from('projects')
-    .select('smartsheet_id')
-    .eq('id', projectId)
-    .single()
-  return data?.smartsheet_id ?? null
+    const d = new Date(dateStr + 'T12:00:00'), jan1 = new Date(d.getFullYear(), 0, 1)
+    return Math.ceil((((d - jan1) / 86400000) + jan1.getDay() + 1) / 7)
+  } catch { return null }
 }
 
 async function handler(req, res) {
@@ -99,14 +63,18 @@ async function handler(req, res) {
 
   let token, sheetId
   try {
-    token   = await getToken()
-    sheetId = overrideSheetId ?? await getSheetId(project_id)
+    token = await getSSToken()
+    if (!overrideSheetId) {
+      const { rows } = await query('SELECT smartsheet_id FROM projects WHERE id = $1 LIMIT 1', [project_id])
+      sheetId = rows[0]?.smartsheet_id ?? null
+    } else {
+      sheetId = overrideSheetId
+    }
     if (!sheetId) return res.status(400).json({ message: 'No Smartsheet Sheet ID configured for this project. Set it in Settings → Projects → Edit.' })
   } catch (err) {
     return res.status(400).json({ message: err.message })
   }
 
-  // ── Fetch sheet from Smartsheet ────────────────────────────
   const ssRes = await fetch(`${SS_BASE}/sheets/${sheetId}`, {
     headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
   })
@@ -118,13 +86,9 @@ async function handler(req, res) {
 
   const sheet = await ssRes.json()
 
-  // Build column name → id map
   const colMap = {}
-  for (const col of sheet.columns ?? []) {
-    colMap[col.title] = col.id
-  }
+  for (const col of sheet.columns ?? []) colMap[col.title] = col.id
 
-  // Helper to get cell value by column title
   const cell = (row, colTitle) => {
     const colId = colMap[colTitle]
     if (!colId) return null
@@ -132,13 +96,10 @@ async function handler(req, res) {
     return c?.displayValue ?? c?.value ?? null
   }
 
-  // ── Parse rows into site records ───────────────────────────
   const incoming = {}
-
   for (const row of sheet.rows ?? []) {
     const code = clean(cell(row, 'Building Code'))
     if (!code) continue
-
     incoming[code] = {
       project_id,
       code,
@@ -171,21 +132,20 @@ async function handler(req, res) {
     return res.status(400).json({ message: 'No rows with Building Code found in sheet' })
   }
 
-  // ── Load existing + preserve route_id/fn_wo_id ─────────────
-  let existingSiteIds = []
+  // Load existing sites in batches of 500
+  let existingSites = []
   for (let i = 0; i < incomingCodes.length; i += 500) {
-    const { data } = await supabase
-      .from('sites')
-      .select('code, route_id, fn_wo_id, scheduled_start, scheduled_end, status, onsite_tech, branch_name')
-      .eq('project_id', project_id)
-      .in('code', incomingCodes.slice(i, i + 500))
-    if (data) existingSiteIds = [...existingSiteIds, ...data]
+    const batch = incomingCodes.slice(i, i + 500)
+    const { rows } = await query(
+      'SELECT code, id, route_id, fn_wo_id, scheduled_start, scheduled_end, status, onsite_tech, branch_name FROM sites WHERE project_id = $1 AND code = ANY($2)',
+      [project_id, batch]
+    )
+    existingSites = [...existingSites, ...rows]
   }
 
-  const existingMap   = Object.fromEntries(existingSiteIds.map(s => [s.code, s]))
+  const existingMap = Object.fromEntries(existingSites.map(s => [s.code, s]))
   const existingCodes = new Set(Object.keys(existingMap))
 
-  // ── Diff ───────────────────────────────────────────────────
   const diff = { date_changes: [], week_changes: [], sites_added: [], sites_removed: [], tech_changes: [], status_changes: [] }
 
   for (const code of incomingCodes) {
@@ -207,29 +167,22 @@ async function handler(req, res) {
     if (!incoming[code]) { const s = existingMap[code]; diff.sites_removed.push({ code, branch: s.branch_name, start: s.scheduled_start }) }
   }
 
-  // ── Alerts ─────────────────────────────────────────────────
   const alerts = []
   for (const c of diff.date_changes) {
     alerts.push({ alert_type: 'date_change', site_id: existingMap[c.code]?.id ?? null, title: `Date changed: ${c.code} — ${c.branch}`, detail: `${c.old_start} → ${c.new_start}${c.week_moved ? ` (Wk ${c.old_week} → Wk ${c.new_week})` : ''}` })
   }
   for (const s of diff.sites_added) {
-    alerts.push({ alert_type: 'site_added', title: `New site: ${s.code} — ${s.branch}`, detail: `${s.start ?? 'TBD'}` })
+    alerts.push({ alert_type: 'site_added', title: `New site: ${s.code} — ${s.branch}`, detail: `${s.start ?? 'TBD'}`, site_id: null })
   }
-  if (alerts.length) await supabase.from('alert_log').insert(alerts)
+  if (alerts.length) await insertRows('alert_log', alerts)
 
-  // ── Upsert ─────────────────────────────────────────────────
   const records = Object.values(incoming).map(r => ({
     ...r,
     route_id: existingMap[r.code]?.route_id ?? null,
     fn_wo_id: existingMap[r.code]?.fn_wo_id ?? null,
   }))
 
-  let upserted = 0, errors = []
-  for (let i = 0; i < records.length; i += 50) {
-    const { error } = await supabase.from('sites').upsert(records.slice(i, i + 50), { onConflict: 'project_id,code' })
-    if (error) errors.push(error.message)
-    else upserted += Math.min(50, records.length - i)
-  }
+  const { count: upserted } = await upsertRows('sites', records, ['project_id', 'code'])
 
   const parts = []
   if (diff.date_changes.length)  parts.push(`${diff.date_changes.length} date changes`)
@@ -237,24 +190,18 @@ async function handler(req, res) {
   if (diff.sites_added.length)   parts.push(`${diff.sites_added.length} new sites`)
   if (diff.tech_changes.length)  parts.push(`${diff.tech_changes.length} tech changes`)
 
-  await supabase.from('sync_log').insert({ project_id, field_name: 'smartsheet_live_sync', new_value: parts.join(', ') || 'no changes' })
+  await query(
+    "INSERT INTO sync_log (project_id, field_name, new_value) VALUES ($1, 'smartsheet_live_sync', $2)",
+    [project_id, parts.join(', ') || 'no changes']
+  )
 
   return res.json({
-    ok: !errors.length, upserted, source: 'smartsheet_api',
+    ok: true, upserted, source: 'smartsheet_api',
     sheet_name: sheet.name,
     diff,
     summary: { date_changes: diff.date_changes.length, week_changes: diff.week_changes.length, sites_added: diff.sites_added.length, sites_removed: diff.sites_removed.length, tech_changes: diff.tech_changes.length },
     message: `${upserted} sites synced from Smartsheet "${sheet.name}"${parts.length ? ' · ' + parts.join(', ') : ' · no changes'}`,
-    errors: errors.length ? errors.slice(0,3) : undefined,
   })
-}
-
-function isoWeek(dateStr) {
-  if (!dateStr) return null
-  try {
-    const d = new Date(dateStr + 'T12:00:00'), jan1 = new Date(d.getFullYear(), 0, 1)
-    return Math.ceil((((d - jan1) / 86400000) + jan1.getDay() + 1) / 7)
-  } catch { return null }
 }
 
 export default withSecurity(requireAuth(handler, 'pm'))

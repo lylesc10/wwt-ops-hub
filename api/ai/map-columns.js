@@ -2,20 +2,12 @@
  * POST /api/ai/map-columns
  * Body: { project_id, headers: string[], sample_rows: object[], map_name?: string }
  *
- * Sends headers + sample rows to Claude.
- * Claude returns a column mapping for all our known fields.
+ * Sends headers + sample rows to Claude, returns a column mapping.
  * Stores the mapping in column_maps table.
- * Returns the mapping + confidence + any missing fields.
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { query } from '../_lib/db.js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
-
-// All fields we want to extract from any sheet
 const TARGET_FIELDS = {
   code:           'Unique site/building identifier code (e.g. B015, Y796)',
   branch_name:    'Branch or location name (e.g. "Crest Hill", "Downtown Columbus")',
@@ -43,17 +35,12 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' })
 
   const { project_id, headers, sample_rows, map_name } = req.body ?? {}
-
-  if (!headers?.length) return res.status(400).json({ message: 'headers required' })
+  if (!headers?.length)     return res.status(400).json({ message: 'headers required' })
   if (!sample_rows?.length) return res.status(400).json({ message: 'sample_rows required' })
 
-  // Build the prompt
-  const fieldDescriptions = Object.entries(TARGET_FIELDS)
-    .map(([k, v]) => `  "${k}": ${v}`)
-    .join('\n')
-
-  const sampleStr = JSON.stringify(sample_rows.slice(0, 5), null, 2)
-  const headerStr = JSON.stringify(headers)
+  const fieldDescriptions = Object.entries(TARGET_FIELDS).map(([k, v]) => `  "${k}": ${v}`).join('\n')
+  const sampleStr  = JSON.stringify(sample_rows.slice(0, 5), null, 2)
+  const headerStr  = JSON.stringify(headers)
 
   const prompt = `You are a data mapping assistant for a field services operations platform.
 
@@ -104,21 +91,12 @@ Return this exact JSON structure:
   "unmapped_source_cols": ["list of source columns that had no obvious mapping"]
 }`
 
-  // Call Claude
   let mapping, confidence, notes, dateFormat, unmappedCols
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'Content-Type':      'application/json',
-        'x-api-key':         process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model:      'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1500, messages: [{ role: 'user', content: prompt }] }),
     })
 
     if (!aiRes.ok) {
@@ -128,8 +106,6 @@ Return this exact JSON structure:
 
     const aiData  = await aiRes.json()
     const rawText = aiData.content?.[0]?.text ?? ''
-
-    // Strip any markdown fences
     const jsonStr = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const parsed  = JSON.parse(jsonStr)
 
@@ -138,40 +114,26 @@ Return this exact JSON structure:
     notes        = parsed.notes ?? ''
     dateFormat   = parsed.date_format ?? ''
     unmappedCols = parsed.unmapped_source_cols ?? []
-
   } catch (err) {
     return res.status(500).json({ message: `AI mapping failed: ${err.message}` })
   }
 
-  // Validate — make sure all mapping values are actual headers or null
   const headerSet = new Set(headers)
   const validated = {}
   for (const [field, col] of Object.entries(mapping)) {
     validated[field] = (col && headerSet.has(col)) ? col : null
   }
 
-  const mappedCount = Object.values(validated).filter(Boolean).length
+  const mappedCount   = Object.values(validated).filter(Boolean).length
   const missingFields = Object.keys(TARGET_FIELDS).filter(f => !validated[f])
 
-  // Store in DB if project_id provided
   let savedId = null
   if (project_id) {
-    const { data: session } = await supabase.auth.getSession?.() ?? {}
-
-    const { data: saved, error: saveErr } = await supabase
-      .from('column_maps')
-      .insert({
-        project_id,
-        name:           map_name ?? `Auto-mapped ${new Date().toLocaleDateString()}`,
-        source_cols:    validated,
-        sample_headers: headers,
-        confidence,
-        verified:       false,
-      })
-      .select('id')
-      .single()
-
-    if (!saveErr && saved) savedId = saved.id
+    const { rows } = await query(
+      'INSERT INTO column_maps (project_id, name, source_cols, sample_headers, confidence, verified) VALUES ($1, $2, $3, $4, $5, false) RETURNING id',
+      [project_id, map_name ?? `Auto-mapped ${new Date().toLocaleDateString()}`, JSON.stringify(validated), JSON.stringify(headers), confidence]
+    )
+    savedId = rows[0]?.id ?? null
   }
 
   return res.json({
