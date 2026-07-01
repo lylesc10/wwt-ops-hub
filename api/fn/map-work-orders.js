@@ -14,13 +14,9 @@
  * e.g. "PNC-FB - CMH2-LVL(1)-Columbus, OH" or site_id "B015-LVL(1)"
  */
 
-import { createClient } from '@supabase/supabase-js'
 import { fnFetch } from './auth.js'
+import { supa as supabase } from '../../_lib/db.js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 const FN_STATUS_MAP = {
   draft:      'draft',     published: 'published',

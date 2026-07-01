@@ -1,22 +1,83 @@
-import { createClient } from '@supabase/supabase-js'
+/**
+ * Compatibility shim — replaces the Supabase client.
+ *
+ * All existing `import { supabase } from '@/lib/supabase'` call sites work
+ * unchanged:
+ *   supabase.from('table').select(...)   → routes to DAB REST via dab.js
+ *   supabase.auth.*                      → routes to JWT auth via auth.js
+ *   supabase.channel().on().subscribe()  → converts realtime to 30-second polling
+ *   supabase.removeChannel(channel)      → clears the polling interval
+ */
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+import { dab } from './dab.js'
+import {
+  getSession, signIn as authSignIn, signOut as authSignOut,
+} from './auth.js'
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  document.body.style.cssText = 'margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0d0f12;font-family:monospace;text-align:center;padding:40px;'
-  document.body.innerHTML = `
-    <div>
-      <p style="color:#f59e0b;font-size:16px;margin-bottom:12px;">⚠ Missing Supabase environment variables</p>
-      <p style="color:#8b93a5;font-size:12px;">Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY<br>in Vercel → Settings → Environment Variables, then redeploy.</p>
-    </div>`
-  throw new Error('Missing Supabase env vars: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY')
+// ── Realtime stub → polling ───────────────────────────────────────────────────
+// Replaces supabase.channel(...).on('postgres_changes', {}, callback).subscribe()
+// with a 30-second polling interval. supabase.removeChannel(ch) clears it.
+
+function makeChannel() {
+  let _callback = null
+  let _interval = null
+
+  const ch = {
+    on(_event, _filter, callback) {
+      _callback = callback
+      return ch
+    },
+    subscribe() {
+      if (_callback) _interval = setInterval(_callback, 30_000)
+      return ch
+    },
+    _cleanup() {
+      if (_interval) { clearInterval(_interval); _interval = null }
+    },
+  }
+  return ch
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
+// ── Auth shim ─────────────────────────────────────────────────────────────────
+
+const authShim = {
+  getSession: () => Promise.resolve({ data: { session: getSession() } }),
+
+  signInWithPassword: async ({ email, password }) => {
+    const { error } = await authSignIn(email, password)
+    return { error: error ? { message: error } : null }
   },
-})
+
+  signOut: async () => {
+    authSignOut()
+    return { error: null }
+  },
+
+  onAuthStateChange: (callback) => {
+    const handler = () => {
+      const session = getSession()
+      callback(session ? 'SIGNED_IN' : 'SIGNED_OUT', session)
+    }
+    window.addEventListener('ops-auth-change', handler)
+    return {
+      data: { subscription: { unsubscribe: () => window.removeEventListener('ops-auth-change', handler) } },
+    }
+  },
+
+  // Admin methods — not available in new stack
+  admin: {
+    inviteUserByEmail: async () => ({
+      data: null,
+      error: { message: 'User creation: use Settings → Users to add users via the new API.' },
+    }),
+  },
+}
+
+// ── Exported shim ─────────────────────────────────────────────────────────────
+
+export const supabase = {
+  from:          (table) => dab.from(table),
+  channel:       (_name) => makeChannel(),
+  removeChannel: (ch)    => ch?._cleanup?.(),
+  auth:          authShim,
+}

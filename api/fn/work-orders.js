@@ -6,14 +6,10 @@
  * Authenticated (pm+). Credentials read from DB or env vars.
  */
 
-import { createClient }                    from '@supabase/supabase-js'
 import { fnFetch }                         from './auth.js'
 import { withSecurity, requireAuth }       from '../_lib/middleware.js'
+import { supa as supabase }                from '../_lib/db.js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 function parseFNCreds(encrypted_data) {
   try { return JSON.parse(Buffer.from(String(encrypted_data), 'base64').toString('utf-8')) } catch {}

@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { getSession } from '@/lib/auth'
 
 export function useUsers() {
-  const [users, setUsers] = useState([])
+  const [users,   setUsers]   = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error,   setError]   = useState(null)
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -20,20 +21,19 @@ export function useUsers() {
   useEffect(() => { fetchUsers() }, [fetchUsers])
 
   const inviteUser = useCallback(async ({ email, full_name, role }) => {
-    // Invite via Supabase auth — sends email to user
-    const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-      data: { full_name, role }
+    const session = getSession()
+    const res = await fetch('/api/auth/users', {
+      method:  'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization:  `Bearer ${session?.access_token ?? ''}`,
+      },
+      body: JSON.stringify({ email, full_name, role }),
     })
-    if (error) throw new Error(error.message)
-    // Upsert profile row
-    await supabase.from('users').upsert({
-      id: data.user.id,
-      email,
-      full_name,
-      role,
-    }, { onConflict: 'id' })
+    const body = await res.json()
+    if (!res.ok) throw new Error(body.message ?? 'Failed to create user')
     await fetchUsers()
-    return data.user
+    return body.user
   }, [fetchUsers])
 
   const updateUser = useCallback(async (id, { full_name, role }) => {
@@ -46,7 +46,6 @@ export function useUsers() {
   }, [fetchUsers])
 
   const deactivateUser = useCallback(async (id) => {
-    // We don't hard-delete — just downgrade to viewer and mark
     const { error } = await supabase
       .from('users')
       .update({ role: 'viewer', updated_at: new Date().toISOString() })

@@ -1,14 +1,10 @@
+import { supa as supabase } from '../../_lib/db.js'
 /**
  * POST /api/ai/load-fn-history
  * No body required.
  * Aggregates tech stats from the fn_work_history table without needing a file upload.
  */
-import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 const STATUS_COLORS_ORDER = ['Completed','Assigned','Confirmed','Cancelled','Draft','Published','Routed','Unknown']
 

@@ -1,3 +1,4 @@
+import { supa as supabase } from '../../_lib/db.js'
 /**
  * POST /api/comms/blast-confirmations
  * Body: {
@@ -13,12 +14,7 @@
  *   - Don't already have a pending/confirmed confirmation
  */
 
-import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 function mergeTemplate(body, vars) {
   return body.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`)

@@ -6,14 +6,9 @@
  * Stores results back into technicians table.
  */
 
-import { createClient } from '@supabase/supabase-js'
 import { fnFetch } from '../auth.js'
+import { supa as supabase } from '../../../_lib/db.js'
 
-const supabase = createClient(
-
-function parseCreds(encrypted_data) {
-  if (!encrypted_data) return null
-  // Try base64 decode first (standard storage)
   try {
     const raw = Buffer.from(String(encrypted_data), 'base64').toString('utf-8')
     return JSON.parse(raw)

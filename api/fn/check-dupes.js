@@ -3,14 +3,10 @@
  * Body: { site_codes: string[], fn_project_id?: string }
  * Returns: { results: { [code]: { exists, wo_id?, status?, title?, url? } } }
  */
-import { createClient } from '@supabase/supabase-js'
 import { fnFetch } from './auth.js'
 import { withSecurity, requireAuth } from '../_lib/middleware.js'
+import { supa as supabase } from '../../_lib/db.js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' })

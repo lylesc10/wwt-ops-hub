@@ -18,13 +18,9 @@
  *   workorder.message         → log to alert_log
  */
 
-import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
+import { supa as supabase } from '../../_lib/db.js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 const FN_WEBHOOK_SECRET = process.env.FN_WEBHOOK_SECRET
 

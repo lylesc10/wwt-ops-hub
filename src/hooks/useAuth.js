@@ -1,91 +1,63 @@
 import React, { createContext, useContext, useEffect, useReducer, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { getSession, signIn as authSignIn, signOut as authSignOut } from '@/lib/auth'
 
-// ── State ─────────────────────────────────────────────────────
-const initialState = {
-  session: null,
-  user: null,      // auth.users row
-  profile: null,   // public.users row (includes role)
-  loading: true,
-  error: null,
-}
+const initialState = { session: null, profile: null, loading: true }
 
 function reducer(state, action) {
   switch (action.type) {
-    case 'SET_SESSION':
-      return { ...state, session: action.session, user: action.session?.user ?? null, loading: false, error: null }
-    case 'SET_PROFILE':
-      return { ...state, profile: action.profile }
-    case 'SET_ERROR':
-      return { ...state, error: action.error, loading: false }
-    case 'CLEAR':
-      return { ...initialState, loading: false }
-    default:
-      return state
+    case 'LOADED': return { session: action.session, profile: action.profile, loading: false }
+    case 'CLEAR':  return { ...initialState, loading: false }
+    default:       return state
   }
 }
 
-// ── Context ───────────────────────────────────────────────────
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState)
 
-  const fetchProfile = useCallback(async (userId) => {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single()
+  const loadSession = useCallback(async () => {
+    const session = getSession()
+    if (!session) { dispatch({ type: 'CLEAR' }); return }
 
-    if (error) {
-      console.error('[AuthContext] fetchProfile error', error)
-      return
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!res.ok) { authSignOut(); dispatch({ type: 'CLEAR' }); return }
+      const profile = await res.json()
+      dispatch({ type: 'LOADED', session, profile })
+    } catch {
+      authSignOut()
+      dispatch({ type: 'CLEAR' })
     }
-    dispatch({ type: 'SET_PROFILE', profile: data })
   }, [])
 
   useEffect(() => {
-    // Get initial session once
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      dispatch({ type: 'SET_SESSION', session })
-      if (session?.user) fetchProfile(session.user.id)
-    })
+    loadSession()
+    const handler = () => loadSession()
+    window.addEventListener('ops-auth-change', handler)
+    return () => window.removeEventListener('ops-auth-change', handler)
+  }, [loadSession])
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Ignore TOKEN_REFRESHED — session is still valid, no profile re-fetch needed
-      if (event === 'TOKEN_REFRESHED') return
-
-      if (event === 'SIGNED_OUT') {
-        dispatch({ type: 'CLEAR' })
-        return
-      }
-
-      dispatch({ type: 'SET_SESSION', session })
-      if (session?.user) fetchProfile(session.user.id)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [fetchProfile])
-
-  // ── Auth actions ─────────────────────────────────────────────
-  const signIn = useCallback(async ({ email, password }) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) dispatch({ type: 'SET_ERROR', error: error.message })
-    return error
-  }, [])
+  const signIn = useCallback(async (email, password) => {
+    const { error } = await authSignIn(email, password)
+    if (error) throw new Error(error)
+    await loadSession()
+  }, [loadSession])
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut()
+    authSignOut()
+    dispatch({ type: 'CLEAR' })
   }, [])
 
   const value = {
     ...state,
+    user:    state.session?.user ?? null,
     signIn,
     signOut,
     isAdmin: state.profile?.role === 'admin',
-    isPM: state.profile?.role === 'pm' || state.profile?.role === 'admin',
+    isPM:    state.profile?.role === 'pm' || state.profile?.role === 'admin',
   }
 
   return React.createElement(AuthContext.Provider, { value }, children)

@@ -8,13 +8,9 @@
  * Parses reply and updates tech_confirmations status automatically
  */
 
-import { createClient } from '@supabase/supabase-js'
 import { URLSearchParams } from 'url'
+import { supa as supabase } from '../../_lib/db.js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 // Keywords → confirmation status
 const CONFIRM_WORDS = new Set(['yes','y','confirm','confirmed','ok','sure','yep','yep','will do','on my way','omw'])

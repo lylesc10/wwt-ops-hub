@@ -1,3 +1,4 @@
+import { supa as supabase } from '../../_lib/db.js'
 /**
  * POST /api/sync/upload-routes
  * Body: { project_id, rows, fileName }
@@ -10,12 +11,7 @@
  *   NewLVL_Date, InstallStartDate, State, City
  */
 
-import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 const ROUTE_COLORS = [
   '#6366f1','#10b981','#f59e0b','#3b82f6','#a855f7','#06b6d4',

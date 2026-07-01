@@ -18,14 +18,10 @@
  *   paid            → completed
  */
 
-import { createClient } from '@supabase/supabase-js'
 import { fnFetch } from './auth.js'
 import { withSecurity, requireAuth } from '../_lib/middleware.js'
+import { supa as supabase } from '../../_lib/db.js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 const FN_STATUS_MAP = {
   draft:      'scheduled',

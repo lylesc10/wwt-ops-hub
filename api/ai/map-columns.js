@@ -1,3 +1,4 @@
+import { supa as supabase } from '../../_lib/db.js'
 /**
  * POST /api/ai/map-columns
  * Body: { project_id, headers: string[], sample_rows: object[], map_name?: string }
@@ -8,12 +9,7 @@
  * Returns the mapping + confidence + any missing fields.
  */
 
-import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 // All fields we want to extract from any sheet
 const TARGET_FIELDS = {

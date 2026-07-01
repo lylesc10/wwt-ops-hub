@@ -1,3 +1,4 @@
+import { supa as supabase } from '../../_lib/db.js'
 /**
  * POST /api/sync/upload
  * Body: { project_id, rows, fileName }
@@ -6,12 +7,7 @@
  * Diffs against DB, fires alerts for changes, upserts all rows.
  */
 
-import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 const STATUS_MAP = {
   'completed':   'completed',

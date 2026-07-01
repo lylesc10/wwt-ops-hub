@@ -1,3 +1,4 @@
+import { supa as supabase } from '../../_lib/db.js'
 /**
  * POST /api/comms/send-sms
  * Body: {
@@ -10,12 +11,7 @@
  * }
  */
 
-import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 const TWILIO_SID    = process.env.TWILIO_ACCOUNT_SID
 const TWILIO_TOKEN  = process.env.TWILIO_AUTH_TOKEN

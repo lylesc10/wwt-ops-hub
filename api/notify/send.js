@@ -16,13 +16,9 @@
  *   TWILIO_FROM_NUMBER  — E.164 e.g. +18135550100
  */
 
-import { createClient } from '@supabase/supabase-js'
 import { withSecurity, requireAuth } from '../_lib/middleware.js'
+import { supa as supabase } from '../../_lib/db.js'
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 const RESEND_KEY     = process.env.RESEND_API_KEY
 const RESEND_FROM    = process.env.RESEND_FROM || 'OPS Hub <alerts@opsnotify.com>'
