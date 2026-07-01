@@ -9,99 +9,86 @@ npm run dev       # Dev server at :5173
 npm run build     # Vite production build → dist/
 npm run preview   # Preview built dist/
 npm run lint      # ESLint on src/
+node server.js    # Express host after build — serves SPA + /api/*
+./deploy-azure.sh # Build + deploy to Azure Container Apps
 ```
 
 No test suite is configured.
 
 ## Environment Variables
 
-Frontend (VITE_* are bundled into the browser build):
+Frontend (`VITE_*` are bundled into the browser build at build time):
 ```
-VITE_SUPABASE_URL
-VITE_SUPABASE_ANON_KEY
+VITE_DAB_BASE              # Data API Builder URL
 VITE_FN_MOCK=true          # Enables mock FieldNation responses in dev
 VITE_APP_ENV               # Shows DEV/SANDBOX badge in the UI
 ```
 
-Server-side (Vercel functions and Supabase edge functions only):
+Server-side (`api/` handlers and `server.js` only):
 ```
-SUPABASE_SERVICE_ROLE_KEY
+DATABASE_URL               # postgresql://user:pass@host:5432/opshub?sslmode=require
+JWT_SECRET                 # HS256 signing key for access tokens
+JWT_REFRESH_SECRET         # HS256 signing key for refresh tokens
+ANTHROPIC_API_KEY
 SMARTSHEET_ACCESS_TOKEN
 FN_CLIENT_ID, FN_CLIENT_SECRET, FN_BASE_URL, FN_USERNAME, FN_PASSWORD
-TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
+TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER
 ALLOWED_ORIGINS
+SYNC_JOB=true              # Set by Container Apps Job to run sync and exit
 ```
 
 ## Architecture
 
 ### Stack
 
-React 18 + Vite frontend with CSS Modules, Supabase (Postgres + Auth + Realtime + Edge Functions), and Vercel serverless functions that proxy all third-party API calls.
+React 18 + Vite frontend with CSS Modules. Backend: Azure Database for PostgreSQL + Data API Builder (DAB) + custom HS256 JWT auth. Express container on Azure Container Apps.
 
-### Why the Vercel proxy layer exists
+**No Supabase.** The project previously used Supabase but was migrated off in June 2026. `src/lib/supabase.js` is a compatibility shim that routes calls to DAB (data) and `src/lib/auth.js` (auth) — all existing hooks continue to work unchanged.
 
-All calls to FieldNation, Smartsheet, and Twilio go through `api/` serverless functions — never directly from the browser. This keeps credentials server-side, centralizes rate limiting (in-memory `Map`, not persistent — documented to swap with Upstash Redis in prod), and controls CORS.
+### Why the Express proxy layer exists
+
+All calls to FieldNation, Smartsheet, Twilio, and the Anthropic API go through `api/` handlers — never directly from the browser. This keeps credentials server-side and controls CORS.
 
 ### Authentication
 
-`src/hooks/useAuth.js` is the AuthProvider. It wraps Supabase email/password auth and fetches a profile from `public.users` to determine role. `App.jsx` wraps protected routes with a `RequireAuth` component that redirects to `/login` on no session.
+**No login required.** The app is open-access. `src/hooks/useAuth.js` returns a static context with `isAdmin: true, isPM: true, loading: false` — no session check, no redirects.
 
-Roles are `viewer` (read-only), `pm` (edit sites + push WOs), `admin` (full access). Enforcement is dual-layer: `useAuth().isPM` / `.isAdmin` gate UI elements, and the Vercel middleware (`api/_lib/middleware.js`) validates the Supabase JWT and checks `minRole` on every API call.
+API endpoints in `api/` still validate JWTs via `api/_lib/middleware.js` (`requireAuth`), but the frontend does not send tokens or show a login UI.
 
 ### Data fetching pattern
 
-Each page calls one or more custom hooks in `src/hooks/`. Hooks fetch from Supabase directly, cache in component `useState`, and open a Realtime channel to receive `postgres_changes` events — so live data flows in without polling. No Redux or Zustand; auth and theme are the only global React contexts.
+Each page calls one or more custom hooks in `src/hooks/`. Hooks use `src/lib/supabase.js` (which routes to DAB REST), cache in component `useState`, and use `supabase.channel().on().subscribe()` which the shim converts to 30-second polling intervals. No Redux or Zustand; auth and theme are the only global React contexts.
 
-Supabase queries on large tables paginate in 1000-row chunks to avoid timeouts.
+### DAB REST
 
-### Vercel API middleware composition
+`src/lib/dab.js` is a Supabase-shaped query builder over DAB OData REST. `dab.from(table).select(cols).eq(col, val).order(col).range(from, to)` etc. The shim in `src/lib/supabase.js` delegates `.from()` to `dab`.
 
-```javascript
-export default compose(
-  withSecurity,            // Headers, CORS, rate limiting
-  requireAuth('pm'),       // JWT validation + role check
-  validateBody(schema),    // Zod or manual validation
-)(handler)
-```
+### API handlers
 
-`withSecurity` adds security headers and handles OPTIONS. `requireAuth` attaches `req.user` and `req.userRole`.
+`api/_lib/db.js` — pg Pool + `supa` query builder used by all `api/` handlers.
+`api/_lib/middleware.js` — `withSecurity` (headers, CORS, rate limiting) + `requireAuth(handler, role)`.
+`api/_lib/credentials.js` — shared helpers (`getFNCredentials()`, `getTwilioCreds()`, `getSSToken()`).
 
 ### Work Order generation pipeline
 
 `src/cpwog/` is an embedded WO generation engine. `engine.js` expands sites × technicians × dates, `generateWO.js` formats rows for FieldNation CSV, `woTypes.js` defines the six WO types (LVL, LVT, DEL, BRK, INT, INL). LVL/LVT/INT/INL bundle by site ID prefix; DEL/BRK do not.
 
-Site IDs follow the pattern `{code}-{typePrefix}({techNum})` (e.g., `FB1A-LVT(2)`), which FieldNation uses to group bundled WOs.
-
 ### Parser engine
 
-`src/lib/parserEngine.js` runs client-side. It auto-detects CSV delimiters by counting candidates in the first five rows, then applies chainable field transforms (`phone → E.164`, `date → ISO`, `currency → float`). Parser configurations are persisted to the `parsers` Supabase table.
+`src/lib/parserEngine.js` runs client-side. It auto-detects CSV delimiters by counting candidates in the first five rows, then applies chainable field transforms (`phone → E.164`, `date → ISO`, `currency → float`). Parser configurations are persisted to the `parsers` table via DAB.
+
+### DocGen page
+
+`src/pages/DocGen.jsx` — three-view page: document list, 12-question AI generation flow (calls `POST /api/docgen/generate`), and section/subsection editor with DOCX export (`GET /api/docgen/download`). Documents stored in `documents` table.
 
 ### Mock mode
 
-When FieldNation credentials are absent or `VITE_FN_MOCK=true`, API functions return `{ results: [], mock: true }` instead of throwing. This allows full UI interaction without live credentials.
+When FieldNation credentials are absent or `VITE_FN_MOCK=true`, API handlers return `{ results: [], mock: true }`. Full UI interaction is possible without live credentials.
 
-### Three deployment environments
+### Deployment
 
-| Branch | Vercel URL | Supabase project |
-|--------|-----------|-----------------|
-| `main` | wwt-ops-hub.vercel.app | prod (601 live PNC sites) |
-| `dev` | wwt-ops-hub-dev.vercel.app | dev |
-| `sandbox` | wwt-ops-hub-sandbox.vercel.app | sandbox |
-
-### Supabase Edge Functions (Deno)
-
-Deployed separately from Vercel:
-```bash
-supabase functions deploy smartsheet-sync
-supabase functions invoke smartsheet-sync --body '{"project_id":"UUID"}'
-```
-
-Functions in `supabase/functions/`: `smartsheet-sync`, `fn-push-wo`, `fn-check-dupes`, `fn-fetch-status`.
+Deployed to Azure Container Apps via `./deploy-azure.sh`. Schema lives in `azure/schema.sql`; DAB config in `azure/dab-config.json`.
 
 ### Styling
 
 CSS Modules — each page/component has a matching `.module.css`. Global CSS variables (colors, typography, dark theme tokens) live in `src/index.css`. The `@` alias resolves to `src/`.
-
-### Known cleanup item
-
-Two auth hook files exist: `src/hooks/useAuth.js` (the real provider) and `src/hooks/useAuth.jsx` (an older duplicate). Use `useAuth.js`.
