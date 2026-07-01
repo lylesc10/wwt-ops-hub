@@ -16,6 +16,7 @@ import TechPool from './pages/TechPool'
 import WOCoverage from './pages/WOCoverage'
 import FNExportAnalyzer from './pages/FNExportAnalyzer'
 import TechAnalysis from './pages/TechAnalysis'
+import DocGen from './pages/DocGen'
 
 function RequireAuth({ children }) {
   const { session, loading } = useAuth()
@@ -51,6 +52,7 @@ export default function App() {
               <Route path="coverage"     element={<WOCoverage />} />
               <Route path="fn-analyzer"   element={<FNExportAnalyzer />} />
               <Route path="tech-analysis"  element={<TechAnalysis />} />
+              <Route path="doc-gen"       element={<DocGen />} />
               <Route path="parsers"      element={<ParserStudio />} />
               <Route path="settings"     element={<Settings />} />
               <Route path="*"            element={<Navigate to="/dashboard" replace />} />
