@@ -134,3 +134,102 @@
 /* ── Spinner ─────────────────────────────────────────────────────────────────── */
 @keyframes spin { to { transform:rotate(360deg); } }
 .spin { animation:spin .8s linear infinite; }
+
+/* ── Tabs ────────────────────────────────────────────────────────────────────── */
+.tabs {
+  display:flex;gap:2px;border-bottom:1px solid var(--border);
+  padding:0 28px;flex-shrink:0;
+}
+.tab {
+  background:none;border:none;border-bottom:2px solid transparent;
+  color:var(--text-muted);font-size:12px;font-weight:600;font-family:var(--font-ui);
+  padding:10px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  transition:color .1s;
+}
+.tab:hover  { color:var(--text-secondary); }
+.tabActive  { color:var(--text-primary);border-bottom-color:var(--accent); }
+.tabCount {
+  font-size:10px;font-family:var(--font-mono);color:var(--text-muted);
+  background:var(--bg-active);border-radius:8px;padding:1px 6px;
+}
+
+/* ── Project cards ───────────────────────────────────────────────────────────── */
+.projectGrid { display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px; }
+.projectCard {
+  display:flex;flex-direction:column;gap:8px;text-align:left;
+  background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:14px 16px;cursor:pointer;transition:border-color .1s;
+  color:inherit;font-family:var(--font-ui);
+}
+.projectCard:hover { border-color:var(--border-strong); }
+.projectName  { font-size:13px;font-weight:700;color:var(--text-primary); }
+.projectMeta  { font-size:11px;color:var(--text-muted);font-family:var(--font-mono);display:flex;gap:6px;flex-wrap:wrap;align-items:center; }
+.projectChip {
+  font-size:10px;font-family:var(--font-mono);color:var(--accent);
+  border:1px solid var(--accent);border-radius:9px;padding:1px 8px;
+}
+.projectFooter { display:flex;align-items:center;justify-content:space-between;margin-top:2px; }
+.projectCounts { font-size:11px;color:var(--text-muted);font-family:var(--font-mono);display:flex;gap:10px; }
+
+/* ── File upload ─────────────────────────────────────────────────────────────── */
+.dropZone {
+  border:1.5px dashed var(--border-strong);border-radius:var(--r-lg);
+  padding:26px;display:flex;flex-direction:column;align-items:center;gap:8px;
+  color:var(--text-muted);cursor:pointer;text-align:center;
+  transition:border-color .1s,background .1s;background:none;width:100%;
+  font-family:var(--font-ui);font-size:12px;
+}
+.dropZone:hover, .dropZoneActive { border-color:var(--accent);background:rgba(59,130,246,.05); }
+.fileRow {
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:9px 12px;
+}
+.fileName { flex:1;font-size:12px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.fileType {
+  font-size:10px;font-family:var(--font-mono);color:var(--text-secondary);
+  background:var(--bg-active);border-radius:4px;padding:2px 7px;text-transform:uppercase;
+}
+.fileParsed    { font-size:10px;font-family:var(--font-mono);color:var(--green); }
+.fileParseFail { font-size:10px;font-family:var(--font-mono);color:var(--amber); }
+
+/* ── Question flow extras ────────────────────────────────────────────────────── */
+.suggestedField {
+  border:1px solid rgba(59,130,246,.35);border-radius:var(--r-sm);
+  padding:10px;background:rgba(59,130,246,.05);
+}
+.suggestedBadge {
+  display:inline-flex;align-items:center;gap:4px;margin-left:8px;
+  font-size:10px;font-family:var(--font-mono);color:var(--accent);
+  border:1px solid var(--accent);border-radius:8px;padding:0 7px;
+}
+.infoBanner {
+  display:flex;align-items:center;gap:8px;
+  background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.4);
+  color:var(--accent);border-radius:var(--r-sm);padding:10px 14px;font-size:12px;
+}
+.radioRow    { display:flex;gap:16px;font-size:13px;color:var(--text-primary); }
+.radioLabel  { display:inline-flex;align-items:center;gap:5px;cursor:pointer; }
+.checkList   { display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--text-primary); }
+.checkLabel  { display:inline-flex;align-items:center;gap:7px;cursor:pointer; }
+.toggleRow   { display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:12px;color:var(--text-primary); }
+.toggleHint  { display:block;color:var(--text-muted);font-size:11px;margin-top:2px; }
+
+/* ── AI-generated content blocks (editor) ────────────────────────────────────── */
+.aiBlock {
+  border:1px solid rgba(245,158,11,.5);border-radius:var(--r-sm);
+  background:rgba(245,158,11,.07);padding:10px;margin:8px 0;
+  display:flex;flex-direction:column;gap:6px;
+}
+.aiBadge {
+  display:inline-flex;align-items:center;gap:4px;align-self:flex-start;
+  font-size:10px;font-family:var(--font-mono);color:var(--amber);
+  border:1px solid var(--amber);border-radius:8px;padding:1px 8px;
+}
+.aiTextarea { border-color:rgba(245,158,11,.4); }
+
+/* ── Status badge ────────────────────────────────────────────────────────────── */
+.statusChip {
+  font-size:10px;font-family:var(--font-mono);border-radius:9px;padding:1px 8px;
+  border:1px solid currentColor;text-transform:uppercase;letter-spacing:.04em;
+}

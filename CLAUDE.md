@@ -5,13 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev       # Dev server at :5173
+npm run dev       # Vite dev server at :5173 (proxies /api → :8787)
+npm start         # Express host (server.js) — file-routes api/** + serves dist/
 npm run build     # Vite production build → dist/
 npm run preview   # Preview built dist/
 npm run lint      # ESLint on src/
-node server.js    # Express host after build — serves SPA + /api/*
-./deploy-azure.sh # Build + deploy to Azure Container Apps
 ```
+
+Local dev runs two processes: `npm start` (API on :8787, loads `.env`) and `npm run dev` (frontend). `server.js` routes `api/**/*.js` files Vercel-style, including `[param]` segments.
 
 No test suite is configured.
 
@@ -77,9 +78,21 @@ Each page calls one or more custom hooks in `src/hooks/`. Hooks use `src/lib/sup
 
 `src/lib/parserEngine.js` runs client-side. It auto-detects CSV delimiters by counting candidates in the first five rows, then applies chainable field transforms (`phone → E.164`, `date → ISO`, `currency → float`). Parser configurations are persisted to the `parsers` table via DAB.
 
-### DocGen page
+### DocGen (full port of the field-services document generator)
 
-`src/pages/DocGen.jsx` — three-view page: document list, 12-question AI generation flow (calls `POST /api/docgen/generate`), and section/subsection editor with DOCX export (`GET /api/docgen/download`). Documents stored in `documents` table.
+Frontend at `src/pages/docgen/` (routes under `/doc-gen/*`): project list → project workspace (Generate / Source Files / Documents tabs) → document editor with highlighted `[AI-GENERATED]` blocks and Word export.
+
+Backend at `api/docgen/` with shared libs in `api/docgen/_lib/`:
+- `parsers.js` — Excel/CSV (xlsx), PDF (pdf-parse), Word (mammoth) upload parsing
+- `prompts.js` — runbook system prompt + outline/section/assembly/suggest prompts
+- `ai.js` — Anthropic provider (`ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` default `claude-opus-4-8`)
+- `service.js` — context builder, single-call + 3-phase sectioned pipeline (outline → parallel sections → assembly), suggest-answers
+- `renderer.js` — full markdown→DOCX (tables w/ shading, checkboxes ☐/☑, ⚠️ CRITICAL callouts)
+- `postProcessor.js` — procedure injection + placeholder cleanup
+
+Endpoints: `projects` CRUD, `upload` (JSON base64), `uploads/[projectId]`, `documents` CRUD + `[id]/download`, `generate` (creates status=`generating` placeholder; client polls `documents/[id]` every 3s for `generation_progress`), `suggest-answers`, `questions`, `responses`.
+
+Schema + question-template seed: `supabase/migrations/021_docgen.sql` (tables `docgen_projects`, `docgen_uploads`, `docgen_question_templates`, `docgen_question_responses`, `documents`).
 
 ### Mock mode
 

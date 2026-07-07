@@ -9,4 +9,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    // /api/* is served by the Express host (node server.js) in local dev
+    proxy: {
+      '/api': `http://localhost:${process.env.API_PORT ?? 8787}`,
+    },
+  },
 })
