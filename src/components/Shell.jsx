@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Table2, CalendarRange, Route,
   ClipboardList, Bell, Settings, LogOut, Zap,
-  Code2, MessageSquare, TrendingUp, Users2, Grid3x3, HardHat, FileBarChart, BarChart3, FileText
+  Code2, MessageSquare, TrendingUp, Users2, Grid3x3, HardHat, FileBarChart, BarChart3, FileText, Map
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -13,6 +13,7 @@ const NAV = [
   { to: '/sites',       icon: Table2,          label: 'Site Board'    },
   { to: '/gantt',       icon: CalendarRange,   label: 'Tech Gantt'    },
   { to: '/routes',      icon: Route,           label: 'Route Gantt'   },
+  { to: '/route-planning', icon: Map,          label: 'Route Planning' },
   { to: '/work-orders', icon: ClipboardList,   label: 'Work Orders'   },
   { to: '/alerts',      icon: Bell,            label: 'Alerts',  badge: true },
   { to: '/comms',       icon: MessageSquare,   label: 'Comms'         },

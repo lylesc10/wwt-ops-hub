@@ -1,0 +1,10 @@
+.host { position:fixed;bottom:20px;right:20px;z-index:1000;display:flex;flex-direction:column;gap:8px;max-width:360px; }
+.toast { display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--r-md);background:var(--bg-elevated);border:1px solid var(--border-strong);color:var(--text-primary);font-size:12px;box-shadow:var(--shadow-lg);animation:toastIn .15s ease-out; }
+.toast svg { flex-shrink:0; }
+.success { border-color:var(--green-border);color:var(--green); }
+.success span { color:var(--text-primary); }
+.error { border-color:rgba(244,63,94,.35);color:var(--red); }
+.error span { color:var(--text-primary); }
+.info { border-color:var(--accent-border);color:var(--accent-light); }
+.info span { color:var(--text-primary); }
+@keyframes toastIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }

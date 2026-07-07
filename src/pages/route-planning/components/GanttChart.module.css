@@ -1,0 +1,34 @@
+.wrap { overflow:auto;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--bg-surface);max-height:calc(100vh - 240px); }
+
+.headerRow { display:flex;border-bottom:1px solid var(--border);background:var(--bg-elevated);position:sticky;top:0;z-index:10; }
+.rowLabelHeader { width:192px;min-width:192px;padding:8px 12px;font-size:11px;font-weight:600;color:var(--text-muted);border-right:1px solid var(--border);flex-shrink:0;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em; }
+.dayCols { display:flex;flex:1; }
+.dayCol { text-align:center;border-right:1px solid var(--border-subtle);min-width:28px;padding:2px 0; }
+.dayCol:last-child { border-right:none; }
+.weekend { background:var(--bg-hover); }
+.monthLabel { font-size:10px;font-weight:700;color:var(--text-secondary);line-height:1.2;font-family:var(--font-mono); }
+.dayNum { font-size:10px;color:var(--text-muted);font-family:var(--font-mono); }
+.dayLetter { font-size:9px;color:var(--text-muted);opacity:.6;font-family:var(--font-mono); }
+
+.row { display:flex;border-bottom:1px solid var(--border-subtle); }
+.row:last-child { border-bottom:none; }
+.rowAlt { background:var(--bg-hover); }
+.rowLabel { width:192px;min-width:192px;padding:8px 12px;border-right:1px solid var(--border);flex-shrink:0;position:sticky;left:0;z-index:5;background:var(--bg-surface); }
+.rowAlt .rowLabel { background:var(--bg-elevated); }
+.rowLabelMain { display:flex;align-items:center;gap:8px; }
+.rowDot { display:inline-block;width:10px;height:10px;border-radius:50%;flex-shrink:0; }
+.rowName { font-size:13px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.rowSub { font-size:11px;color:var(--text-muted);margin-top:2px;font-family:var(--font-mono); }
+
+.barArea { flex:1;position:relative;min-height:48px; }
+.bar { position:absolute;top:4px;height:calc(100% - 8px);border-radius:var(--r-xs);padding:0 4px;font-size:11px;color:#fff;overflow:hidden;cursor:pointer;border:0;display:flex;align-items:center;gap:4px;text-align:left; }
+.barTravel { opacity:.35;background-image:repeating-linear-gradient(-45deg,transparent,transparent 3px,rgba(255,255,255,.25) 3px,rgba(255,255,255,.25) 6px); }
+.barLabel { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.barHours { background:rgba(255,255,255,.25);border-radius:3px;padding:0 3px;font-size:10px;flex-shrink:0;font-family:var(--font-mono); }
+
+.popover { position:fixed;z-index:50;background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:var(--r-md);box-shadow:var(--shadow-lg);padding:12px;font-size:13px;width:224px; }
+.popoverTitle { font-weight:600;color:var(--text-primary);margin-bottom:6px;font-size:13px; }
+.popoverGrid { display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px;color:var(--text-primary); }
+.popoverKey { color:var(--text-muted); }
+
+.emptyState { display:flex;align-items:center;justify-content:center;padding:48px 16px;color:var(--text-muted);font-size:13px; }

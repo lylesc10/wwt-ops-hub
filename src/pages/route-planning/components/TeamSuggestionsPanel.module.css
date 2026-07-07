@@ -1,0 +1,39 @@
+.panel { background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--r-md);padding:10px;display:flex;flex-direction:column;gap:10px; }
+.header { display:flex;align-items:center;justify-content:space-between;gap:8px; }
+.title { display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--accent-light); }
+.headerBtns { display:flex;gap:5px; }
+.acceptBtn { font-size:10px;font-weight:600;padding:4px 9px;border-radius:var(--r-sm);background:var(--accent);color:#fff;border:none;cursor:pointer; }
+.acceptBtn:hover:not(:disabled) { background:var(--accent-dim); }
+.acceptBtn:disabled { opacity:.5;cursor:not-allowed; }
+.dismissBtn { font-size:10px;padding:4px 9px;border-radius:var(--r-sm);border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer; }
+.dismissBtn:hover:not(:disabled) { color:var(--text-primary); }
+
+.warnings { display:flex;flex-direction:column;gap:3px; }
+.warning { display:flex;align-items:center;gap:5px;font-size:10px;color:var(--amber); }
+
+.team { background:var(--bg-surface);border:1px solid var(--border);border-left-width:4px;border-radius:var(--r-sm);padding:8px 10px; }
+.teamTop { display:flex;align-items:center;gap:6px;color:var(--text-muted);margin-bottom:4px; }
+.teamName { font-size:12px;font-weight:700;color:var(--text-primary); }
+.regionBadge { font-size:9px;font-family:var(--font-mono);padding:1px 6px;border-radius:8px;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-muted); }
+.teamSites { display:flex;align-items:center;gap:4px;flex-wrap:wrap;color:var(--text-muted);margin-bottom:4px; }
+.siteBadge { font-size:9px;font-family:var(--font-mono);padding:1px 6px;border-radius:8px;border:1px solid var(--border);color:var(--text-secondary); }
+.members { display:flex;flex-direction:column; }
+
+.member { padding:6px 0;border-top:1px solid var(--border-subtle); }
+.member:first-child { border-top:none; }
+.memberTop { display:flex;align-items:center;gap:5px;flex-wrap:wrap; }
+.memberName { font-size:12px;font-weight:600;color:var(--text-primary); }
+.leadStar { color:var(--amber);fill:var(--amber); }
+.leadBadge { font-size:9px;font-family:var(--font-mono);padding:1px 6px;border-radius:8px;border:1px solid var(--amber-border);color:var(--amber);background:var(--amber-bg); }
+.memberLoc { display:flex;align-items:center;gap:2px;font-size:10px;color:var(--text-muted); }
+.scores { display:flex;gap:4px;margin-left:auto; }
+.score { font-size:9px;font-family:var(--font-mono);padding:1px 5px;border-radius:7px;border:1px solid; }
+.scoreGood { color:var(--green);border-color:var(--green-border);background:var(--green-bg); }
+.scoreFair { color:var(--amber);border-color:var(--amber-border);background:var(--amber-bg); }
+.scoreLow { color:var(--red);border-color:rgba(244,63,94,.3);background:var(--red-bg); }
+.cautions { display:flex;flex-direction:column;gap:2px;padding-left:16px;margin-top:3px; }
+.cautionRed { display:flex;align-items:center;gap:4px;font-size:10px;color:var(--red); }
+.cautionOrange { display:flex;align-items:center;gap:4px;font-size:10px;color:var(--amber); }
+
+.unassigned { border-top:1px solid var(--border);padding-top:8px; }
+.unassignedTitle { font-size:11px;font-weight:600;color:var(--text-muted);margin:0 0 4px; }

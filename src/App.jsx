@@ -15,6 +15,10 @@ import WOCoverage from './pages/WOCoverage'
 import FNExportAnalyzer from './pages/FNExportAnalyzer'
 import TechAnalysis from './pages/TechAnalysis'
 import DocGen from './pages/DocGen'
+import RoutePlanList from './pages/route-planning/RoutePlanList'
+import CreateRoutePlan from './pages/route-planning/CreateRoutePlan'
+import RoutePlanBuilder from './pages/route-planning/RoutePlanBuilder'
+import ScheduleOverview from './pages/route-planning/ScheduleOverview'
 
 export default function App() {
   return (
@@ -27,6 +31,10 @@ export default function App() {
             <Route path="sites"        element={<SiteBoard />} />
             <Route path="gantt"        element={<TechGantt />} />
             <Route path="routes"       element={<RouteGantt />} />
+            <Route path="route-planning"          element={<RoutePlanList />} />
+            <Route path="route-planning/new"      element={<CreateRoutePlan />} />
+            <Route path="route-planning/overview" element={<ScheduleOverview />} />
+            <Route path="route-planning/:id"      element={<RoutePlanBuilder />} />
             <Route path="work-orders"  element={<WorkOrders />} />
             <Route path="alerts"       element={<Alerts />} />
             <Route path="comms"        element={<Comms />} />

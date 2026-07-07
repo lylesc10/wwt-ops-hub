@@ -1,0 +1,10 @@
+.bar { position:sticky;bottom:0;display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border);background:var(--bg-surface);flex-shrink:0;box-shadow:0 -2px 8px rgba(0,0,0,.15); }
+.spacer { margin-left:auto; }
+.actionBtn { display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:7px 12px;border-radius:var(--r-md);border:1px solid var(--border);color:var(--text-secondary);background:transparent;cursor:pointer;transition:all .12s;font-family:var(--font-ui); }
+.actionBtn:hover:not(:disabled) { border-color:var(--border-strong);color:var(--text-primary); }
+.actionBtn:disabled { opacity:.5;cursor:not-allowed; }
+.approveBtn { display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:7px 14px;border-radius:var(--r-md);background:var(--accent);color:#fff;border:none;cursor:pointer;transition:all .12s; }
+.approveBtn:hover:not(:disabled) { background:var(--accent-dim); }
+.approveBtn:disabled { opacity:.5;cursor:not-allowed; }
+.spin { animation:spin 1s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
