@@ -64,6 +64,8 @@ Each page calls one or more custom hooks in `src/hooks/`. Hooks use `src/lib/sup
 
 `src/lib/dab.js` is a Supabase-shaped query builder over DAB OData REST. `dab.from(table).select(cols).eq(col, val).order(col).range(from, to)` etc. The shim in `src/lib/supabase.js` delegates `.from()` to `dab`.
 
+**No DAB deployment is required**: `api/[table]/index.js` and `api/[table]/id/[id].js` implement DAB's REST dialect (`$filter`/`$select`/`$orderby`/`$first`, `{ value: [...] }` envelope) directly against `DATABASE_URL` via `api/_lib/entity.js`. Leave `VITE_DAB_BASE` unset so dab.js hits relative `/api/{table}`. Table and column names are schema-validated; `users` and `credentials` are blocked from the generic entity API. Named handler routes (`/api/docgen/*`, `/api/auth/*`, …) always take precedence over the `[table]` catch-all.
+
 ### API handlers
 
 `api/_lib/db.js` — pg Pool + `supa` query builder used by all `api/` handlers.
