@@ -7,8 +7,9 @@
  */
 
 import { fnFetch } from '../auth.js'
-import { supa as supabase } from '../../../_lib/db.js'
+import { supa as supabase } from '../../_lib/db.js'
 
+function parseCreds(encrypted_data) {
   try {
     const raw = Buffer.from(String(encrypted_data), 'base64').toString('utf-8')
     return JSON.parse(raw)
@@ -17,10 +18,6 @@ import { supa as supabase } from '../../../_lib/db.js'
   try { return JSON.parse(String(encrypted_data)) } catch {}
   return null
 }
-
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ message: 'Method not allowed' })
