@@ -10,6 +10,8 @@
  */
 
 import { getToken } from './auth.js'
+// Re-exported for callers that need the raw JWT for /api/* fetches
+export { getToken }
 
 const DAB_BASE = (import.meta.env.VITE_DAB_BASE ?? '').replace(/\/$/, '')
 
