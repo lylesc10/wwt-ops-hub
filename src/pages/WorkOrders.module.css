@@ -241,3 +241,74 @@
 .dupeLink:hover { text-decoration: underline; }
 .spinning { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Guided / Advanced mode ─────────────────────────────────── */
+.modeToggleRow { display:flex;justify-content:flex-end; }
+.modeToggle { font-size:11px;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:20px;padding:4px 14px;cursor:pointer;font-family:var(--font-ui);transition:all .12s; }
+.modeToggle:hover { color:var(--text-primary);border-color:var(--border-strong); }
+.guidedTitle { font-family:var(--font-head);font-size:15px;font-weight:700;color:var(--amber);margin-bottom:2px; }
+.guidedSub { font-size:12px;color:var(--text-muted);margin-bottom:12px; }
+.woCardDesc { font-size:11px;color:var(--text-muted);margin-top:2px;display:block; }
+
+/* Template quick-start chips (guided step 0) */
+.tplChips { display:flex;flex-wrap:wrap;gap:8px; }
+.tplChip { display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 14px;border-radius:var(--r-md);border:1px solid var(--border);background:var(--bg-elevated);cursor:pointer;transition:all .12s;font-family:var(--font-ui); }
+.tplChip:hover { border-color:var(--amber);background:var(--amber-bg); }
+.tplChipName { font-size:12px;font-weight:600;color:var(--text-primary); }
+.tplChipMeta { font-size:10px;color:var(--text-muted);font-family:var(--font-mono); }
+
+/* ── SDT schedule builder ───────────────────────────────────── */
+.fieldDimmed { opacity:.45;pointer-events:none; }
+.sdtNote { font-size:9px;color:var(--amber);text-transform:none;letter-spacing:0; }
+.sdtPanel { margin-top:14px;border:1px solid var(--amber-border);background:var(--amber-bg);border-radius:var(--r-md);padding:12px; }
+.sdtPanelHeader { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px; }
+.sdtPanelTitle { font-size:11px;font-weight:700;color:var(--amber);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em; }
+.sdtDay { padding:8px 0;border-top:1px solid var(--border-subtle); }
+.sdtDayLabel { font-size:10px;font-weight:700;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px; }
+.sdtSlot { display:flex;align-items:center;gap:6px;margin-bottom:5px; }
+.sdtSelect { background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text-primary);font-size:11px;padding:5px 6px;font-family:var(--font-mono);outline:none;cursor:pointer; }
+.sdtInput { background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text-primary);font-size:11px;padding:5px 7px;font-family:var(--font-mono);outline:none;width:80px; }
+.sdtInput:focus { border-color:var(--amber); }
+.sdtNum { display:flex;align-items:center;gap:4px; }
+.sdtNum label { font-size:9px;color:var(--text-muted);font-family:var(--font-mono); }
+.sdtNum .sdtInput { width:56px; }
+.sdtAddBtn { display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 9px;border-radius:var(--r-sm);border:1px dashed var(--border);color:var(--text-muted);background:transparent;cursor:pointer;font-family:var(--font-ui); }
+.sdtAddBtn:hover { color:var(--amber);border-color:var(--amber-border); }
+
+/* ── Exporter strip ─────────────────────────────────────────── */
+.exporterStrip { display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);padding:8px 12px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-md); }
+.exporterStrip b { color:var(--text-primary); }
+.exporterChange { font-size:11px;color:var(--amber);background:transparent;border:none;cursor:pointer;text-decoration:underline;padding:0;font-family:var(--font-ui); }
+
+/* ── FieldNation push ───────────────────────────────────────── */
+.pushBtn { display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;font-size:14px;font-weight:700;font-family:var(--font-head);border-radius:var(--r-md);background:var(--green);color:#fff;border:none;cursor:pointer;transition:all .12s;letter-spacing:.02em; }
+.pushBtn:hover:not(:disabled) { filter:brightness(1.1); }
+.pushBtn:disabled { opacity:.5;cursor:not-allowed; }
+.pushResults { border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-surface);overflow:hidden; }
+.pushResultsHeader { display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg-elevated); }
+.pushResultsTitle { font-size:12px;font-weight:600;color:var(--text-primary); }
+.pushResultsList { max-height:280px;overflow-y:auto;padding:6px 0; }
+.pushResultItem { display:flex;align-items:center;gap:8px;padding:5px 14px;font-size:12px;color:var(--text-primary); }
+.pushResultFail { background:var(--red-bg); }
+.pushResultSite { font-family:var(--font-mono);font-weight:600;min-width:120px; }
+.pushResultMeta { color:var(--text-muted);font-family:var(--font-mono);font-size:11px; }
+.pushResultErr { color:var(--red);font-size:11px; }
+
+/* ── Add-on generator ───────────────────────────────────────── */
+.addonCard { border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-surface);overflow:hidden; }
+.addonToggle { display:flex;align-items:center;justify-content:space-between;width:100%;padding:11px 16px;background:transparent;border:none;color:var(--text-secondary);cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font-ui); }
+.addonToggle:hover { color:var(--text-primary);background:var(--bg-hover); }
+.addonToggle span { display:inline-flex;align-items:center;gap:6px; }
+.addonBody { padding:14px 16px;border-top:1px solid var(--border); }
+.addonBtn { display:inline-flex;align-items:center;gap:6px;margin-top:12px;width:100%;justify-content:center;padding:10px;font-size:12px;font-weight:600;border-radius:var(--r-md);background:var(--blue);color:#fff;border:none;cursor:pointer; }
+.addonBtn:hover:not(:disabled) { filter:brightness(1.1); }
+.addonBtn:disabled { opacity:.5;cursor:not-allowed; }
+
+/* ── Step 2 site card inputs (date + WOM ID) ────────────────── */
+.siteCardInput { width:100%;margin-top:6px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text-primary);padding:4px 8px;font-size:11px;font-family:var(--font-mono);outline:none; }
+.siteCardInput:focus { border-color:var(--amber); }
+.siteCardInputSet { border-color:var(--amber-border);background:var(--amber-bg); }
+
+/* ── Panels misc ────────────────────────────────────────────── */
+.panelEmpty { font-size:12px;color:var(--text-muted);padding:16px 4px;line-height:1.6; }
+.dangerGhost:hover { border-color:rgba(244,63,94,.3);color:var(--red); }

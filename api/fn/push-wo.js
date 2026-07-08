@@ -16,9 +16,24 @@
  */
 
 import { fnFetch } from './auth.js'
-import { withSecurity, requireAuth } from '../_lib/middleware.js'
-import { supa as supabase } from '../../_lib/db.js'
+import { withSecurity } from '../_lib/middleware.js'
+import { supa as supabase } from '../_lib/db.js'
 
+
+// "4:30pm" / "16:30" / "16:30:00" → "HH:MM:SS" (24h) for the FN schedule payload
+function to24h(raw, fallback) {
+  if (!raw || !String(raw).trim()) return fallback
+  const s = String(raw).trim()
+  const ampm = s.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i)
+  if (ampm) {
+    let h = parseInt(ampm[1]) % 12
+    if (ampm[3].toLowerCase() === 'pm') h += 12
+    return `${String(h).padStart(2, '0')}:${ampm[2] ?? '00'}:00`
+  }
+  const mil = s.match(/^(\d{1,2}):(\d{2})(:\d{2})?$/)
+  if (mil) return `${mil[1].padStart(2, '0')}:${mil[2]}${mil[3] ?? ':00'}`
+  return fallback
+}
 
 async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' })
@@ -27,7 +42,21 @@ async function handler(req, res) {
   if (!csv_row) return res.status(400).json({ message: 'csv_row required' })
 
   try {
-    const creds = await getFNCredentials()
+    let creds
+    try {
+      creds = await getFNCredentials()
+    } catch {
+      creds = null
+    }
+
+    // Mock mode — no FN credentials configured
+    if (!creds) {
+      const mockId = `mock-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+      return res.json({
+        ok: true, mock: true, wo_id: mockId, status: 'draft',
+        url: '#', message: 'Mock push — configure FN credentials in Settings → API to go live.',
+      })
+    }
 
     // Build FN API payload from CSV row
     // CSV columns: templateId(0), projectId(1), siteId(2), bundle(3),
@@ -40,7 +69,7 @@ async function handler(req, res) {
     const [
       templateId, fnProjectId, siteId, bundle,
       address, addr2, city, state, zip, country,
-      , startDate, , startTime, ,
+      , startDate, , startTime, endTime,
       techType, , routeTo,
       budget, , maxBudget, payRate,
       , , , , approxHours, , payType,
@@ -67,8 +96,8 @@ async function handler(req, res) {
         service_window: {
           mode: 'exact',
           exact: {
-            start: `${startDate}T${startTime || '08:00:00'}`,
-            end:   `${startDate}T${endTime   || '17:00:00'}`,
+            start: `${startDate}T${to24h(startTime, '08:00:00')}`,
+            end:   `${startDate}T${to24h(endTime, '17:00:00')}`,
           },
         },
       } : undefined,
@@ -152,4 +181,5 @@ function parseFNCreds(encrypted_data) {
   return null
 }
 
-export default withSecurity(requireAuth(handler, 'pm'))
+// Open-access like the rest of the app (no login) — withSecurity only
+export default withSecurity(handler)

@@ -1,15 +1,19 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { useProjects } from '@/hooks/useProjects'
 import { supabase } from '@/lib/supabase'
 import { PageHeader } from '@/components/PageHeader'
 import {
   WO_TYPES, WO_DEFAULTS, WO_HEADERS, SITE_COLS, EMPTY_SITE,
+  WO_TYPE_DESCRIPTIONS, SDT_DEFAULTS,
   buildRows, toCSV, compressString, decompressString,
   rowComplete, isPastDate, triggerDownload,
 } from '@/cpwog/engine'
 import { parsePaste, parseCSVImport } from '@/cpwog/parsers'
-import { Download, History, Route, Plus, X, Trash2, Check, ChevronDown, AlertTriangle, Loader, ExternalLink, ShieldAlert } from 'lucide-react'
+import { pushWorkOrder } from '@/lib/fieldnation'
+import {
+  Download, History, Route, Plus, X, Trash2, Check, ChevronDown, AlertTriangle,
+  Loader, ExternalLink, ShieldAlert, UploadCloud, BookTemplate, Library, Calendar, Sparkles,
+} from 'lucide-react'
 import { useFNSync } from '@/hooks/useFNSync'
 import styles from './WorkOrders.module.css'
 
@@ -26,16 +30,20 @@ export default function WorkOrders() {
   const { user } = useAuth()
   const [step,         setStep]         = useState(0)
   const [joke,         setJoke]         = useState(() => JOKES[0])
+  const [guidedMode,   setGuidedMode]   = useState(() => { try { return localStorage.getItem('opshub_wo_guided') !== '0' } catch { return true } })
   const [projectId,    setProjectId]    = useState('')
   const [displayName,  setDisplayName]  = useState('')
   const [woType,       setWoType]       = useState('LVL')
   const [woConfig,     setWoConfig]     = useState({ ...WO_DEFAULTS.LVL })
+  const [sdtConfig,    setSdtConfig]    = useState(() => [...SDT_DEFAULTS])
   const [sites,        setSites]        = useState([EMPTY_SITE()])
   const [generating,   setGenerating]   = useState(false)
   const [includeDEL,   setIncludeDEL]   = useState(false)
   const [delConfig,    setDelConfig]    = useState({ ...WO_DEFAULTS.DEL })
   const [includeBRK,   setIncludeBRK]   = useState(false)
   const [brkConfig,    setBrkConfig]    = useState({ ...WO_DEFAULTS.BRK })
+  const [includeWRK,   setIncludeWRK]   = useState(false)
+  const [wrkConfig,    setWrkConfig]    = useState({ ...WO_DEFAULTS.WRK })
   const [pasteMode,    setPasteMode]    = useState(true)
   const [importMode,   setImportMode]   = useState(false)
   const [pasteText,    setPasteText]    = useState('')
@@ -43,12 +51,20 @@ export default function WorkOrders() {
   const [activeCell,   setActiveCell]   = useState({ row: 0, col: 0 })
   const [showHistory,  setShowHistory]  = useState(false)
   const [showRoute,    setShowRoute]    = useState(false)
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [showLibrary,  setShowLibrary]  = useState(false)
   const [histSearch,   setHistSearch]   = useState('')
+  const [libSearch,    setLibSearch]    = useState('')
   const [jobHistory,   setJobHistory]   = useState([])
+  const [woTemplates,  setWoTemplates]  = useState([])
+  const [siteLibrary,  setSiteLibrary]  = useState([])
+  const [tplName,      setTplName]      = useState('')
+  const [showSaveTpl,  setShowSaveTpl]  = useState(false)
   const [tidHistory,   setTidHistory]   = useState({})
   const [showTidDD,    setShowTidDD]    = useState(false)
   const [showDelTidDD, setShowDelTidDD] = useState(false)
   const [showBrkTidDD, setShowBrkTidDD] = useState(false)
+  const [showWrkTidDD, setShowWrkTidDD] = useState(false)
   const [pidHistory,   setPidHistory]   = useState([])
   const [dnHistory,    setDnHistory]    = useState([])
   const [showPidDD,    setShowPidDD]    = useState(false)
@@ -66,6 +82,19 @@ export default function WorkOrders() {
   const [startOverConfirm, setStartOverConfirm] = useState(false)
   const [pendingTidLabel, setPendingTidLabel] = useState(null)
   const [tidLabelInput, setTidLabelInput] = useState('')
+  const [bulkDateOpen, setBulkDateOpen] = useState(false)
+  const [bulkDateVal,  setBulkDateVal]  = useState('')
+  const [exporter,     setExporter]     = useState(() => { try { return localStorage.getItem('opshub_wo_exporter') || '' } catch { return '' } })
+  const [showExporterModal, setShowExporterModal] = useState(false)
+  const [exporterInput, setExporterInput] = useState('')
+  const [pendingExport, setPendingExport] = useState(null) // 'download' | 'push'
+  const [addonExpanded, setAddonExpanded] = useState(false)
+  const [addonWoType,  setAddonWoType]  = useState('DEL')
+  const [addonConfig,  setAddonConfig]  = useState({ ...WO_DEFAULTS.DEL })
+  const [addonGenerating, setAddonGenerating] = useState(false)
+  const [pushing,      setPushing]      = useState(false)
+  const [pushProgress, setPushProgress] = useState({ done: 0, total: 0 })
+  const [pushResults,  setPushResults]  = useState(null)
   const { checking, dupeResults, checkDupes, clearDupes } = useFNSync()
   const fileInputRef = useRef(null)
   const inputRefs = useRef({})
@@ -76,9 +105,13 @@ export default function WorkOrders() {
       .filter(([k]) => !deletedBuiltins[k])
       .map(([k, v]) => [k, overriddenBuiltins[k] ? { ...v, ...overriddenBuiltins[k] } : v])
   )
+  const isSDT = woType === 'SDT' || ALL_WO_TYPES[woType]?.customBuild === 'SDT'
+  const sdtWosPerSite = sdtConfig.reduce((n, s) => n + (Number(s.numTechs) || 1), 0)
 
   useEffect(() => {
     supabase.from('job_history').select('*').order('created_at',{ascending:false}).limit(100).then(({data})=>{if(data)setJobHistory(data)})
+    supabase.from('wo_templates').select('*').order('created_at',{ascending:false}).limit(50).then(({data})=>{if(data)setWoTemplates(data)})
+    supabase.from('site_library').select('*').order('created_at',{ascending:false}).limit(100).then(({data})=>{if(data)setSiteLibrary(data)})
     supabase.from('template_id_history').select('data').eq('id',1).then(({data})=>{if(data?.[0]?.data)setTidHistory(data[0].data)})
     supabase.from('custom_wo_types').select('data').eq('id',1).then(({data})=>{
       if(!data?.[0]?.data)return
@@ -105,6 +138,14 @@ export default function WorkOrders() {
     }))
     prevConfigRef.current = woConfig
   }, [woConfig.numTechs, woConfig.numDays, woConfig.defaultDate])
+
+  const toggleGuided = () => {
+    setGuidedMode(v => {
+      const next = !v
+      try { localStorage.setItem('opshub_wo_guided', next ? '1' : '0') } catch { /* ignore */ }
+      return next
+    })
+  }
 
   const saveTidHistory = (type, id, label='') => {
     if(!id?.trim())return
@@ -141,10 +182,72 @@ export default function WorkOrders() {
   }
 
   const saveJob = async (extra={}) => {
-    const job = {project_id:projectId,display_name:displayName,wo_type:woType,wo_config:woConfig,del_config:includeDEL?delConfig:null,include_del:includeDEL,brk_config:includeBRK?brkConfig:null,include_brk:includeBRK,sites:sites.filter(s=>s.code||s.address),site_count:sites.filter(rowComplete).length,created_at:new Date().toISOString(),...extra}
+    const job = {project_id:projectId,display_name:displayName,wo_type:woType,wo_config:woConfig,del_config:includeDEL?delConfig:null,include_del:includeDEL,brk_config:includeBRK?brkConfig:null,include_brk:includeBRK,wrk_config:includeWRK?wrkConfig:null,include_wrk:includeWRK,sdt_config:isSDT?sdtConfig:null,sites:sites.filter(s=>s.code||s.address),site_count:sites.filter(rowComplete).length,created_at:new Date().toISOString(),...extra}
     const {data} = await supabase.from('job_history').insert(job).select()
     if(data?.[0])setJobHistory(prev=>[data[0],...prev].slice(0,100))
   }
+
+  // ── Templates ─────────────────────────────────────────────
+
+  const applyTemplate = (tpl) => {
+    const d = tpl.data || {}
+    if (d.woType) setWoType(d.woType)
+    if (d.woConfig) setWoConfig(d.woConfig)
+    setIncludeDEL(!!d.includeDEL); if (d.delConfig) setDelConfig(d.delConfig)
+    setIncludeBRK(!!d.includeBRK); if (d.brkConfig) setBrkConfig(d.brkConfig)
+    setIncludeWRK(!!d.includeWRK); if (d.wrkConfig) setWrkConfig(d.wrkConfig)
+    if (Array.isArray(d.sdtConfig) && d.sdtConfig.length) setSdtConfig(d.sdtConfig)
+    setShowTemplates(false)
+  }
+
+  const saveTemplate = async () => {
+    if (!tplName.trim()) return
+    const data = { woType, woConfig, includeDEL, delConfig, includeBRK, brkConfig, includeWRK, wrkConfig, sdtConfig: isSDT ? sdtConfig : null }
+    const { data: rows } = await supabase.from('wo_templates').insert({ name: tplName.trim(), data, created_at: new Date().toISOString() }).select()
+    if (rows?.[0]) setWoTemplates(prev => [rows[0], ...prev])
+    setTplName(''); setShowSaveTpl(false)
+  }
+
+  const deleteTemplate = async (id) => {
+    await supabase.from('wo_templates').delete().eq('id', id)
+    setWoTemplates(prev => prev.filter(t => t.id !== id))
+  }
+
+  // ── Site Library ──────────────────────────────────────────
+
+  const saveToLibrary = async () => {
+    const rows = sites.filter(s => s.code || s.address)
+    if (!rows.length) return
+    const entry = {
+      project_name: displayName.trim() || projectId.trim() || 'Untitled',
+      project_id: projectId,
+      sites: rows,
+      site_count: sites.filter(rowComplete).length,
+      source_format: 'manual',
+      created_at: new Date().toISOString(),
+    }
+    const { data } = await supabase.from('site_library').insert(entry).select()
+    if (data?.[0]) setSiteLibrary(prev => [data[0], ...prev])
+  }
+
+  const loadFromLibrary = (entry) => {
+    const loaded = (entry.sites || []).map(s => ({ ...EMPTY_SITE(), ...s }))
+    if (!loaded.length) return
+    setSites(prev => {
+      const existing = prev.filter(s => s.code || s.address || s.branchName)
+      return existing.length ? [...existing, ...loaded] : loaded
+    })
+    setShowLibrary(false)
+    setPasteMode(false); setImportMode(false)
+    if (step === 0) setStep(1)
+  }
+
+  const deleteLibraryEntry = async (id) => {
+    await supabase.from('site_library').delete().eq('id', id)
+    setSiteLibrary(prev => prev.filter(e => e.id !== id))
+  }
+
+  // ── Sites table ───────────────────────────────────────────
 
   const updateSite = (i,field,val) => setSites(prev=>prev.map((s,idx)=>{
     if(idx!==i)return s
@@ -154,6 +257,11 @@ export default function WorkOrders() {
 
   const addRows = (n) => setSites(prev=>[...prev,...Array(n).fill(null).map(()=>({...EMPTY_SITE(),date:woConfig.defaultDate||'',numTechs:woConfig.numTechs||'1',numDays:woConfig.numDays||'1'}))])
   const removeSite = (i) => setSites(prev=>prev.length>1?prev.filter((_,idx)=>idx!==i):prev)
+
+  const applyBulkDate = (clear=false) => {
+    setSites(prev=>prev.map(s=>({...s,date:clear?'':bulkDateVal,dateOverridden:!clear})))
+    setBulkDateOpen(false); setBulkDateVal('')
+  }
 
   const verifySite = async (i) => {
     const s=sites[i]; if(!s.address)return
@@ -221,6 +329,7 @@ export default function WorkOrders() {
     savePidHistory(projectId); if(displayName.trim())saveDnHistory(displayName)
     if(includeDEL&&delConfig.templateId?.trim())saveTidHistory('DEL',delConfig.templateId.trim())
     if(includeBRK&&brkConfig.templateId?.trim())saveTidHistory('BRK',brkConfig.templateId.trim())
+    if(includeWRK&&wrkConfig.templateId?.trim())saveTidHistory('WRK',wrkConfig.templateId.trim())
     const id=woConfig.templateId.trim()
     if(!id){nextStep();return}
     const existing=(tidHistory[woType]||[]).find(e=>(typeof e==='string'?e:e.id)===id)
@@ -234,46 +343,144 @@ export default function WorkOrders() {
     setPendingTidLabel(null);setTidLabelInput('');nextStep()
   }
 
-  const downloadCSV = useCallback(async () => {
+  // ── Row building (shared by CSV download + FN push) ───────
+
+  const buildAllFiles = useCallback(() => {
+    const files = []
+    const rows = []
+    for (const site of sites) rows.push(...buildRows(site, projectId, displayName, woType, woConfig, ALL_WO_TYPES, sdtConfig))
+    if (rows.length && rows[rows.length-1].length === 0) rows.pop()
+    files.push({ type: woType, rows })
+
+    const companions = [
+      includeDEL && { type: 'DEL', cfg: delConfig },
+      includeBRK && { type: 'BRK', cfg: brkConfig },
+      includeWRK && { type: 'WRK', cfg: wrkConfig },
+    ].filter(Boolean)
+
+    for (const { type, cfg } of companions) {
+      const cRows = []
+      for (const site of sites) {
+        if (!site.address && !site.code) continue
+        const s1 = { ...site, numTechs: '1', numDays: '1', budgetTech: '', payRate: '', ...(cfg.date ? { date: cfg.date } : {}) }
+        cRows.push(...buildRows(s1, projectId, displayName, type, cfg, ALL_WO_TYPES, sdtConfig))
+      }
+      if (cRows.length && cRows[cRows.length-1].length === 0) cRows.pop()
+      if (cRows.length) files.push({ type, rows: cRows })
+    }
+    return files
+  }, [sites, projectId, displayName, woType, woConfig, sdtConfig, includeDEL, delConfig, includeBRK, brkConfig, includeWRK, wrkConfig, ALL_WO_TYPES])
+
+  // Gate an export action behind having an exporter name (CPWOG "WHO'S EXPORTING?")
+  const ensureExporter = (action) => {
+    if (exporter.trim()) { action === 'download' ? downloadCSV(exporter) : pushToFN() ; return }
+    setExporterInput(''); setPendingExport(action); setShowExporterModal(true)
+  }
+
+  const confirmExporter = () => {
+    const name = exporterInput.trim()
+    if (!name) return
+    setExporter(name)
+    try { localStorage.setItem('opshub_wo_exporter', name) } catch { /* ignore */ }
+    setShowExporterModal(false)
+    if (pendingExport === 'download') downloadCSV(name)
+    else if (pendingExport === 'push') pushToFN()
+    setPendingExport(null)
+  }
+
+  const downloadCSV = useCallback(async (exporterName = exporter) => {
     setGenerating(true)
     try {
-      const now=new Date(),datePart=now.toISOString().split('T')[0],timePart=now.toTimeString().slice(0,8).replace(/:/g,'-')
+      const now=new Date(),datePart=now.toISOString().split('T')[0]
       const safeProj=projectId.replace(/[^a-zA-Z0-9]/g,'_').slice(0,40)
+      const safeExp=(exporterName||'').replace(/[^a-zA-Z0-9]/g,'_').slice(0,24)
+      const files = buildAllFiles()
       const csvFiles=[]
-      const rows=[]
-      for(const site of sites)rows.push(...buildRows(site,projectId,displayName,woType,woConfig,ALL_WO_TYPES))
-      if(rows.length&&rows[rows.length-1].length===0)rows.pop()
-      const mainFile=`FieldNation_${woType}_${safeProj}_${datePart}_${timePart}.csv`
-      const mainCSV=toCSV(WO_HEADERS,rows)
-      triggerDownload(mainCSV,mainFile); csvFiles.push({filename:mainFile,content:mainCSV})
-      if(includeDEL){
-        const delRows=[]
-        for(const site of sites){if(!site.address&&!site.code)continue;const s1={...site,numTechs:'1',numDays:'1',budgetTech:'',payRate:'',...(delConfig.date?{date:delConfig.date}:{})};delRows.push(...buildRows(s1,projectId,displayName,'DEL',delConfig,ALL_WO_TYPES))}
-        if(delRows.length&&delRows[delRows.length-1].length===0)delRows.pop()
-        if(delRows.length){const df=`FieldNation_DEL_${safeProj}_${datePart}_${timePart}.csv`,dc=toCSV(WO_HEADERS,delRows);csvFiles.push({filename:df,content:dc});setTimeout(()=>triggerDownload(dc,df),500)}
-      }
-      if(includeBRK){
-        const brkRows=[]
-        for(const site of sites){if(!site.address&&!site.code)continue;const s1={...site,numTechs:'1',numDays:'1',budgetTech:'',payRate:''};brkRows.push(...buildRows(s1,projectId,displayName,'BRK',brkConfig,ALL_WO_TYPES))}
-        if(brkRows.length&&brkRows[brkRows.length-1].length===0)brkRows.pop()
-        if(brkRows.length){const bf=`FieldNation_BRK_${safeProj}_${datePart}_${timePart}.csv`,bc=toCSV(WO_HEADERS,brkRows);csvFiles.push({filename:bf,content:bc});setTimeout(()=>triggerDownload(bc,bf),includeDEL?1000:500)}
-      }
+      files.forEach((f, i) => {
+        const filename = `FieldNation_${f.type}_${safeProj}_${datePart}${safeExp?`_${safeExp}`:''}.csv`
+        const content = toCSV(WO_HEADERS, f.rows)
+        csvFiles.push({ filename, content })
+        if (i === 0) triggerDownload(content, filename)
+        else setTimeout(() => triggerDownload(content, filename), i * 500)
+      })
       const MAX=400_000
       const compressed=await Promise.all(csvFiles.filter(f=>f.content.length<=MAX).map(async f=>({filename:f.filename,content:await compressString(f.content),compressed:true})))
       await saveJob({csv_files:compressed})
     } catch(err){alert('Error: '+err.message)}
     setGenerating(false)
-  }, [sites,projectId,displayName,woType,woConfig,includeDEL,delConfig,includeBRK,brkConfig,ALL_WO_TYPES])
+  }, [buildAllFiles, projectId, exporter])
 
-  const totalRows=sites.filter(rowComplete).reduce((sum,s)=>sum+buildRows(s,projectId,displayName,woType,woConfig,ALL_WO_TYPES).filter(r=>r.length>0).length,0)
+  // ── FieldNation push (the final step) ─────────────────────
+
+  const pushToFN = useCallback(async () => {
+    setPushing(true)
+    setPushResults(null)
+    try {
+      const files = buildAllFiles()
+      const allRows = files.flatMap(f => f.rows.filter(r => r.length > 0))
+      setPushProgress({ done: 0, total: allRows.length })
+      const results = []
+      for (const row of allRows) {
+        const siteId = row[2]
+        try {
+          const r = await pushWorkOrder(row, projectId)
+          results.push({ site_id: siteId, ok: !!r.ok, mock: !!r.mock, wo_id: r.wo_id, status: r.status, url: r.url })
+        } catch (e) {
+          results.push({ site_id: siteId, ok: false, error: e.message })
+        }
+        setPushProgress(p => ({ ...p, done: p.done + 1 }))
+        setPushResults([...results])
+      }
+      setPushResults(results)
+      const pushed = results.filter(r => r.ok).length
+      await saveJob({ fn_results: results, csv_files: [] })
+      setJoke(pushed === results.length
+        ? `All ${pushed} work orders uploaded to FieldNation 🎉`
+        : `${pushed}/${results.length} uploaded — review failures below`)
+    } catch (err) {
+      alert('Push error: ' + err.message)
+    }
+    setPushing(false)
+  }, [buildAllFiles, projectId])
+
+  const downloadAddon = async () => {
+    setAddonGenerating(true)
+    try {
+      const now=new Date(),datePart=now.toISOString().split('T')[0]
+      const safeProj=projectId.replace(/[^a-zA-Z0-9]/g,'_').slice(0,40)
+      const safeExp=(exporter||'').replace(/[^a-zA-Z0-9]/g,'_').slice(0,24)
+      const meta=ALL_WO_TYPES[addonWoType]||{}
+      const rows=[]
+      for(const site of sites){
+        if(!site.address&&!site.code)continue
+        const s={...site,numTechs:addonConfig.numTechs||String(meta.numTechs||1),numDays:addonConfig.numDays||String(meta.numDays||1),budgetTech:'',payRate:'',...(addonConfig.date?{date:addonConfig.date}:{})}
+        rows.push(...buildRows(s,projectId,displayName,addonWoType,addonConfig,ALL_WO_TYPES,sdtConfig))
+      }
+      if(rows.length&&rows[rows.length-1].length===0)rows.pop()
+      if(rows.length)triggerDownload(toCSV(WO_HEADERS,rows),`FieldNation_${addonWoType}_${safeProj}_${datePart}${safeExp?`_${safeExp}`:''}_ADDON.csv`)
+    } catch(err){alert('Error: '+err.message)}
+    setAddonGenerating(false)
+  }
+
+  // ── SDT schedule editing ──────────────────────────────────
+
+  const updateSlot = (id, field, val) => setSdtConfig(prev => prev.map(s => s.id === id ? { ...s, [field]: val } : s))
+  const addSlot = (day) => setSdtConfig(prev => [...prev, { id: `s${Date.now()}`, type: 'BH', day, time: '11:00am', hours: 8, budget: 450, numTechs: 1 }])
+  const removeSlot = (id) => setSdtConfig(prev => prev.filter(s => s.id !== id))
+
+  const totalRows=sites.filter(rowComplete).reduce((sum,s)=>sum+buildRows(s,projectId,displayName,woType,woConfig,ALL_WO_TYPES,sdtConfig).filter(r=>r.length>0).length,0)
+  const companionCount = sites.filter(rowComplete).length
   const canProceed=[projectId.trim().length>0&&!!woType,sites.every(rowComplete),true]
   const anyUnverified=sites.some(s=>s.address&&s.verified!==true)
+  const totalPushRows = totalRows + (includeDEL?companionCount:0) + (includeBRK?companionCount:0) + (includeWRK?companionCount:0)
 
   return (
     <div className={styles.page}>
-      <PageHeader title="Work Orders" subtitle="FieldNation CSV generator"
+      <PageHeader title="Work Orders" subtitle="FieldNation work order generator"
         actions={
           <div className={styles.headerActions}>
+            <button className={styles.ghostBtn} onClick={()=>setShowTemplates(true)}><BookTemplate size={13}/> Templates{woTemplates.length>0&&<span className={styles.badge}>{woTemplates.length}</span>}</button>
+            <button className={styles.ghostBtn} onClick={()=>setShowLibrary(true)}><Library size={13}/> Library{siteLibrary.length>0&&<span className={styles.badge}>{siteLibrary.length}</span>}</button>
             <button className={styles.ghostBtn} onClick={()=>setShowHistory(true)}><History size={13}/> History{jobHistory.length>0&&<span className={styles.badge}>{jobHistory.length}</span>}</button>
             {!adminUnlocked?<button className={styles.ghostBtn} onClick={()=>setShowAdminPw(true)}>🔒</button>:<button className={`${styles.ghostBtn} ${styles.adminActive}`} onClick={()=>setAdminUnlocked(false)}>🔓</button>}
           </div>
@@ -293,9 +500,65 @@ export default function WorkOrders() {
         </div>
 
         <div className={styles.content}>
-          {/* STEP 0 */}
-          {step===0&&(
+          {/* STEP 0 — GUIDED */}
+          {step===0&&guidedMode&&(
             <div className={styles.step0}>
+              <div className={styles.modeToggleRow}>
+                <button className={styles.modeToggle} onClick={toggleGuided}>⚙ Switch to Advanced Mode</button>
+              </div>
+
+              {woTemplates.length>0&&(
+                <div className={styles.card}>
+                  <div className={styles.guidedTitle}>📋 Start from a saved template?</div>
+                  <div className={styles.guidedSub}>Pick a template to pre-fill all settings, or skip and configure below.</div>
+                  <div className={styles.tplChips}>
+                    {woTemplates.map(tpl=>(
+                      <button key={tpl.id} className={styles.tplChip} onClick={()=>applyTemplate(tpl)}>
+                        <span className={styles.tplChipName}>{tpl.name}</span>
+                        <span className={styles.tplChipMeta}>{tpl.data?.woType}{tpl.data?.includeDEL?' + DEL':''}{tpl.data?.includeBRK?' + BRK':''}{tpl.data?.includeWRK?' + WRK':''}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className={styles.card}>
+                <div className={styles.guidedTitle}>What project is this for?</div>
+                <div className={styles.guidedSub}>Enter the project name or ID — this appears on every work order.</div>
+                <div className={styles.field} style={{position:'relative'}}>
+                  <div className={styles.inputRow}>
+                    <input className={styles.input} autoFocus value={projectId} onChange={e=>{setProjectId(e.target.value);setDisplayName(e.target.value)}} placeholder="e.g. PNC - First Bank Conversion" />
+                    {pidHistory.length>0&&<button className={styles.ddBtn} onClick={()=>setShowPidDD(v=>!v)}><ChevronDown size={12}/></button>}
+                  </div>
+                  {showPidDD&&pidHistory.length>0&&<div className={styles.dropdown}>{pidHistory.map(pid=><div key={pid} className={styles.ddItem} onClick={()=>{setProjectId(pid);setDisplayName(pid);setShowPidDD(false)}}>{pid}</div>)}</div>}
+                </div>
+              </div>
+
+              <div className={styles.card}>
+                <div className={styles.guidedTitle}>What type of work are you scheduling?</div>
+                <div className={styles.guidedSub}>Pick one — you can generate different types separately.</div>
+                <div className={styles.woTypeList}>
+                  {Object.entries(ALL_WO_TYPES).map(([key,wot])=>(
+                    <div key={key} className={`${styles.woCard} ${woType===key?styles.woCardActive:''}`} onClick={()=>{setWoType(key);setWoConfig(WO_DEFAULTS[key]?{...WO_DEFAULTS[key]}:{...WO_DEFAULTS.LVL,templateId:'',numTechs:String(wot.numTechs||1),numDays:String(wot.numDays||1)})}}>
+                      <div className={styles.woCardRadio}>{woType===key&&<div className={styles.woCardRadioDot}/>}</div>
+                      <div className={styles.woCardInfo}>
+                        <span className={styles.woCardKey}>{key} — {(wot.label||key).replace(/^[A-Z]+ — /,'')}</span>
+                        <span className={styles.woCardDesc}>{WO_TYPE_DESCRIPTIONS[key]||wot.label||key}</span>
+                      </div>
+                      {woType===key&&<Check size={16} style={{color:'var(--amber)'}}/>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 0 — ADVANCED */}
+          {step===0&&!guidedMode&&(
+            <div className={styles.step0}>
+              <div className={styles.modeToggleRow}>
+                <button className={styles.modeToggle} onClick={toggleGuided}>✦ Switch to Guided Mode</button>
+              </div>
               <div className={styles.card}>
                 <div className={styles.cardTitle}>Project Info</div>
                 <div className={styles.field}>
@@ -322,10 +585,10 @@ export default function WorkOrders() {
                 <div className={styles.cardTitle}>Work Order Type</div>
                 <div className={styles.woTypeList}>
                   {Object.entries(ALL_WO_TYPES).map(([key,wot])=>(
-                    <div key={key} className={`${styles.woCard} ${woType===key?styles.woCardActive:''}`} onClick={()=>{setWoType(key);setWoConfig(WO_DEFAULTS[key]?{...WO_DEFAULTS[key]}:{templateId:'',startTime:'',defaultDate:'',techType:'',numTechs:String(wot.numTechs||1),numDays:String(wot.numDays||1),budgetTech:'',payRate:'',approxHours:'',country:'',payType:'Fixed'})}}>
+                    <div key={key} className={`${styles.woCard} ${woType===key?styles.woCardActive:''}`} onClick={()=>{setWoType(key);setWoConfig(WO_DEFAULTS[key]?{...WO_DEFAULTS[key]}:{templateId:'',startTime:'',defaultDate:'',techType:'Tech',numTechs:String(wot.numTechs||1),numDays:String(wot.numDays||1),budgetTech:'',payRate:'',approxHours:'',country:'US',payType:'Fixed'})}}>
                       <div className={styles.woCardRadio}>{woType===key&&<div className={styles.woCardRadioDot}/>}</div>
                       <div className={styles.woCardInfo}><span className={styles.woCardKey}>{key}</span><span className={styles.woCardLabel}>{wot.label||key}</span></div>
-                      <div className={styles.woCardMeta}>{wot.numTechs}t × {wot.numDays}d{wot.useBundle?' · bundled':''}</div>
+                      <div className={styles.woCardMeta}>{wot.customBuild==='SDT'?`${sdtWosPerSite} WOs/site`:`${wot.numTechs}t × ${wot.numDays}d`}{wot.useBundle?' · bundled':''}</div>
                       {adminUnlocked&&<div className={styles.woCardActions}>
                         <button className={styles.microBtn} onClick={e=>{e.stopPropagation();setEditingKey(key);setCustomForm({key,label:wot.label||'',siteIdSuffix:wot.siteIdSuffix||key,numTechs:String(wot.numTechs||1),numDays:String(wot.numDays||1),useBundle:!!wot.useBundle});setShowCustomModal(true)}}>edit</button>
                         <button className={`${styles.microBtn} ${styles.microBtnDanger}`} onClick={e=>{e.stopPropagation();if(WO_TYPES[key]){const next={...deletedBuiltins,[key]:true};setDeletedBuiltins(next);persistWoTypes(customTypes,next,overriddenBuiltins)}else{const next={...customTypes};delete next[key];setCustomTypes(next);persistWoTypes(next,deletedBuiltins,overriddenBuiltins)}}}>×</button>
@@ -348,12 +611,15 @@ export default function WorkOrders() {
                       </div>
                       {showTidDD&&tidHistory[woType]?.length>0&&<div className={styles.dropdown}>{tidHistory[woType].map(entry=>{const tid=typeof entry==='string'?entry:entry.id,lbl=typeof entry==='string'?'':entry.label;return<div key={tid} className={styles.ddItem} onClick={()=>{setWoConfig(p=>({...p,templateId:tid}));setShowTidDD(false)}}><b>{tid}</b>{lbl&&<span className={styles.ddItemSub}>{lbl}</span>}</div>})}</div>}
                     </div>
-                    {[{k:'startTime',l:'Start Time',ph:'4:30pm'},{k:'defaultDate',l:'Default Date',type:'date'},{k:'techType',l:'Tech Type',ph:'Tech 1'},{k:'numTechs',l:'# Techs',ph:'1'},{k:'numDays',l:'# Days',ph:'3'},{k:'budgetTech',l:'Budget $',ph:'700'},{k:'payRate',l:'Pay Rate $',ph:'700'},{k:'approxHours',l:'Est Hours',ph:'10'},{k:'country',l:'Country',ph:'US'}].map(({k,l,ph,type:t})=>(
-                      <div key={k} className={styles.field}>
-                        <label>{l}</label>
-                        <input className={`${styles.input}${k==='defaultDate'&&isPastDate(woConfig[k])?` ${styles.inputWarn}`:''}`} type={t||'text'} placeholder={ph||''} value={woConfig[k]||''} onChange={e=>setWoConfig(p=>({...p,[k]:e.target.value}))}/>
-                      </div>
-                    ))}
+                    {[{k:'startTime',l:'Start Time',ph:'4:30pm'},{k:'defaultDate',l:'Default Date',type:'date'},{k:'techType',l:'Tech Type',ph:'Tech 1'},{k:'numTechs',l:'# Techs',ph:'1'},{k:'numDays',l:'# Days',ph:'3'},{k:'budgetTech',l:'Budget $',ph:'700'},{k:'payRate',l:'Pay Rate $',ph:'700'},{k:'approxHours',l:'Est Hours',ph:'10'},{k:'country',l:'Country',ph:'US'}].map(({k,l,ph,type:t})=>{
+                      const sdtControlled=isSDT&&['startTime','numTechs','numDays','budgetTech','payRate','approxHours'].includes(k)
+                      return (
+                        <div key={k} className={`${styles.field} ${sdtControlled?styles.fieldDimmed:''}`}>
+                          <label>{l}{sdtControlled&&<span className={styles.sdtNote}> · SDT schedule</span>}</label>
+                          <input className={`${styles.input}${k==='defaultDate'&&isPastDate(woConfig[k])?` ${styles.inputWarn}`:''}`} type={t||'text'} placeholder={ph||''} value={woConfig[k]||''} disabled={sdtControlled} onChange={e=>setWoConfig(p=>({...p,[k]:e.target.value}))}/>
+                        </div>
+                      )
+                    })}
                     <div className={styles.field} style={{gridColumn:'span 2'}}>
                       <label>Pay Type</label>
                       <div className={styles.payTypeRow}>
@@ -361,6 +627,37 @@ export default function WorkOrders() {
                       </div>
                     </div>
                   </div>
+
+                  {/* SDT Work Order Schedule */}
+                  {isSDT&&(
+                    <div className={styles.sdtPanel}>
+                      <div className={styles.sdtPanelHeader}>
+                        <span className={styles.sdtPanelTitle}>SDT Work Order Schedule · {sdtWosPerSite} WOs per site</span>
+                        <button className={styles.microBtn} onClick={()=>setSdtConfig([...SDT_DEFAULTS])}>↩ Reset</button>
+                      </div>
+                      {[1,2,3].map(day=>(
+                        <div key={day} className={styles.sdtDay}>
+                          <div className={styles.sdtDayLabel}>Day {day}</div>
+                          {sdtConfig.filter(s=>s.day===day).map(slot=>(
+                            <div key={slot.id} className={styles.sdtSlot}>
+                              <select className={styles.sdtSelect} value={slot.type} onChange={e=>updateSlot(slot.id,'type',e.target.value)}>
+                                <option value="BH">BH</option>
+                                <option value="AH">AH</option>
+                              </select>
+                              <input className={styles.sdtInput} value={slot.time} onChange={e=>updateSlot(slot.id,'time',e.target.value)} placeholder="2:00pm"/>
+                              <div className={styles.sdtNum}><label>hrs</label><input className={styles.sdtInput} type="number" min={1} value={slot.hours} onChange={e=>updateSlot(slot.id,'hours',e.target.value)}/></div>
+                              <div className={styles.sdtNum}><label>$</label><input className={styles.sdtInput} type="number" min={0} value={slot.budget} onChange={e=>updateSlot(slot.id,'budget',e.target.value)}/></div>
+                              <div className={styles.sdtNum}><label>techs</label><input className={styles.sdtInput} type="number" min={1} max={9} value={slot.numTechs} onChange={e=>updateSlot(slot.id,'numTechs',e.target.value)}/></div>
+                              <button className={styles.removeBtn} onClick={()=>removeSlot(slot.id)}>×</button>
+                            </div>
+                          ))}
+                          <button className={styles.sdtAddBtn} onClick={()=>addSlot(day)}><Plus size={11}/> Add slot</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <CompanionToggle label="Also generate WRK (Walk In Ready Kit) on Day 1" enabled={includeWRK} onToggle={()=>setIncludeWRK(v=>!v)} config={wrkConfig} setConfig={setWrkConfig} type="WRK" tidHistory={tidHistory} showTidDD={showWrkTidDD} setShowTidDD={setShowWrkTidDD} styles={styles}/>
                   <CompanionToggle label="Also generate BRK (Backboard) on Day 1" enabled={includeBRK} onToggle={()=>setIncludeBRK(v=>!v)} config={brkConfig} setConfig={setBrkConfig} type="BRK" tidHistory={tidHistory} showTidDD={showBrkTidDD} setShowTidDD={setShowBrkTidDD} styles={styles}/>
                   <CompanionToggle label="Also generate DEL (Delivery) on Day 1" enabled={includeDEL} onToggle={()=>setIncludeDEL(v=>!v)} config={delConfig} setConfig={setDelConfig} type="DEL" tidHistory={tidHistory} showTidDD={showDelTidDD} setShowTidDD={setShowDelTidDD} showDateField styles={styles}/>
                 </div>
@@ -406,6 +703,8 @@ export default function WorkOrders() {
                     <div className={styles.tableActions}>
                       <button className={styles.ghostBtn} onClick={()=>addRows(1)}><Plus size={12}/> Row</button>
                       <button className={styles.ghostBtn} onClick={()=>addRows(5)}><Plus size={12}/> 5</button>
+                      <button className={styles.ghostBtn} onClick={()=>{setBulkDateVal(woConfig.defaultDate||'');setBulkDateOpen(true)}}><Calendar size={12}/> Bulk Date</button>
+                      <button className={styles.ghostBtn} onClick={saveToLibrary} disabled={!sites.some(s=>s.code||s.address)} title="Save this site list to the Library">🏗 Save to Library</button>
                       <button className={`${styles.ghostBtn} ${!anyUnverified?styles.ghostBtnDisabled:''}`} onClick={verifyAll} disabled={!anyUnverified}>✦ Verify All</button>
                     </div>
                   </div>
@@ -462,28 +761,33 @@ export default function WorkOrders() {
           {step===2&&(
             <div className={styles.step2}>
               <div className={styles.reviewGrid}>
-                <div className={styles.reviewCard}><div className={styles.reviewCardLabel}>Project ID</div><div className={styles.reviewCardValue}>{projectId}</div>{displayName&&<div className={styles.reviewCardSub}>Prefix: {displayName}</div>}</div>
-                <div className={styles.reviewCard}><div className={styles.reviewCardLabel}>WO Type</div><div className={styles.reviewCardValue} style={{color:'var(--amber)',fontFamily:'var(--font-head)',fontSize:20}}>{woType}</div><div className={styles.reviewCardSub}>{ALL_WO_TYPES[woType]?.label}</div></div>
+                <div className={styles.reviewCard}><div className={styles.reviewCardLabel}>Project ID</div><div className={styles.reviewCardValue}>{projectId}</div>{displayName&&displayName!==projectId&&<div className={styles.reviewCardSub}>Prefix: {displayName}</div>}</div>
+                <div className={styles.reviewCard}><div className={styles.reviewCardLabel}>WO Type</div><div className={styles.reviewCardValue} style={{color:'var(--amber)',fontFamily:'var(--font-head)',fontSize:20}}>{woType}{includeDEL?' + DEL':''}{includeBRK?' + BRK':''}{includeWRK?' + WRK':''}</div><div className={styles.reviewCardSub}>{ALL_WO_TYPES[woType]?.label}</div></div>
               </div>
               <div className={styles.card}>
                 <div className={styles.cardTitle}>Summary</div>
-                {[['Sites',sites.filter(rowComplete).length],['Pattern',`${woConfig.numTechs}t × ${woConfig.numDays}d`],['Template ID',woConfig.templateId],['Start Time',woConfig.startTime||'—'],['Budget / Pay',`$${woConfig.budgetTech} / $${woConfig.payRate}`],['Pay Type',woConfig.payType||'Fixed'],['Total rows',`${totalRows}${includeDEL?` + ${sites.filter(rowComplete).length} DEL`:''}${includeBRK?` + ${sites.filter(rowComplete).length} BRK`:''}`,true]].map(([l,v,bold])=>(
+                {[['Sites',sites.filter(rowComplete).length],['Pattern',isSDT?`${sdtWosPerSite} WOs/site · bundled BH/AH over 3 days`:`${woConfig.numTechs}t × ${woConfig.numDays}d`],['Template ID',woConfig.templateId],['Start Time',isSDT?'per SDT schedule':woConfig.startTime||'—'],['Budget / Pay',isSDT?'per SDT schedule':`$${woConfig.budgetTech} / $${woConfig.payRate}`],['Pay Type',woConfig.payType||'Fixed'],['Total rows',`${totalRows}${includeDEL?` + ${companionCount} DEL`:''}${includeBRK?` + ${companionCount} BRK`:''}${includeWRK?` + ${companionCount} WRK`:''}`,true]].map(([l,v,bold])=>(
                   <div key={l} className={styles.summaryRow}><span className={styles.summaryLabel}>{l}</span><span className={`${styles.summaryValue} ${bold?styles.summaryValueBold:''}`}>{v}</span></div>
                 ))}
               </div>
               <div className={styles.card}>
                 <div className={styles.cardTitle}>Sites ({sites.filter(rowComplete).length}){sites.filter(s=>rowComplete(s)&&(s.routeToTechs||[]).some(Boolean)).length>0&&<span className={styles.routedBadge}> · {sites.filter(s=>rowComplete(s)&&(s.routeToTechs||[]).some(Boolean)).length} pre-routed 🎯</span>}</div>
                 <div className={styles.siteCards}>
-                  {sites.filter(rowComplete).map((s,i)=>(
-                    <div key={i} className={styles.siteCard} style={{borderLeftColor:s.verified===true?'var(--green)':'var(--border-strong)'}}>
-                      <div className={styles.siteCardCode}>{s.code}{s.branchName?` — ${s.branchName}`:''}</div>
-                      <div className={styles.siteCardAddr}>{s.address}{s.address2?`, ${s.address2}`:''}<br/>{s.city}, {s.state} {s.zip}</div>
-                      <div className={styles.siteCardDate}>{s.date}</div>
-                      {(s.budgetTech||s.payRate)&&<div className={styles.siteCardOverride}>⚡ ${s.budgetTech||woConfig.budgetTech} / ${s.payRate||woConfig.payRate}</div>}
-                    </div>
-                  ))}
+                  {sites.filter(rowComplete).map((s)=>{
+                    const realIdx=sites.indexOf(s)
+                    return (
+                      <div key={realIdx} className={styles.siteCard} style={{borderLeftColor:s.womId?'var(--amber)':s.verified===true?'var(--green)':'var(--border-strong)'}}>
+                        <div className={styles.siteCardCode}>{s.code}{s.branchName?` — ${s.branchName}`:''}</div>
+                        <div className={styles.siteCardAddr}>{s.address}{s.address2?`, ${s.address2}`:''}<br/>{s.city}, {s.state} {s.zip}</div>
+                        <input type="date" className={styles.siteCardInput} value={s.date} onChange={e=>updateSite(realIdx,'date',e.target.value)}/>
+                        <input className={`${styles.siteCardInput} ${s.womId?styles.siteCardInputSet:''}`} value={s.womId||''} onChange={e=>updateSite(realIdx,'womId',e.target.value)} placeholder="Work Order Manager ID"/>
+                        {(s.budgetTech||s.payRate)&&<div className={styles.siteCardOverride}>⚡ ${s.budgetTech||woConfig.budgetTech} / ${s.payRate||woConfig.payRate}</div>}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
+
               {/* Dupe Check */}
               <DupeCheckPanel
                 sites={sites.filter(rowComplete)}
@@ -495,7 +799,72 @@ export default function WorkOrders() {
               />
 
               <button className={styles.routeBtn} onClick={()=>setShowRoute(true)}><Route size={14}/>{sites.filter(s=>rowComplete(s)&&(s.routeToTechs||[]).some(Boolean)).length>0?`Route WOs — ${sites.filter(s=>rowComplete(s)&&(s.routeToTechs||[]).some(Boolean)).length} assigned`:'Route WOs — optional'}</button>
-              <button className={styles.downloadBtn} onClick={downloadCSV} disabled={generating}><Download size={16}/>{generating?'Building CSV…':`Download ${woType}${includeDEL?' + DEL':''}${includeBRK?' + BRK':''} CSV${(includeDEL||includeBRK)?'s':''}`}</button>
+
+              {/* Exported by strip */}
+              <div className={styles.exporterStrip}>
+                <span>📋 Exported by:</span>
+                {exporter
+                  ? <><b>{exporter}</b><button className={styles.exporterChange} onClick={()=>{setExporterInput(exporter);setPendingExport(null);setShowExporterModal(true)}}>change</button></>
+                  : <button className={styles.exporterChange} onClick={()=>{setExporterInput('');setPendingExport(null);setShowExporterModal(true)}}>set name</button>}
+              </div>
+
+              {/* Final actions: FieldNation API upload + CSV download */}
+              <button className={styles.pushBtn} onClick={()=>ensureExporter('push')} disabled={pushing||generating||totalPushRows===0}>
+                {pushing
+                  ? <><Loader size={16} className={styles.spinning}/> Uploading {pushProgress.done}/{pushProgress.total} to FieldNation…</>
+                  : <><UploadCloud size={16}/> Upload {totalPushRows} WO{totalPushRows!==1?'s':''} to FieldNation</>}
+              </button>
+              <button className={styles.downloadBtn} onClick={()=>ensureExporter('download')} disabled={generating||pushing}><Download size={16}/>{generating?'Building CSV…':`Download ${woType}${includeDEL?' + DEL':''}${includeBRK?' + BRK':''}${includeWRK?' + WRK':''} CSV${(includeDEL||includeBRK||includeWRK)?'s':''}`}</button>
+
+              {/* Push results */}
+              {pushResults&&(
+                <div className={styles.pushResults}>
+                  <div className={styles.pushResultsHeader}>
+                    <span className={styles.pushResultsTitle}>
+                      FieldNation upload — {pushResults.filter(r=>r.ok).length}/{pushResults.length} succeeded
+                      {pushResults.some(r=>r.mock)&&<span className={styles.mockNote}> (mock mode — configure FN credentials in Settings → API to go live)</span>}
+                    </span>
+                    <button className={styles.ghostBtn} onClick={()=>setPushResults(null)}>Clear</button>
+                  </div>
+                  <div className={styles.pushResultsList}>
+                    {pushResults.map((r,i)=>(
+                      <div key={i} className={`${styles.pushResultItem} ${r.ok?'':styles.pushResultFail}`}>
+                        {r.ok?<Check size={12} style={{color:'var(--green)',flexShrink:0}}/>:<X size={12} style={{color:'var(--red)',flexShrink:0}}/>}
+                        <span className={styles.pushResultSite}>{r.site_id}</span>
+                        {r.ok
+                          ? <span className={styles.pushResultMeta}>WO {r.wo_id}{r.status?` · ${r.status}`:''}{r.mock?' · mock':''}</span>
+                          : <span className={styles.pushResultErr}>{r.error}</span>}
+                        {r.ok&&r.url&&r.url!=='#'&&<a href={r.url} target="_blank" rel="noreferrer" className={styles.dupeLink}><ExternalLink size={11}/> View in FN</a>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Add-on generator */}
+              <div className={styles.addonCard}>
+                <button className={styles.addonToggle} onClick={()=>setAddonExpanded(v=>!v)}>
+                  <span><Sparkles size={13}/> Generate additional WOs for these sites</span>
+                  <span>{addonExpanded?'▲':'▼'}</span>
+                </button>
+                {addonExpanded&&(
+                  <div className={styles.addonBody}>
+                    <div className={styles.configGrid}>
+                      <div className={styles.field}>
+                        <label>WO Type</label>
+                        <select className={styles.input} value={addonWoType} onChange={e=>{const k=e.target.value;setAddonWoType(k);setAddonConfig(WO_DEFAULTS[k]?{...WO_DEFAULTS[k]}:{...WO_DEFAULTS.LVL,templateId:'',numTechs:String(ALL_WO_TYPES[k]?.numTechs||1),numDays:String(ALL_WO_TYPES[k]?.numDays||1)})}}>
+                          {Object.entries(ALL_WO_TYPES).map(([k,v])=><option key={k} value={k}>{v.label||k}</option>)}
+                        </select>
+                      </div>
+                      {[{k:'templateId',l:'Template ID',ph:'102221'},{k:'startTime',l:'Start Time',ph:'1:00pm'},{k:'date',l:'Override Date',type:'date'},{k:'techType',l:'Tech Type',ph:'Tech'},{k:'numTechs',l:'# Techs',ph:'1'},{k:'numDays',l:'# Days',ph:'1'},{k:'budgetTech',l:'Budget $',ph:'200'},{k:'payRate',l:'Pay Rate $',ph:'150'},{k:'approxHours',l:'Est Hours',ph:'3'}].map(({k,l,ph,type:t})=>(
+                        <div key={k} className={styles.field}><label>{l}</label><input className={styles.input} type={t||'text'} placeholder={ph||''} value={addonConfig[k]||''} onChange={e=>setAddonConfig(p=>({...p,[k]:e.target.value}))}/></div>
+                      ))}
+                    </div>
+                    <button className={styles.addonBtn} onClick={downloadAddon} disabled={addonGenerating}><Download size={13}/>{addonGenerating?'Building…':`Download ${addonWoType} add-on CSV`}</button>
+                  </div>
+                )}
+              </div>
+
               <div className={styles.startOverRow}><button className={styles.ghostBtn} onClick={()=>setStartOverConfirm(true)}>↩ Start Over</button></div>
             </div>
           )}
@@ -510,6 +879,67 @@ export default function WorkOrders() {
         </div>
       </div>
 
+      {/* Templates Panel */}
+      {showTemplates&&(
+        <div className={styles.panelOverlay} onClick={()=>setShowTemplates(false)}>
+          <div className={styles.panel} onClick={e=>e.stopPropagation()}>
+            <div className={styles.panelHeader}><h3>📋 WO Templates</h3><button onClick={()=>setShowTemplates(false)}><X size={16}/></button></div>
+            <div className={styles.panelSearch}>
+              {showSaveTpl?(
+                <div className={styles.inputRow}>
+                  <input className={styles.input} autoFocus placeholder="Template name…" value={tplName} onChange={e=>setTplName(e.target.value)} onKeyDown={e=>e.key==='Enter'&&saveTemplate()}/>
+                  <button className={styles.applyBtn} onClick={saveTemplate} disabled={!tplName.trim()}>Save</button>
+                  <button className={styles.ghostBtn} onClick={()=>setShowSaveTpl(false)}>×</button>
+                </div>
+              ):(
+                <button className={styles.primaryBtn} style={{width:'100%'}} onClick={()=>setShowSaveTpl(true)}><Plus size={13}/> Save current config as template</button>
+              )}
+            </div>
+            <div className={styles.panelBody}>
+              {woTemplates.length===0&&<p className={styles.panelEmpty}>No templates saved yet. Configure a WO type + companions, then save it here for one-click reuse.</p>}
+              {woTemplates.map(tpl=>(
+                <div key={tpl.id} className={styles.historyCard}>
+                  <div className={styles.historyCardTop}>
+                    <div><div className={styles.historyCardTitle}>{tpl.name}</div><div className={styles.historyCardSub}>{tpl.data?.woType}{tpl.data?.includeDEL?' + DEL':''}{tpl.data?.includeBRK?' + BRK':''}{tpl.data?.includeWRK?' + WRK':''}{tpl.data?.woConfig?.templateId?` · ${tpl.data.woConfig.templateId}`:''}</div></div>
+                    <div className={styles.historyCardDate}>{new Date(tpl.created_at).toLocaleDateString()}</div>
+                  </div>
+                  <div className={styles.historyCardActions}>
+                    <button className={styles.restoreBtn} onClick={()=>applyTemplate(tpl)}>Apply</button>
+                    <button className={`${styles.ghostBtn} ${styles.dangerGhost}`} onClick={()=>deleteTemplate(tpl.id)}><Trash2 size={11}/></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Site Library Panel */}
+      {showLibrary&&(
+        <div className={styles.panelOverlay} onClick={()=>setShowLibrary(false)}>
+          <div className={styles.panel} onClick={e=>e.stopPropagation()}>
+            <div className={styles.panelHeader}><h3>🏗 Site Library</h3><button onClick={()=>setShowLibrary(false)}><X size={16}/></button></div>
+            <div className={styles.panelSearch}><input className={styles.input} placeholder="Search…" value={libSearch} onChange={e=>setLibSearch(e.target.value)}/></div>
+            <div className={styles.panelBody}>
+              {siteLibrary.length===0&&<p className={styles.panelEmpty}>No site lists saved yet. Use "Save to Library" in the site table to store a list for reuse.</p>}
+              {siteLibrary.filter(e=>{if(!libSearch.trim())return true;const q=libSearch.toLowerCase();return(e.project_name||'').toLowerCase().includes(q)||(e.project_id||'').toLowerCase().includes(q)}).map(entry=>(
+                <div key={entry.id} className={styles.historyCard}>
+                  <div className={styles.historyCardTop}>
+                    <div><div className={styles.historyCardTitle}>{entry.project_name}</div>{entry.project_id&&entry.project_id!==entry.project_name&&<div className={styles.historyCardSub}>{entry.project_id}</div>}</div>
+                    <div className={styles.historyCardDate}>{new Date(entry.created_at).toLocaleDateString()}</div>
+                  </div>
+                  <div className={styles.historyCardMeta}>{(entry.sites||[]).length} sites ({entry.site_count} complete)</div>
+                  <div className={styles.historyCardActions}>
+                    <button className={styles.restoreBtn} onClick={()=>loadFromLibrary(entry)}>Load sites</button>
+                    <button className={`${styles.ghostBtn} ${styles.dangerGhost}`} onClick={()=>deleteLibraryEntry(entry.id)}><Trash2 size={11}/></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* History Panel */}
       {showHistory&&(
         <div className={styles.panelOverlay} onClick={()=>setShowHistory(false)}>
@@ -523,17 +953,17 @@ export default function WorkOrders() {
                     <div><div className={styles.historyCardTitle}>{job.wo_type} — {job.project_id}</div>{job.display_name&&<div className={styles.historyCardSub}>{job.display_name}</div>}</div>
                     <div className={styles.historyCardDate}>{new Date(job.created_at).toLocaleDateString()}</div>
                   </div>
-                  <div className={styles.historyCardMeta}>{job.site_count} sites{job.wo_config?.templateId&&` · ${job.wo_config.templateId}`}{job.include_del&&' · +DEL'}{job.include_brk&&' · +BRK'}</div>
+                  <div className={styles.historyCardMeta}>{job.site_count} sites{job.wo_config?.templateId&&` · ${job.wo_config.templateId}`}{job.include_del&&' · +DEL'}{job.include_brk&&' · +BRK'}{job.include_wrk&&' · +WRK'}{Array.isArray(job.fn_results)&&job.fn_results.length>0&&` · ⬆ ${job.fn_results.filter(r=>r.ok).length} pushed to FN`}</div>
                   {Array.isArray(job.csv_files)&&job.csv_files.length>0&&(
                     <div className={styles.historyCardFiles}>
                       {job.csv_files.map((f,fi)=>(
-                        <button key={fi} className={styles.redownloadBtn} onClick={async()=>{const content=f.compressed?await decompressString(f.content):f.content;triggerDownload(content,f.filename)}}><Download size={10}/> {f.filename.replace(/^FieldNation_/,'').replace(/_\d{4}-\d{2}-\d{2}_.*$/,'')}</button>
+                        <button key={fi} className={styles.redownloadBtn} onClick={async()=>{const content=f.compressed?await decompressString(f.content):f.content;triggerDownload(content,f.filename)}}><Download size={10}/> {f.filename.replace(/^FieldNation_/,'').replace(/_\d{4}-\d{2}-\d{2}.*$/,'')}</button>
                       ))}
                     </div>
                   )}
                   <div className={styles.historyCardActions}>
-                    <button className={styles.restoreBtn} onClick={()=>{setProjectId(job.project_id||'');setDisplayName(job.display_name||'');setWoType(job.wo_type||'LVL');setWoConfig(job.wo_config||WO_DEFAULTS.LVL);if(job.include_del&&job.del_config){setIncludeDEL(true);setDelConfig(job.del_config)}else setIncludeDEL(false);if(job.include_brk&&job.brk_config){setIncludeBRK(true);setBrkConfig(job.brk_config)}else setIncludeBRK(false);if(Array.isArray(job.sites)&&job.sites.length)setSites(job.sites);setStep(0);setShowHistory(false)}}>↩ Restore</button>
-                    <button className={styles.ghostBtn} onClick={()=>{setProjectId(job.project_id||'');setDisplayName(job.display_name||'');setWoType(job.wo_type||'LVL');setWoConfig(job.wo_config||WO_DEFAULTS.LVL);if(job.include_del&&job.del_config){setIncludeDEL(true);setDelConfig(job.del_config)}else setIncludeDEL(false);if(job.include_brk&&job.brk_config){setIncludeBRK(true);setBrkConfig(job.brk_config)}else setIncludeBRK(false);setSites([{...EMPTY_SITE(),date:(job.wo_config||{}).defaultDate||'',numTechs:(job.wo_config||{}).numTechs||'1',numDays:(job.wo_config||{}).numDays||'1'}]);setStep(0);setShowHistory(false)}}>Config only</button>
+                    <button className={styles.restoreBtn} onClick={()=>{setProjectId(job.project_id||'');setDisplayName(job.display_name||'');setWoType(job.wo_type||'LVL');setWoConfig(job.wo_config||WO_DEFAULTS.LVL);if(job.include_del&&job.del_config){setIncludeDEL(true);setDelConfig(job.del_config)}else setIncludeDEL(false);if(job.include_brk&&job.brk_config){setIncludeBRK(true);setBrkConfig(job.brk_config)}else setIncludeBRK(false);if(job.include_wrk&&job.wrk_config){setIncludeWRK(true);setWrkConfig(job.wrk_config)}else setIncludeWRK(false);if(Array.isArray(job.sdt_config)&&job.sdt_config.length)setSdtConfig(job.sdt_config);if(Array.isArray(job.sites)&&job.sites.length)setSites(job.sites.map(s=>({...EMPTY_SITE(),...s})));setStep(0);setShowHistory(false)}}>↩ Restore</button>
+                    <button className={styles.ghostBtn} onClick={()=>{setProjectId(job.project_id||'');setDisplayName(job.display_name||'');setWoType(job.wo_type||'LVL');setWoConfig(job.wo_config||WO_DEFAULTS.LVL);if(job.include_del&&job.del_config){setIncludeDEL(true);setDelConfig(job.del_config)}else setIncludeDEL(false);if(job.include_brk&&job.brk_config){setIncludeBRK(true);setBrkConfig(job.brk_config)}else setIncludeBRK(false);if(job.include_wrk&&job.wrk_config){setIncludeWRK(true);setWrkConfig(job.wrk_config)}else setIncludeWRK(false);if(Array.isArray(job.sdt_config)&&job.sdt_config.length)setSdtConfig(job.sdt_config);setSites([{...EMPTY_SITE(),date:(job.wo_config||{}).defaultDate||'',numTechs:(job.wo_config||{}).numTechs||'1',numDays:(job.wo_config||{}).numDays||'1'}]);setStep(0);setShowHistory(false)}}>Config only</button>
                   </div>
                 </div>
               ))}
@@ -617,6 +1047,39 @@ export default function WorkOrders() {
         </div>
       )}
 
+      {/* WHO'S EXPORTING modal */}
+      {showExporterModal&&(
+        <div className={styles.modalOverlay} onClick={e=>e.target===e.currentTarget&&setShowExporterModal(false)}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}><h3>Who's exporting?</h3><button onClick={()=>setShowExporterModal(false)}><X size={15}/></button></div>
+            <div className={styles.modalBody}>
+              <p style={{fontSize:13,color:'var(--text-secondary)',marginBottom:12}}>Your name is stamped on the export filename and job history.</p>
+              <div className={styles.field}><label>Name</label><input className={styles.input} autoFocus placeholder="e.g. Chris" value={exporterInput} onChange={e=>setExporterInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&confirmExporter()}/></div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button className={styles.ghostBtn} onClick={()=>setShowExporterModal(false)}>Cancel</button>
+              <button className={styles.primaryBtn} disabled={!exporterInput.trim()} onClick={confirmExporter}>{pendingExport?'Save & Continue':'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk date modal */}
+      {bulkDateOpen&&(
+        <div className={styles.modalOverlay} onClick={e=>e.target===e.currentTarget&&setBulkDateOpen(false)}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}><h3>📅 Bulk Date</h3><button onClick={()=>setBulkDateOpen(false)}><X size={15}/></button></div>
+            <div className={styles.modalBody}>
+              <div className={styles.field}><label>Set start date on all {sites.length} rows</label><input className={styles.input} type="date" autoFocus value={bulkDateVal} onChange={e=>setBulkDateVal(e.target.value)}/></div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button className={styles.ghostBtn} onClick={()=>applyBulkDate(true)}>Clear all dates</button>
+              <button className={styles.primaryBtn} disabled={!bulkDateVal} onClick={()=>applyBulkDate(false)}>Apply to all</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Admin unlock */}
       {showAdminPw&&(
         <div className={styles.modalOverlay}>
@@ -645,8 +1108,8 @@ export default function WorkOrders() {
           <div className={styles.modal}>
             <div className={styles.modalHeader}><h3>Start Over?</h3></div>
             <div className={styles.modalFooter} style={{flexDirection:'column',gap:8}}>
-              <button className={styles.primaryBtn} style={{width:'100%'}} onClick={()=>{setStep(0);setStartOverConfirm(false)}}>Keep data & start over</button>
-              <button className={styles.dangerBtn} style={{width:'100%'}} onClick={()=>{setStep(0);setProjectId('');setDisplayName('');setWoType('LVL');setWoConfig({...WO_DEFAULTS.LVL});setSites([EMPTY_SITE()]);setStartOverConfirm(false)}}>Clear all & start over</button>
+              <button className={styles.primaryBtn} style={{width:'100%'}} onClick={()=>{setStep(0);setPushResults(null);setStartOverConfirm(false)}}>Keep data & start over</button>
+              <button className={styles.dangerBtn} style={{width:'100%'}} onClick={()=>{setStep(0);setProjectId('');setDisplayName('');setWoType('LVL');setWoConfig({...WO_DEFAULTS.LVL});setSdtConfig([...SDT_DEFAULTS]);setIncludeDEL(false);setIncludeBRK(false);setIncludeWRK(false);setSites([EMPTY_SITE()]);setPushResults(null);setStartOverConfirm(false)}}>Clear all & start over</button>
               <button className={styles.ghostBtn} style={{width:'100%'}} onClick={()=>setStartOverConfirm(false)}>Cancel</button>
             </div>
           </div>
@@ -669,7 +1132,7 @@ function CompanionToggle({label,enabled,onToggle,config,setConfig,type,tidHistor
             <div className={styles.field} style={{position:'relative'}}>
               <label>Template ID</label>
               <div className={styles.inputRow}>
-                <input className={styles.input} value={config.templateId||''} onChange={e=>setConfig(p=>({...p,templateId:e.target.value}))} placeholder={type==='DEL'?'102221':'102222'}/>
+                <input className={styles.input} value={config.templateId||''} onChange={e=>setConfig(p=>({...p,templateId:e.target.value}))} placeholder={type==='DEL'?'102221':type==='BRK'?'102222':''}/>
                 {(tidHistory[type]?.length>0)&&<button className={styles.ddBtn} onClick={()=>setShowTidDD(v=>!v)}><ChevronDown size={12}/></button>}
               </div>
               {showTidDD&&tidHistory[type]?.length>0&&<div className={styles.dropdown}>{tidHistory[type].map(entry=>{const tid=typeof entry==='string'?entry:entry.id,lbl=typeof entry==='string'?'':entry.label;return<div key={tid} className={styles.ddItem} onClick={()=>{setConfig(p=>({...p,templateId:tid}));setShowTidDD(false)}}><b>{tid}</b>{lbl&&<span className={styles.ddItemSub}>{lbl}</span>}</div>})}</div>}

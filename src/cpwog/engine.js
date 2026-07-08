@@ -1,17 +1,31 @@
 // ── WO Type definitions ────────────────────────────────────────
 export const WO_TYPES = {
-  LVL: { label: 'LVL — Low Voltage Lead',         siteIdSuffix: 'LVL(1)', numTechs: 1, numDays: 3, useBundle: true  },
-  LVT: { label: 'LVT — Low Voltage Tech',          siteIdSuffix: 'LVT',    numTechs: 3, numDays: 3, useBundle: true  },
-  DEL: { label: 'DEL — Delivery/Install',          siteIdSuffix: 'DEL',    numTechs: 1, numDays: 1, useBundle: false },
-  BRK: { label: 'BRK — Backerboard Creation',      siteIdSuffix: 'BRK',    numTechs: 1, numDays: 1, useBundle: false },
-  INT: { label: 'INT — Installation Technician',   siteIdSuffix: 'INT',    numTechs: 1, numDays: 1, useBundle: true  },
-  INL: { label: 'INL — Installation Lead',         siteIdSuffix: 'INL',    numTechs: 1, numDays: 1, useBundle: true  },
+  LVL: { label: 'LVL — Low Voltage Lead',           siteIdSuffix: 'LVL(1)', numTechs: 1, numDays: 3, useBundle: true  },
+  LVT: { label: 'LVT — Low Voltage Tech',            siteIdSuffix: 'LVT',    numTechs: 3, numDays: 3, useBundle: true  },
+  DEL: { label: 'DEL — Delivery/Install',            siteIdSuffix: 'DEL',    numTechs: 1, numDays: 1, useBundle: false },
+  BRK: { label: 'BRK — Backerboard Creation',        siteIdSuffix: 'BRK',    numTechs: 1, numDays: 1, useBundle: false },
+  SDT: { label: 'SDT — Security Device Technician',  siteIdSuffix: 'SDT',    numTechs: 1, numDays: 3, useBundle: true, customBuild: 'SDT' },
+  INT: { label: 'INT — Installation Technician',     siteIdSuffix: 'INT',    numTechs: 1, numDays: 1, useBundle: true  },
+  INL: { label: 'INL — Installation Lead',           siteIdSuffix: 'INL',    numTechs: 1, numDays: 1, useBundle: true  },
+  WRK: { label: 'WRK — Walk In Ready Kit',           siteIdSuffix: 'WRK',    numTechs: 1, numDays: 1, useBundle: false },
+}
+
+// Plain-English descriptions for the Guided mode type picker
+export const WO_TYPE_DESCRIPTIONS = {
+  LVL: 'Main installation lead — manages the site over multiple days',
+  LVT: 'Low voltage technicians — multiple techs per site over multiple days',
+  DEL: 'Equipment delivery and installation — one tech, one day',
+  BRK: 'Backerboard creation — one tech, one day',
+  INT: 'Installation technician — one tech, flexible days',
+  INL: 'Installation lead — one tech, flexible days',
+  WRK: 'Walk-in ready kit — one tech, one day',
+  SDT: 'Security device technician — bundled BH/AH schedule over three days',
 }
 
 const BLANK_CFG = {
-  templateId: '', startTime: '', defaultDate: '', techType: '',
+  templateId: '', startTime: '', defaultDate: '', techType: 'Tech',
   numTechs: '1', numDays: '1', budgetTech: '', payRate: '',
-  approxHours: '', country: '', payType: 'Fixed',
+  approxHours: '', country: 'US', payType: 'Fixed',
 }
 
 export const WO_DEFAULTS = {
@@ -19,9 +33,22 @@ export const WO_DEFAULTS = {
   LVT: { ...BLANK_CFG, templateId: '103094' },
   DEL: { ...BLANK_CFG, templateId: '102221' },
   BRK: { ...BLANK_CFG, templateId: '102222' },
+  SDT: { ...BLANK_CFG, templateId: '104516' },
   INT: { ...BLANK_CFG, templateId: '103096' },
   INL: { ...BLANK_CFG, templateId: '103097' },
+  WRK: { ...BLANK_CFG, templateId: '' },
 }
+
+// Default SDT schedule — 3 days of BH/AH slots, user-editable per plan
+export const SDT_DEFAULTS = [
+  { id: 's1', type: 'AH', day: 1, time: '2:00pm',  hours: 10, budget: 650, numTechs: 1 },
+  { id: 's2', type: 'BH', day: 2, time: '11:00am', hours: 8,  budget: 450, numTechs: 2 },
+  { id: 's3', type: 'AH', day: 2, time: '4:00pm',  hours: 10, budget: 600, numTechs: 1 },
+  { id: 's4', type: 'AH', day: 2, time: '5:00pm',  hours: 9,  budget: 550, numTechs: 1 },
+  { id: 's5', type: 'BH', day: 3, time: '11:00am', hours: 8,  budget: 450, numTechs: 2 },
+  { id: 's6', type: 'AH', day: 3, time: '4:00pm',  hours: 10, budget: 600, numTechs: 1 },
+  { id: 's7', type: 'AH', day: 3, time: '5:00pm',  hours: 9,  budget: 550, numTechs: 1 },
+]
 
 export const WO_HEADERS = [
   'Template Id', 'Project ID', 'Site ID', 'Bundle (by Number)',
@@ -31,7 +58,7 @@ export const WO_HEADERS = [
   'Route To Provider (ID)', 'Budget (Tech)', 'Budget (Travel)', 'Max Budget',
   'Pay Rate', 'Additional Charges', 'Devices', 'EST Hours', 'Size',
   'Approximate Hours to Complete', 'Estimated Duration', 'Pay Type',
-  'Location Display Name', 'Location Name',
+  'Location Display Name', 'Location Name', 'Work Order Manager',
 ]
 
 // ── Site columns for the manual entry table ───────────────────
@@ -48,14 +75,36 @@ export const SITE_COLS = [
   { key: 'numDays',    label: 'Days',         width: 52,  ph: '↓' },
   { key: 'budgetTech', label: 'Budget $',     width: 76,  ph: '↓' },
   { key: 'payRate',    label: 'Pay $',        width: 76,  ph: '↓' },
+  { key: 'womId',      label: 'WOM ID',       width: 100, ph: 'WO-12345' },
 ]
 
 export const EMPTY_SITE = () => ({
   code: '', branchName: '', address: '', address2: '',
   city: '', state: '', zip: '', date: '',
-  numTechs: '', numDays: '', budgetTech: '', payRate: '',
+  numTechs: '', numDays: '', budgetTech: '', payRate: '', womId: '',
   routeToTechs: [], verified: null, verifying: false, verifyError: '',
 })
+
+// Converts any time format to "H:MMam/pm" as expected by FieldNation CSV
+// e.g. "4:30pm", "4:30 PM", "16:30", "16:30:00" all → "4:30pm"
+export function normalizeTime(raw) {
+  if (!raw || !raw.trim()) return ''
+  const s = raw.trim()
+  const already = s.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i)
+  if (already) return `${parseInt(already[1])}:${already[2]}${already[3].toLowerCase()}`
+  const hourOnly = s.match(/^(\d{1,2})\s*(am|pm)$/i)
+  if (hourOnly) return `${parseInt(hourOnly[1])}:00${hourOnly[2].toLowerCase()}`
+  const mil = s.match(/^(\d{1,2}):(\d{2})(:\d{2})?$/)
+  if (mil) {
+    let h = parseInt(mil[1])
+    const m = mil[2]
+    const suffix = h >= 12 ? 'pm' : 'am'
+    if (h > 12) h -= 12
+    if (h === 0) h = 12
+    return `${h}:${m}${suffix}`
+  }
+  return s
+}
 
 // ── Row builder ────────────────────────────────────────────────
 function addDays(dateStr, n) {
@@ -74,13 +123,53 @@ function makeRow({ templateId, projectId, siteId, bundle, site, date, startTime,
     techType, '', routeTo || '',
     budgetTech, '', maxBudget, payRate,
     '', '', '', '', approxHours, estDuration, payType || 'Fixed',
-    locName, locName,
+    locName, locName, site.womId || '',
   ]
 }
 
-export function buildRows(site, projectId, displayName, woType, cfg, allTypes = WO_TYPES) {
+// SDT — bundled BH/AH schedule across 3 consecutive days.
+// Site IDs run sequential per type/day: CODE-SDT-BH(1), CODE-SDT-BH(2), CODE-SDT-AH(1)…
+export function buildSDTRows(site, projectId, displayName, cfg, sdtCfg) {
+  const slots = Array.isArray(sdtCfg) && sdtCfg.length ? sdtCfg : SDT_DEFAULTS
   const locPrefix = displayName?.trim() || projectId
+  const tId = Number(cfg.templateId) || 104516
+  const country = cfg.country || 'US'
+  const techType = cfg.techType || 'Tech'
+  const payType = cfg.payType || 'Fixed'
+  const rows = []
+
+  const dates = [site.date, addDays(site.date, 1), addDays(site.date, 2)]
+
+  for (let day = 1; day <= 3; day++) {
+    const counters = {}
+    for (const slot of slots.filter((s) => s.day === day)) {
+      const n = Number(slot.numTechs) || 1
+      for (let t = 0; t < n; t++) {
+        counters[slot.type] = (counters[slot.type] || 0) + 1
+        const siteId  = `${site.code}-SDT-${slot.type}(${counters[slot.type]})`
+        const bundle  = `${site.code}-SDT-${slot.type}`
+        const locName = `${locPrefix}-${siteId}-${site.city}, ${site.state}`
+        rows.push(makeRow({
+          templateId: tId, projectId, siteId, bundle,
+          site, date: dates[day - 1], startTime: normalizeTime(slot.time),
+          techType, budgetTech: Number(slot.budget), maxBudget: Number(slot.budget),
+          payRate: Number(slot.budget), approxHours: Number(slot.hours), estDuration: Number(slot.hours),
+          country, locName, payType, routeTo: '',
+        }))
+      }
+    }
+  }
+
+  rows.push([])
+  return rows
+}
+
+export function buildRows(site, projectId, displayName, woType, cfg, allTypes = WO_TYPES, sdtCfg) {
   const meta = allTypes[woType] || WO_TYPES[woType] || { siteIdSuffix: woType, numTechs: 1, numDays: 1, useBundle: false }
+  if (woType === 'SDT' || meta.customBuild === 'SDT') {
+    return buildSDTRows(site, projectId, displayName, cfg, sdtCfg)
+  }
+  const locPrefix = displayName?.trim() || projectId
   const rows = []
   const tId = Number(cfg.templateId)
   const cfgBudget = Number(cfg.budgetTech)
@@ -97,7 +186,7 @@ export function buildRows(site, projectId, displayName, woType, cfg, allTypes = 
         const date   = addDays(site.date, d)
         const siteId = `${site.code}-${meta.siteIdSuffix}(${t})`
         const locName = `${locPrefix}-${siteId}-${site.city}, ${site.state}`
-        rows.push(makeRow({ templateId: tId, projectId, siteId, bundle: meta.useBundle ? siteId : '', site, date, startTime: cfg.startTime, techType: `${cfg.techType} ${t}`, budgetTech: budget, maxBudget: budget, payRate: pay, approxHours: hours, estDuration: hours, country: cfg.country, locName, payType: cfg.payType || 'Fixed', routeTo: (site.routeToTechs || [])[t - 1] || '' }))
+        rows.push(makeRow({ templateId: tId, projectId, siteId, bundle: meta.useBundle ? siteId : '', site, date, startTime: normalizeTime(cfg.startTime), techType: cfg.techType, budgetTech: budget, maxBudget: budget, payRate: pay, approxHours: hours, estDuration: hours, country: cfg.country, locName, payType: cfg.payType || 'Fixed', routeTo: (site.routeToTechs || [])[t - 1] || '' }))
       }
     }
   } else {
@@ -105,7 +194,7 @@ export function buildRows(site, projectId, displayName, woType, cfg, allTypes = 
       const date   = addDays(site.date, d)
       const siteId = `${site.code}-${meta.siteIdSuffix}`
       const locName = `${locPrefix}-${siteId}-${site.city}, ${site.state}`
-      rows.push(makeRow({ templateId: tId, projectId, siteId, bundle: meta.useBundle ? siteId : '', site, date, startTime: cfg.startTime, techType: cfg.techType, budgetTech: budget, maxBudget: budget, payRate: pay, approxHours: hours, estDuration: hours, country: cfg.country, locName, payType: cfg.payType || 'Fixed', routeTo: (site.routeToTechs || [])[0] || '' }))
+      rows.push(makeRow({ templateId: tId, projectId, siteId, bundle: meta.useBundle ? siteId : '', site, date, startTime: normalizeTime(cfg.startTime), techType: cfg.techType, budgetTech: budget, maxBudget: budget, payRate: pay, approxHours: hours, estDuration: hours, country: cfg.country, locName, payType: cfg.payType || 'Fixed', routeTo: (site.routeToTechs || [])[0] || '' }))
     }
     if (numDays > 1) rows.push([])
   }
