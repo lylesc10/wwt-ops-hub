@@ -15,6 +15,7 @@ import WOCoverage from './pages/WOCoverage'
 import FNExportAnalyzer from './pages/FNExportAnalyzer'
 import TechAnalysis from './pages/TechAnalysis'
 import DocGen from './pages/docgen/DocGen'
+import PNCDashboard from './pages/PNCDashboard'
 import RoutePlanList from './pages/route-planning/RoutePlanList'
 import CreateRoutePlan from './pages/route-planning/CreateRoutePlan'
 import RoutePlanBuilder from './pages/route-planning/RoutePlanBuilder'
@@ -28,6 +29,7 @@ export default function App() {
           <Routes>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard"    element={<Dashboard />} />
+            <Route path="pnc-dashboard" element={<PNCDashboard />} />
             <Route path="sites"        element={<SiteBoard />} />
             <Route path="gantt"        element={<TechGantt />} />
             <Route path="routes"       element={<RouteGantt />} />

@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Table2, CalendarRange, Route,
   ClipboardList, Bell, Settings, LogOut, Zap,
-  Code2, MessageSquare, TrendingUp, Users2, Grid3x3, HardHat, FileBarChart, BarChart3, FileText, Map
+  Code2, MessageSquare, TrendingUp, Users2, Grid3x3, HardHat, FileBarChart, BarChart3, FileText, Map, PieChart
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -10,6 +10,7 @@ import styles from './Shell.module.css'
 
 const NAV = [
   { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard'     },
+  { to: '/pnc-dashboard', icon: PieChart,      label: 'PNC Dashboard' },
   { to: '/sites',       icon: Table2,          label: 'Site Board'    },
   { to: '/gantt',       icon: CalendarRange,   label: 'Tech Gantt'    },
   { to: '/routes',      icon: Route,           label: 'Route Gantt'   },
