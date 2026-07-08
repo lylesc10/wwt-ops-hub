@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
+import { getToken } from '@/lib/dab'
 import {
   Upload, X, Check, AlertTriangle, Calendar,
   Users, ArrowRight, Plus, Minus, RefreshCw,
@@ -27,7 +27,7 @@ export function SmartsheetUploadModal({ project, onClose, onSynced }) {
     setDiff(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
+      const token = getToken()
       const formData = new FormData()
       formData.append('file', file)
       formData.append('project_id', project.id)
@@ -35,7 +35,7 @@ export function SmartsheetUploadModal({ project, onClose, onSynced }) {
 
       const res  = await fetch('/api/sync/upload', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+        headers: { Authorization: `Bearer ${token ?? ''}` },
         body: formData,
       })
       const data = await res.json()
@@ -54,7 +54,7 @@ export function SmartsheetUploadModal({ project, onClose, onSynced }) {
     setError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
+      const token = getToken()
       const formData = new FormData()
 
       // Re-upload same file — use the file from the input
@@ -67,7 +67,7 @@ export function SmartsheetUploadModal({ project, onClose, onSynced }) {
 
       const res  = await fetch('/api/sync/upload', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+        headers: { Authorization: `Bearer ${token ?? ''}` },
         body: formData,
       })
       const data = await res.json()

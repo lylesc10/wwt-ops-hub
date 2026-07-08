@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useProjects } from '@/hooks/useProjects'
-import { supabase } from '@/lib/supabase'
+import { dab, getToken } from '@/lib/dab'
 import { PageHeader } from '@/components/PageHeader'
 import {
   Upload, RefreshCw, Check, AlertTriangle,
@@ -49,7 +49,7 @@ export default function ParserStudio() {
 
   const loadSavedMaps = useCallback(async (projectId) => {
     if (!projectId) return
-    const { data } = await supabase
+    const { data } = await dab
       .from('column_maps')
       .select('*')
       .eq('project_id', projectId)
@@ -87,10 +87,9 @@ export default function ParserStudio() {
     if (!headers.length) { setError('Upload a file first'); return }
     setLoading(true); setError('')
     try {
-      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/ai/map-columns', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken() ?? ''}` },
         body: JSON.stringify({ project_id: selectedProject || null, headers, sample_rows: sampleRows, map_name: mapName }),
       })
       const result = await res.json()
@@ -106,12 +105,12 @@ export default function ParserStudio() {
     if (!mapping || !selectedProject) { setError('Select a project first'); return }
     setSaving(true); setError('')
     try {
-      const { data: saved, error: saveErr } = await supabase
+      const { data: saved, error: saveErr } = await dab
         .from('column_maps')
         .insert({ project_id: selectedProject, name: mapName || `Mapping ${new Date().toLocaleDateString()}`, source_cols: mapping, sample_headers: headers, confidence: aiResult?.confidence ?? 1.0, verified: true })
         .select('id').single()
       if (saveErr) throw new Error(saveErr.message)
-      await supabase.from('projects').update({ active_column_map_id: saved.id }).eq('id', selectedProject)
+      await dab.from('projects').update({ active_column_map_id: saved.id }).eq('id', selectedProject)
       await loadSavedMaps(selectedProject)
       setStep(3)
     } catch (e) { setError(e.message) }
@@ -119,13 +118,13 @@ export default function ParserStudio() {
   }
 
   const activateMap = async (mapId) => {
-    await supabase.from('projects').update({ active_column_map_id: mapId }).eq('id', selectedProject)
+    await dab.from('projects').update({ active_column_map_id: mapId }).eq('id', selectedProject)
     await loadSavedMaps(selectedProject)
   }
 
   const deleteMap = async (mapId) => {
     if (!confirm('Delete this column map?')) return
-    await supabase.from('column_maps').delete().eq('id', mapId)
+    await dab.from('column_maps').delete().eq('id', mapId)
     await loadSavedMaps(selectedProject)
   }
 

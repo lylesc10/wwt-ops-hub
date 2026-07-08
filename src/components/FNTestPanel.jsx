@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { getToken } from '@/lib/dab'
 import { RefreshCw, Check, AlertTriangle, ExternalLink, Play } from 'lucide-react'
 import styles from './FNTestPanel.module.css'
 
@@ -31,8 +31,7 @@ export function FNTestPanel() {
   const run = async () => {
     setRunning(true); setResult(null)
     try {
-      const { data:{ session } } = await supabase.auth.getSession()
-      const res = await fetch('/api/fn/test', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${session?.access_token??''}`}, body:JSON.stringify({ action:activeAction, params }) })
+      const res = await fetch('/api/fn/test', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${getToken()??''}`}, body:JSON.stringify({ action:activeAction, params }) })
       setResult(await res.json())
     } catch(e) { setResult({ ok:false, error:e.message }) }
     setRunning(false)

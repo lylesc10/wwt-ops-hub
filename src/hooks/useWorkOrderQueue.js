@@ -1,15 +1,14 @@
 import { useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { dab, getToken } from '@/lib/dab'
 import { generateBulk } from '@/cpwog/generateWO'
 import { bundleAllSites } from '@/cpwog/bundleWOs'
 
 export function useWorkOrderQueue() {
   const [generating, setGenerating] = useState(false)
   const [checking, setChecking]     = useState(false)
-  const [pushing, setPushing]       = useState({})   // keyed by wo_id
+  const [pushing, setPushing]       = useState({})
   const [error, setError]           = useState(null)
 
-  // ── Generate a batch of WOs from sites ────────────────────
   const generateBatch = useCallback(async ({
     projectId,
     batchName,
@@ -23,8 +22,7 @@ export function useWorkOrderQueue() {
     setError(null)
 
     try {
-      // Create batch record
-      const { data: batch, error: batchErr } = await supabase
+      const { data: batch, error: batchErr } = await dab
         .from('wo_batches')
         .insert({
           project_id:    projectId,
@@ -39,10 +37,8 @@ export function useWorkOrderQueue() {
 
       if (batchErr) throw new Error(batchErr.message)
 
-      // Generate WO payloads using CPWOG engine
       const payloads = bundleAllSites(sites, woTypes, globalConfig, siteOverrides)
 
-      // Insert work_orders rows
       const woRows = payloads.map(p => ({
         site_id:       p.site_id,
         batch_id:      batch.id,
@@ -57,15 +53,14 @@ export function useWorkOrderQueue() {
         fn_payload:    p,
       }))
 
-      const { data: wos, error: woErr } = await supabase
+      const { data: wos, error: woErr } = await dab
         .from('work_orders')
         .insert(woRows)
         .select()
 
       if (woErr) throw new Error(woErr.message)
 
-      // Update batch status
-      await supabase
+      await dab
         .from('wo_batches')
         .update({ status: 'reviewing' })
         .eq('id', batch.id)
@@ -79,19 +74,16 @@ export function useWorkOrderQueue() {
     }
   }, [])
 
-  // ── Run dupe check against FN ──────────────────────────────
   const checkDupes = useCallback(async (workOrderIds) => {
     setChecking(true)
     setError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-
       const res = await fetch('/api/fn/check-dupes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization:  `Bearer ${session?.access_token}`,
+          Authorization:  `Bearer ${getToken() ?? ''}`,
         },
         body: JSON.stringify({ work_order_ids: workOrderIds }),
       })
@@ -99,9 +91,8 @@ export function useWorkOrderQueue() {
       const result = await res.json()
       if (!res.ok) throw new Error(result.message)
 
-      // Flag dupes in DB
       if (result.dupes?.length) {
-        await supabase
+        await dab
           .from('work_orders')
           .update({ is_dupe_flagged: true })
           .in('id', result.dupes)
@@ -116,27 +107,25 @@ export function useWorkOrderQueue() {
     }
   }, [])
 
-  // ── Approve a WO for push ──────────────────────────────────
   const approveWO = useCallback(async (woId) => {
-    const { error } = await supabase
+    const { error } = await dab
       .from('work_orders')
       .update({ review_status: 'approved' })
       .eq('id', woId)
     if (error) throw new Error(error.message)
   }, [])
 
-  // ── Skip a WO ─────────────────────────────────────────────
   const skipWO = useCallback(async (woId, reason = '') => {
-    const { error } = await supabase
+    const { error } = await dab
       .from('work_orders')
       .update({ review_status: 'skipped', skip_reason: reason, status: 'cancelled' })
       .eq('id', woId)
     if (error) throw new Error(error.message)
   }, [])
 
-  // ── Approve all in batch ───────────────────────────────────
   const approveAll = useCallback(async (batchId) => {
-    const { error } = await supabase
+    // DAB filter chains apply as AND — all three conditions are stacked
+    const { error } = await dab
       .from('work_orders')
       .update({ review_status: 'approved' })
       .eq('batch_id', batchId)
@@ -145,21 +134,19 @@ export function useWorkOrderQueue() {
     if (error) throw new Error(error.message)
   }, [])
 
-  // ── Push a single approved WO to FN ───────────────────────
   const pushWO = useCallback(async (woId) => {
     setPushing(p => ({ ...p, [woId]: true }))
     setError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-
+      const token = getToken()
       const res = await fetch('/api/fn/push-wo', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization:  `Bearer ${session?.access_token}`,
+          Authorization:  `Bearer ${token ?? ''}`,
         },
-        body: JSON.stringify({ work_order_id: woId, pushed_by: session?.user?.id }),
+        body: JSON.stringify({ work_order_id: woId }),
       })
 
       const result = await res.json()
@@ -173,9 +160,8 @@ export function useWorkOrderQueue() {
     }
   }, [])
 
-  // ── Push all approved WOs in a batch ──────────────────────
   const pushBatch = useCallback(async (batchId) => {
-    const { data: wos } = await supabase
+    const { data: wos } = await dab
       .from('work_orders')
       .select('id')
       .eq('batch_id', batchId)
@@ -188,9 +174,8 @@ export function useWorkOrderQueue() {
       results.push({ id: wo.id, ...result })
     }
 
-    // Update batch status
     const allPushed = results.every(r => r?.ok)
-    await supabase
+    await dab
       .from('wo_batches')
       .update({ status: allPushed ? 'pushed' : 'partial' })
       .eq('id', batchId)

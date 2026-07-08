@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { dab } from '@/lib/dab'
+import { useAuth } from '@/hooks/useAuth'
 
 export function useTechnicians() {
+  const { user } = useAuth()
   const [technicians, setTechnicians] = useState([])
   const [loading,     setLoading]     = useState(true)
 
-  const fetch = useCallback(async () => {
+  const fetchTechs = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase
+    const { data } = await dab
       .from('technicians')
       .select('*')
       .eq('is_active', true)
@@ -16,36 +18,35 @@ export function useTechnicians() {
     setLoading(false)
   }, [])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => { fetchTechs() }, [fetchTechs])
 
   const add = useCallback(async (fields) => {
-    const { data: { session } } = await supabase.auth.getSession()
-    const { data, error } = await supabase
+    const { data, error } = await dab
       .from('technicians')
-      .insert({ ...fields, added_by: session?.user?.id })
+      .insert({ ...fields, added_by: user?.id })
       .select().single()
     if (error) throw new Error(error.message)
-    await fetch()
+    await fetchTechs()
     return data
-  }, [fetch])
+  }, [user?.id, fetchTechs])
 
   const update = useCallback(async (id, fields) => {
-    const { error } = await supabase
+    const { error } = await dab
       .from('technicians')
       .update({ ...fields, updated_at: new Date().toISOString() })
       .eq('id', id)
     if (error) throw new Error(error.message)
-    await fetch()
-  }, [fetch])
+    await fetchTechs()
+  }, [fetchTechs])
 
   const deactivate = useCallback(async (id) => {
-    const { error } = await supabase
+    const { error } = await dab
       .from('technicians')
       .update({ is_active: false, updated_at: new Date().toISOString() })
       .eq('id', id)
     if (error) throw new Error(error.message)
-    await fetch()
-  }, [fetch])
+    await fetchTechs()
+  }, [fetchTechs])
 
-  return { technicians, loading, refetch: fetch, add, update, deactivate }
+  return { technicians, loading, refetch: fetchTechs, add, update, deactivate }
 }

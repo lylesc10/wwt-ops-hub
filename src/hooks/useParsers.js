@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { dab } from '@/lib/dab'
 import { runParser } from '@/lib/parserEngine'
 
 export function useParsers() {
@@ -9,7 +9,7 @@ export function useParsers() {
 
   const fetchParsers = useCallback(async () => {
     setLoading(true)
-    const { data, error } = await supabase
+    const { data, error } = await dab
       .from('parsers')
       .select('*')
       .eq('is_active', true)
@@ -22,7 +22,7 @@ export function useParsers() {
   useEffect(() => { fetchParsers() }, [fetchParsers])
 
   const createParser = useCallback(async (fields) => {
-    const { data, error } = await supabase
+    const { data, error } = await dab
       .from('parsers')
       .insert(fields)
       .select()
@@ -33,7 +33,7 @@ export function useParsers() {
   }, [fetchParsers])
 
   const updateParser = useCallback(async (id, fields) => {
-    const { error } = await supabase
+    const { error } = await dab
       .from('parsers')
       .update({ ...fields, updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -42,7 +42,7 @@ export function useParsers() {
   }, [fetchParsers])
 
   const deleteParser = useCallback(async (id) => {
-    const { error } = await supabase
+    const { error } = await dab
       .from('parsers')
       .update({ is_active: false })
       .eq('id', id)
@@ -56,8 +56,7 @@ export function useParsers() {
 
     const result = runParser(rawInput, parser.config, { previewRows: 10 })
 
-    // Save test result
-    await supabase.from('parsers').update({
+    await dab.from('parsers').update({
       last_tested_at: new Date().toISOString(),
       last_test_rows: result.rows.length,
       last_test_ok:   result.errors.length === 0,
@@ -81,22 +80,36 @@ export function useParsers() {
     const rowErrors = []
 
     if (parser.target === 'sites' && projectId) {
+      const dupKey = parser.config.dedup_key ?? 'code'
       for (const row of rows) {
         try {
-          const { error } = await supabase
+          // DAB doesn't support upsert on non-PK columns — check existence first
+          const { data: existing } = await dab
             .from('sites')
-            .upsert(
-              { ...row, project_id: projectId },
-              { onConflict: parser.config.dedup_key ?? 'code' }
-            )
-          if (error) { rowErrors.push(error.message); errored++ }
+            .select('id')
+            .eq(dupKey, row[dupKey])
+            .single()
+
+          let dbError
+          if (existing?.id) {
+            const { error } = await dab
+              .from('sites')
+              .update({ ...row, project_id: projectId })
+              .eq('id', existing.id)
+            dbError = error
+          } else {
+            const { error } = await dab
+              .from('sites')
+              .insert({ ...row, project_id: projectId })
+            dbError = error
+          }
+          if (dbError) { rowErrors.push(dbError.message); errored++ }
           else imported++
         } catch (e) { rowErrors.push(e.message); errored++ }
       }
     }
 
-    // Log run
-    await supabase.from('parser_runs').insert({
+    await dab.from('parser_runs').insert({
       parser_id:     parserId,
       user_id:       userId,
       status:        errored > 0 ? (imported > 0 ? 'partial' : 'error') : 'success',
@@ -107,8 +120,7 @@ export function useParsers() {
       error_detail:  rowErrors.length ? { errors: rowErrors } : null,
     })
 
-    // Update parser stats
-    await supabase.from('parsers').update({
+    await dab.from('parsers').update({
       run_count:     parser.run_count + 1,
       last_run_at:   new Date().toISOString(),
       last_run_rows: imported,

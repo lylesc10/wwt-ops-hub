@@ -3,11 +3,10 @@
  * All calls proxy through /api/fn/* — credentials never hit the browser.
  */
 
-import { supabase } from '@/lib/supabase'
+import { getToken } from '@/lib/dab'
 
-async function getAuthHeader() {
-  const { data: { session } } = await supabase.auth.getSession()
-  return { Authorization: `Bearer ${session?.access_token ?? ''}` }
+function getAuthHeader() {
+  return { Authorization: `Bearer ${getToken() ?? ''}` }
 }
 
 async function call(path, opts = {}) {

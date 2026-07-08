@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { dab } from '@/lib/dab'
 
 export function useRoutes({ projectId = null } = {}) {
   const [routes, setRoutes] = useState([])
@@ -8,28 +8,53 @@ export function useRoutes({ projectId = null } = {}) {
 
   const fetchRoutes = useCallback(async () => {
     setLoading(true)
-    let query = supabase
+    let query = dab
       .from('routes')
-      .select(`
-        *,
-        project:projects(id, name, client, color),
-        sites(id, code, branch_name, status, scheduled_start, scheduled_end, state, city)
-      `)
+      .select('*')
       .eq('is_active', true)
       .order('week_start', { ascending: true })
 
     if (projectId) query = query.eq('project_id', projectId)
 
-    const { data, error } = await query
-    if (error) setError(error.message)
-    else setRoutes(data ?? [])
+    const { data: routeRows, error: routeErr } = await query
+    if (routeErr) { setError(routeErr.message); setLoading(false); return }
+
+    // Fetch projects and sites separately (DAB doesn't support PostgREST embedding)
+    const routeIds  = (routeRows ?? []).map(r => r.id)
+    const projIds   = [...new Set((routeRows ?? []).map(r => r.project_id).filter(Boolean))]
+
+    const [projectsRes, sitesRes] = await Promise.all([
+      projIds.length
+        ? dab.from('projects').select('id,name,client,color').in('id', projIds)
+        : { data: [] },
+      routeIds.length
+        ? dab.from('sites')
+            .select('id,code,branch_name,status,scheduled_start,scheduled_end,state,city,route_id')
+            .in('route_id', routeIds)
+        : { data: [] },
+    ])
+
+    const projectMap = Object.fromEntries((projectsRes.data ?? []).map(p => [p.id, p]))
+    const sitesByRoute = {}
+    for (const s of sitesRes.data ?? []) {
+      if (!sitesByRoute[s.route_id]) sitesByRoute[s.route_id] = []
+      sitesByRoute[s.route_id].push(s)
+    }
+
+    const hydrated = (routeRows ?? []).map(r => ({
+      ...r,
+      project: projectMap[r.project_id] ?? null,
+      sites:   sitesByRoute[r.id] ?? [],
+    }))
+
+    setRoutes(hydrated)
     setLoading(false)
   }, [projectId])
 
   useEffect(() => { fetchRoutes() }, [fetchRoutes])
 
   const createRoute = useCallback(async (fields) => {
-    const { data, error } = await supabase
+    const { data, error } = await dab
       .from('routes')
       .insert(fields)
       .select()
@@ -40,7 +65,7 @@ export function useRoutes({ projectId = null } = {}) {
   }, [fetchRoutes])
 
   const updateRoute = useCallback(async (id, fields) => {
-    const { error } = await supabase
+    const { error } = await dab
       .from('routes')
       .update({ ...fields, updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -49,15 +74,14 @@ export function useRoutes({ projectId = null } = {}) {
   }, [fetchRoutes])
 
   const deleteRoute = useCallback(async (id) => {
-    // Unlink all sites first
-    await supabase.from('sites').update({ route_id: null }).eq('route_id', id)
-    const { error } = await supabase.from('routes').update({ is_active: false }).eq('id', id)
+    await dab.from('sites').update({ route_id: null }).eq('route_id', id)
+    const { error } = await dab.from('routes').update({ is_active: false }).eq('id', id)
     if (error) throw new Error(error.message)
     await fetchRoutes()
   }, [fetchRoutes])
 
   const assignSiteToRoute = useCallback(async (siteId, routeId) => {
-    const { error } = await supabase
+    const { error } = await dab
       .from('sites')
       .update({ route_id: routeId })
       .eq('id', siteId)
@@ -66,7 +90,7 @@ export function useRoutes({ projectId = null } = {}) {
   }, [fetchRoutes])
 
   const removeSiteFromRoute = useCallback(async (siteId) => {
-    const { error } = await supabase
+    const { error } = await dab
       .from('sites')
       .update({ route_id: null })
       .eq('id', siteId)
@@ -74,45 +98,39 @@ export function useRoutes({ projectId = null } = {}) {
     await fetchRoutes()
   }, [fetchRoutes])
 
-  // Auto-suggest routes based on state + scheduled week
-  const suggestRoutes = useCallback(async (projectId) => {
-    const { data: sites } = await supabase
+  const suggestRoutes = useCallback(async (pId) => {
+    const { data: sites } = await dab
       .from('sites')
-      .select('id, code, branch_name, state, city, scheduled_start, scheduled_end, route_id').limit(2000)
-      .eq('project_id', projectId)
+      .select('id,code,branch_name,state,city,scheduled_start,scheduled_end,route_id')
+      .eq('project_id', pId)
       .is('route_id', null)
       .not('scheduled_start', 'is', null)
       .order('scheduled_start')
+      .limit(2000)
 
     if (!sites?.length) return []
 
-    // Group by state + city + ISO week for geographic routes
     const groups = {}
     for (const site of sites) {
       const weekStart = getWeekStart(new Date(site.scheduled_start))
-      // Try city-level first, fall back to state
-      const cityKey = `${site.state}-${site.city ?? ''}-${weekStart}`
-      const stateKey = `${site.state}-${weekStart}`
-      const key = cityKey
-      if (!groups[key]) {
-        groups[key] = {
+      const cityKey   = `${site.state}-${site.city ?? ''}-${weekStart}`
+      if (!groups[cityKey]) {
+        groups[cityKey] = {
           state: site.state,
-          city: site.city ?? null,
+          city:  site.city ?? null,
           weekStart,
           weekEnd: getWeekEnd(new Date(site.scheduled_start)),
-          sites: [],
+          sites:   [],
         }
       }
-      groups[key].sites.push(site)
+      groups[cityKey].sites.push(site)
     }
 
-    // Merge small city groups into state groups
     const merged = {}
     for (const [key, group] of Object.entries(groups)) {
       if (group.sites.length >= 2) {
         merged[key] = group
       } else {
-        // Merge into state group
         const stateKey = `${group.state}-${group.weekStart}`
         if (!merged[stateKey]) {
           merged[stateKey] = { state: group.state, city: null, weekStart: group.weekStart, weekEnd: group.weekEnd, sites: [] }
@@ -134,9 +152,8 @@ export function useRoutes({ projectId = null } = {}) {
   }
 }
 
-// Helpers
 function getWeekStart(date) {
-  const d = new Date(date)
+  const d   = new Date(date)
   const day = d.getDay()
   const diff = d.getDate() - day + (day === 0 ? -6 : 1)
   d.setDate(diff)

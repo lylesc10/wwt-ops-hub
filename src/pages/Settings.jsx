@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { useProjects } from '@/hooks/useProjects'
-import { supabase } from '@/lib/supabase'
+import { getToken } from '@/lib/dab'
 import { UploadDiffReport } from '@/components/UploadDiffReport'
 import { FNTestPanel } from '@/components/FNTestPanel'
 import { useSync } from '@/hooks/useSync'
@@ -275,10 +275,9 @@ function ProjectsTab({ isAdmin, isPM }) {
     setMapFNId(projectId)
     setMapFNResult(r => ({ ...r, [projectId]: null }))
     try {
-      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/fn/map-work-orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken() ?? ''}` },
         body: JSON.stringify({ project_id: projectId, fn_project_id: fnProjectId }),
       })
       const result = await res.json()
@@ -301,10 +300,9 @@ function ProjectsTab({ isAdmin, isPM }) {
       const ws   = wb.Sheets[wb.SheetNames[0]]
       const rows = XLSX.utils.sheet_to_json(ws, { defval: null, raw: false })
       if (!rows.length) throw new Error('No data rows found in file')
-      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/sync/upload-routes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken() ?? ''}` },
         body: JSON.stringify({ project_id: projectId, rows, fileName: file.name }),
       })
       const result = await res.json()
@@ -331,12 +329,11 @@ function ProjectsTab({ isAdmin, isPM }) {
 
       if (!rows.length) throw new Error('No data rows found in file')
 
-      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/sync/upload', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token ?? ''}`,
+          Authorization: `Bearer ${getToken() ?? ''}`,
         },
         body: JSON.stringify({ project_id: projectId, rows, fileName: file.name }),
       })

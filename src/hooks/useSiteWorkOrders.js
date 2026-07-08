@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { dab } from '@/lib/dab'
 
 // Expected WO types for a full LVV site (can be configured per project)
 export const EXPECTED_WO_TYPES = ['LVL', 'LVT', 'DEL', 'BRK', 'INL', 'INT']
@@ -29,10 +29,10 @@ export function useSiteWorkOrders(siteId) {
   const [workOrders, setWorkOrders] = useState([])
   const [loading,    setLoading]    = useState(true)
 
-  const fetch = useCallback(async () => {
+  const fetchWOs = useCallback(async () => {
     if (!siteId) { setLoading(false); return }
     setLoading(true)
-    const { data } = await supabase
+    const { data } = await dab
       .from('site_work_orders')
       .select('*')
       .eq('site_id', siteId)
@@ -41,17 +41,16 @@ export function useSiteWorkOrders(siteId) {
     setLoading(false)
   }, [siteId])
 
-  useEffect(() => { fetch() }, [fetch])
-
-  // Realtime
   useEffect(() => {
-    if (!siteId) return
-    const channel = supabase
-      .channel(`swo-${siteId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_work_orders', filter: `site_id=eq.${siteId}` }, fetch)
-      .subscribe()
-    return () => supabase.removeChannel(channel)
-  }, [siteId, fetch])
+    fetchWOs()
+    const interval = setInterval(fetchWOs, 60_000)
+    const onVisibility = () => { if (!document.hidden) fetchWOs() }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [fetchWOs])
 
   // Group by type
   const byType = workOrders.reduce((acc, wo) => {
@@ -82,7 +81,7 @@ export function useSiteWorkOrders(siteId) {
   return {
     workOrders, loading, byType, coverage,
     missingTypes, totalWOs, completedWOs, assignedWOs, cancelledWOs,
-    refetch: fetch,
+    refetch: fetchWOs,
   }
 }
 
@@ -91,19 +90,17 @@ export function useProjectWOCoverage(projectId) {
   const [data,    setData]    = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const fetch = useCallback(async () => {
+  const fetchCoverage = useCallback(async () => {
     if (!projectId) return
     setLoading(true)
 
-    // Get count of WOs by type across all sites in project
-    const { data: wos } = await supabase
+    const { data: wos } = await dab
       .from('site_work_orders')
       .select('site_id, wo_type, fn_status')
       .eq('project_id', projectId)
 
     if (!wos) { setLoading(false); return }
 
-    // Group by site
     const bySite = wos.reduce((acc, wo) => {
       if (!acc[wo.site_id]) acc[wo.site_id] = {}
       if (!acc[wo.site_id][wo.wo_type]) acc[wo.site_id][wo.wo_type] = []
@@ -113,11 +110,10 @@ export function useProjectWOCoverage(projectId) {
 
     const siteCount = Object.keys(bySite).length
 
-    // Type coverage across all sites
     const typeCoverage = EXPECTED_WO_TYPES.map(type => ({
       type,
-      label:    WO_TYPE_META[type]?.label ?? type,
-      color:    WO_TYPE_META[type]?.color ?? '#6b7280',
+      label:      WO_TYPE_META[type]?.label ?? type,
+      color:      WO_TYPE_META[type]?.color ?? '#6b7280',
       sites_with: Object.values(bySite).filter(s => s[type]?.length).length,
       total_wos:  wos.filter(w => w.wo_type === type).length,
       assigned:   wos.filter(w => w.wo_type === type && ['assigned','work_done','approved','paid'].includes(w.fn_status)).length,
@@ -125,9 +121,9 @@ export function useProjectWOCoverage(projectId) {
     }))
 
     setData({
-      total_wos:    wos.length,
+      total_wos:      wos.length,
       sites_with_wos: siteCount,
-      type_coverage: typeCoverage,
+      type_coverage:  typeCoverage,
       by_status: Object.entries(
         wos.reduce((acc, w) => { acc[w.fn_status ?? 'unknown'] = (acc[w.fn_status ?? 'unknown'] ?? 0) + 1; return acc }, {})
       ).sort(([,a],[,b]) => b - a),
@@ -135,7 +131,7 @@ export function useProjectWOCoverage(projectId) {
     setLoading(false)
   }, [projectId])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => { fetchCoverage() }, [fetchCoverage])
 
-  return { data, loading, refetch: fetch }
+  return { data, loading, refetch: fetchCoverage }
 }

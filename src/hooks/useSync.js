@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { getToken } from '@/lib/dab'
 
 export function useSync() {
   const [syncing, setSyncing] = useState(false)
@@ -12,21 +12,17 @@ export function useSync() {
     setLastResult(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-
       const res = await fetch('/api/sync/smartsheet', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token ?? ''}`,
+          Authorization: `Bearer ${getToken() ?? ''}`,
         },
         body: JSON.stringify({ project_id: projectId }),
       })
 
       const result = await res.json()
-
       if (!res.ok) throw new Error(result.message ?? 'Sync failed')
-
       setLastResult(result)
       return result
     } catch (err) {

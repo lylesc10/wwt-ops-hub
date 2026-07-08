@@ -16,18 +16,18 @@
   --text-muted:     #4d5568;
   --text-inverse:   #0e1015;
 
-  /* Primary accent — indigo */
-  --accent:         #6366f1;
-  --accent-dim:     #4f46e5;
-  --accent-light:   #818cf8;
-  --accent-bg:      rgba(99,102,241,0.10);
-  --accent-border:  rgba(99,102,241,0.25);
+  /* Primary accent — WWT navy */
+  --accent:         #4a7fdc;
+  --accent-dim:     #3b6dcc;
+  --accent-light:   #6b9fe8;
+  --accent-bg:      rgba(74,127,220,0.10);
+  --accent-border:  rgba(74,127,220,0.25);
 
-  /* Amber — actions, warnings, WO */
-  --amber:          #f59e0b;
-  --amber-dim:      #d97706;
-  --amber-bg:       rgba(245,158,11,0.08);
-  --amber-border:   rgba(245,158,11,0.22);
+  /* WWT red — actions, warnings, WO */
+  --amber:          #ec2327;
+  --amber-dim:      #cc1c1f;
+  --amber-bg:       rgba(236,35,39,0.08);
+  --amber-border:   rgba(236,35,39,0.22);
 
   /* Semantic */
   --green:          #10b981;
@@ -52,8 +52,8 @@
 
   /* Typography */
   --font-ui:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-head:  'Plus Jakarta Sans', sans-serif;
-  --font-mono:  'JetBrains Mono', 'Fira Code', monospace;
+  --font-head:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:  ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
 
   /* Layout */
   --sidebar-w: 228px;
@@ -102,21 +102,37 @@ input, select, textarea { font: inherit; }
   --bg-base:        #f5f6fa;
   --bg-surface:     #ffffff;
   --bg-elevated:    #f8f9fc;
-  --bg-hover:       #f0f2f8;
-  --bg-active:      #e8eaf4;
-  --border:         #e4e6f0;
-  --border-subtle:  #eef0f8;
-  --border-strong:  #cdd0e0;
-  --text-primary:   #111827;
-  --text-secondary: #4b5563;
-  --text-muted:     #9ca3af;
+  --bg-hover:       #eef1f8;
+  --bg-active:      #e3e8f4;
+
+  --border:         #d4d9e8;
+  --border-subtle:  #eaecf5;
+  --border-strong:  #bec5d9;
+
+  --text-primary:   #0f1733;
+  --text-secondary: #3d4a6b;
+  --text-muted:     #8892a8;
   --text-inverse:   #ffffff;
-  --accent-bg:      rgba(99,102,241,0.07);
-  --accent-border:  rgba(99,102,241,0.20);
-  --amber-bg:       rgba(245,158,11,0.07);
-  --amber-border:   rgba(245,158,11,0.25);
+
+  /* WWT navy — primary/accent */
+  --accent:         #1e3a8a;
+  --accent-dim:     #162f75;
+  --accent-light:   #3b5fc0;
+  --accent-bg:      rgba(30,58,138,0.07);
+  --accent-border:  rgba(30,58,138,0.20);
+
+  /* WWT red — actions, warnings, WO */
+  --amber:          #ec2327;
+  --amber-dim:      #cc1c1f;
+  --amber-bg:       rgba(236,35,39,0.07);
+  --amber-border:   rgba(236,35,39,0.25);
+
   --blue-bg:        rgba(59,130,246,0.06);
   --green-bg:       rgba(16,185,129,0.07);
-  --red-bg:         rgba(244,63,94,0.07);
+  --red-bg:         rgba(236,35,39,0.07);
   --purple-bg:      rgba(168,85,247,0.07);
+
+  --shadow-sm: 0 1px 3px rgba(15,23,51,.08);
+  --shadow-md: 0 4px 16px rgba(15,23,51,.12);
+  --shadow-lg: 0 12px 40px rgba(15,23,51,.16);
 }
