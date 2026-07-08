@@ -10,18 +10,6 @@ export const WO_TYPES = {
   WRK: { label: 'WRK — Walk In Ready Kit',           siteIdSuffix: 'WRK',    numTechs: 1, numDays: 1, useBundle: false },
 }
 
-// Plain-English descriptions for the Guided mode type picker
-export const WO_TYPE_DESCRIPTIONS = {
-  LVL: 'Main installation lead — manages the site over multiple days',
-  LVT: 'Low voltage technicians — multiple techs per site over multiple days',
-  DEL: 'Equipment delivery and installation — one tech, one day',
-  BRK: 'Backerboard creation — one tech, one day',
-  INT: 'Installation technician — one tech, flexible days',
-  INL: 'Installation lead — one tech, flexible days',
-  WRK: 'Walk-in ready kit — one tech, one day',
-  SDT: 'Security device technician — bundled BH/AH schedule over three days',
-}
-
 const BLANK_CFG = {
   templateId: '', startTime: '', defaultDate: '', techType: 'Tech',
   numTechs: '1', numDays: '1', budgetTech: '', payRate: '',

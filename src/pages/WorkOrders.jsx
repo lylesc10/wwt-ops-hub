@@ -3,8 +3,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { PageHeader } from '@/components/PageHeader'
 import {
-  WO_TYPES, WO_DEFAULTS, WO_HEADERS, SITE_COLS, EMPTY_SITE,
-  WO_TYPE_DESCRIPTIONS, SDT_DEFAULTS,
+  WO_TYPES, WO_DEFAULTS, WO_HEADERS, SITE_COLS, EMPTY_SITE, SDT_DEFAULTS,
   buildRows, toCSV, compressString, decompressString,
   rowComplete, isPastDate, triggerDownload,
 } from '@/cpwog/engine'
@@ -30,7 +29,6 @@ export default function WorkOrders() {
   const { user } = useAuth()
   const [step,         setStep]         = useState(0)
   const [joke,         setJoke]         = useState(() => JOKES[0])
-  const [guidedMode,   setGuidedMode]   = useState(() => { try { return localStorage.getItem('opshub_wo_guided') !== '0' } catch { return true } })
   const [projectId,    setProjectId]    = useState('')
   const [displayName,  setDisplayName]  = useState('')
   const [woType,       setWoType]       = useState('LVL')
@@ -138,14 +136,6 @@ export default function WorkOrders() {
     }))
     prevConfigRef.current = woConfig
   }, [woConfig.numTechs, woConfig.numDays, woConfig.defaultDate])
-
-  const toggleGuided = () => {
-    setGuidedMode(v => {
-      const next = !v
-      try { localStorage.setItem('opshub_wo_guided', next ? '1' : '0') } catch { /* ignore */ }
-      return next
-    })
-  }
 
   const saveTidHistory = (type, id, label='') => {
     if(!id?.trim())return
@@ -500,65 +490,9 @@ export default function WorkOrders() {
         </div>
 
         <div className={styles.content}>
-          {/* STEP 0 — GUIDED */}
-          {step===0&&guidedMode&&(
+          {/* STEP 0 */}
+          {step===0&&(
             <div className={styles.step0}>
-              <div className={styles.modeToggleRow}>
-                <button className={styles.modeToggle} onClick={toggleGuided}>⚙ Switch to Advanced Mode</button>
-              </div>
-
-              {woTemplates.length>0&&(
-                <div className={styles.card}>
-                  <div className={styles.guidedTitle}>📋 Start from a saved template?</div>
-                  <div className={styles.guidedSub}>Pick a template to pre-fill all settings, or skip and configure below.</div>
-                  <div className={styles.tplChips}>
-                    {woTemplates.map(tpl=>(
-                      <button key={tpl.id} className={styles.tplChip} onClick={()=>applyTemplate(tpl)}>
-                        <span className={styles.tplChipName}>{tpl.name}</span>
-                        <span className={styles.tplChipMeta}>{tpl.data?.woType}{tpl.data?.includeDEL?' + DEL':''}{tpl.data?.includeBRK?' + BRK':''}{tpl.data?.includeWRK?' + WRK':''}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className={styles.card}>
-                <div className={styles.guidedTitle}>What project is this for?</div>
-                <div className={styles.guidedSub}>Enter the project name or ID — this appears on every work order.</div>
-                <div className={styles.field} style={{position:'relative'}}>
-                  <div className={styles.inputRow}>
-                    <input className={styles.input} autoFocus value={projectId} onChange={e=>{setProjectId(e.target.value);setDisplayName(e.target.value)}} placeholder="e.g. PNC - First Bank Conversion" />
-                    {pidHistory.length>0&&<button className={styles.ddBtn} onClick={()=>setShowPidDD(v=>!v)}><ChevronDown size={12}/></button>}
-                  </div>
-                  {showPidDD&&pidHistory.length>0&&<div className={styles.dropdown}>{pidHistory.map(pid=><div key={pid} className={styles.ddItem} onClick={()=>{setProjectId(pid);setDisplayName(pid);setShowPidDD(false)}}>{pid}</div>)}</div>}
-                </div>
-              </div>
-
-              <div className={styles.card}>
-                <div className={styles.guidedTitle}>What type of work are you scheduling?</div>
-                <div className={styles.guidedSub}>Pick one — you can generate different types separately.</div>
-                <div className={styles.woTypeList}>
-                  {Object.entries(ALL_WO_TYPES).map(([key,wot])=>(
-                    <div key={key} className={`${styles.woCard} ${woType===key?styles.woCardActive:''}`} onClick={()=>{setWoType(key);setWoConfig(WO_DEFAULTS[key]?{...WO_DEFAULTS[key]}:{...WO_DEFAULTS.LVL,templateId:'',numTechs:String(wot.numTechs||1),numDays:String(wot.numDays||1)})}}>
-                      <div className={styles.woCardRadio}>{woType===key&&<div className={styles.woCardRadioDot}/>}</div>
-                      <div className={styles.woCardInfo}>
-                        <span className={styles.woCardKey}>{key} — {(wot.label||key).replace(/^[A-Z]+ — /,'')}</span>
-                        <span className={styles.woCardDesc}>{WO_TYPE_DESCRIPTIONS[key]||wot.label||key}</span>
-                      </div>
-                      {woType===key&&<Check size={16} style={{color:'var(--amber)'}}/>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 0 — ADVANCED */}
-          {step===0&&!guidedMode&&(
-            <div className={styles.step0}>
-              <div className={styles.modeToggleRow}>
-                <button className={styles.modeToggle} onClick={toggleGuided}>✦ Switch to Guided Mode</button>
-              </div>
               <div className={styles.card}>
                 <div className={styles.cardTitle}>Project Info</div>
                 <div className={styles.field}>
