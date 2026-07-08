@@ -92,9 +92,11 @@ async function handler(req, res) {
         display_name: locDisplay || undefined,
       },
 
+      // A populated Scheduled End Time means a check-in window (arrive between
+      // start and end) rather than a hard/exact start.
       schedule: startDate ? {
         service_window: {
-          mode: 'exact',
+          mode: endTime ? 'between' : 'exact',
           exact: {
             start: `${startDate}T${to24h(startTime, '08:00:00')}`,
             end:   `${startDate}T${to24h(endTime, '17:00:00')}`,

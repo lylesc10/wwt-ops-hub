@@ -14,6 +14,10 @@ const BLANK_CFG = {
   templateId: '', startTime: '', defaultDate: '', techType: 'Tech',
   numTechs: '1', numDays: '1', budgetTech: '', payRate: '',
   approxHours: '', country: 'US', payType: 'Fixed',
+  // Per-day start times (override startTime when perDayTimes is on)
+  perDayTimes: false, startTimes: ['', '', '', '', '', '', ''],
+  // Check-in window (start + end time) instead of a hard start
+  checkInWindow: false, endTime: '', endTimes: ['', '', '', '', '', '', ''],
 }
 
 export const WO_DEFAULTS = {
@@ -103,16 +107,32 @@ function addDays(dateStr, n) {
   return d.toISOString().split('T')[0]
 }
 
-function makeRow({ templateId, projectId, siteId, bundle, site, date, startTime, techType, budgetTech, maxBudget, payRate, approxHours, estDuration, country, locName, payType, routeTo }) {
+function makeRow({ templateId, projectId, siteId, bundle, site, date, startTime, endTime, techType, budgetTech, maxBudget, payRate, approxHours, estDuration, country, locName, payType, routeTo }) {
   return [
     templateId, projectId, siteId, bundle,
     site.address, site.address2 || '', site.city, site.state, site.zip,
-    country, '', date, '', startTime, '',
+    country, '', date, '', startTime, endTime || '',
     techType, '', routeTo || '',
     budgetTech, '', maxBudget, payRate,
     '', '', '', '', approxHours, estDuration, payType || 'Fixed',
     locName, locName, site.womId || '',
   ]
+}
+
+/**
+ * Start/end times for day index d.
+ * Precedence: site per-day override → cfg per-day time → cfg startTime.
+ * End time is only set in check-in window mode (Scheduled End Time column).
+ */
+export function timesForDay(site, cfg, d) {
+  const siteT = (site.startTimes || [])[d] || ''
+  const cfgT  = cfg.perDayTimes && (cfg.startTimes || [])[d] ? cfg.startTimes[d] : ''
+  const start = siteT || cfgT || cfg.startTime
+  let end = ''
+  if (cfg.checkInWindow) {
+    end = (cfg.perDayTimes && (cfg.endTimes || [])[d]) ? cfg.endTimes[d] : cfg.endTime
+  }
+  return { start: normalizeTime(start), end: normalizeTime(end) }
 }
 
 // SDT — bundled BH/AH schedule across 3 consecutive days.
@@ -172,17 +192,19 @@ export function buildRows(site, projectId, displayName, woType, cfg, allTypes = 
     for (let t = 1; t <= numTechs; t++) {
       for (let d = 0; d < numDays; d++) {
         const date   = addDays(site.date, d)
+        const { start, end } = timesForDay(site, cfg, d)
         const siteId = `${site.code}-${meta.siteIdSuffix}(${t})`
         const locName = `${locPrefix}-${siteId}-${site.city}, ${site.state}`
-        rows.push(makeRow({ templateId: tId, projectId, siteId, bundle: meta.useBundle ? siteId : '', site, date, startTime: normalizeTime(cfg.startTime), techType: cfg.techType, budgetTech: budget, maxBudget: budget, payRate: pay, approxHours: hours, estDuration: hours, country: cfg.country, locName, payType: cfg.payType || 'Fixed', routeTo: (site.routeToTechs || [])[t - 1] || '' }))
+        rows.push(makeRow({ templateId: tId, projectId, siteId, bundle: meta.useBundle ? siteId : '', site, date, startTime: start, endTime: end, techType: cfg.techType, budgetTech: budget, maxBudget: budget, payRate: pay, approxHours: hours, estDuration: hours, country: cfg.country, locName, payType: cfg.payType || 'Fixed', routeTo: (site.routeToTechs || [])[t - 1] || '' }))
       }
     }
   } else {
     for (let d = 0; d < numDays; d++) {
       const date   = addDays(site.date, d)
+      const { start, end } = timesForDay(site, cfg, d)
       const siteId = `${site.code}-${meta.siteIdSuffix}`
       const locName = `${locPrefix}-${siteId}-${site.city}, ${site.state}`
-      rows.push(makeRow({ templateId: tId, projectId, siteId, bundle: meta.useBundle ? siteId : '', site, date, startTime: normalizeTime(cfg.startTime), techType: cfg.techType, budgetTech: budget, maxBudget: budget, payRate: pay, approxHours: hours, estDuration: hours, country: cfg.country, locName, payType: cfg.payType || 'Fixed', routeTo: (site.routeToTechs || [])[0] || '' }))
+      rows.push(makeRow({ templateId: tId, projectId, siteId, bundle: meta.useBundle ? siteId : '', site, date, startTime: start, endTime: end, techType: cfg.techType, budgetTech: budget, maxBudget: budget, payRate: pay, approxHours: hours, estDuration: hours, country: cfg.country, locName, payType: cfg.payType || 'Fixed', routeTo: (site.routeToTechs || [])[0] || '' }))
     }
     if (numDays > 1) rows.push([])
   }

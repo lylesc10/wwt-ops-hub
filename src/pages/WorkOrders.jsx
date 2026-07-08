@@ -25,6 +25,15 @@ const JOKES = [
 ]
 const STEP_LABELS = ['Project Info', 'Add Sites', 'Review & Export']
 
+// "Mon 3/30" label for per-day time inputs (Day N when no default date is set)
+function dayLabel(defaultDate, i) {
+  if (!defaultDate) return `Day ${i + 1}`
+  const d = new Date(defaultDate + 'T12:00:00')
+  if (isNaN(d.getTime())) return `Day ${i + 1}`
+  d.setDate(d.getDate() + i)
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' })
+}
+
 export default function WorkOrders() {
   const { user } = useAuth()
   const [step,         setStep]         = useState(0)
@@ -105,6 +114,7 @@ export default function WorkOrders() {
   )
   const isSDT = woType === 'SDT' || ALL_WO_TYPES[woType]?.customBuild === 'SDT'
   const sdtWosPerSite = sdtConfig.reduce((n, s) => n + (Number(s.numTechs) || 1), 0)
+  const cfgDays = Math.min(Number(woConfig.numDays) || 1, 7)
 
   useEffect(() => {
     supabase.from('job_history').select('*').order('created_at',{ascending:false}).limit(100).then(({data})=>{if(data)setJobHistory(data)})
@@ -562,6 +572,58 @@ export default function WorkOrders() {
                     </div>
                   </div>
 
+                  {/* Schedule options — per-day start times + check-in window */}
+                  {!isSDT&&(
+                    <div className={styles.schedSection}>
+                      <label className={styles.checkLabel}>
+                        <input type="checkbox" checked={!!woConfig.perDayTimes} onChange={()=>setWoConfig(p=>({...p,perDayTimes:!p.perDayTimes}))}/>
+                        Use a different start time for each day
+                      </label>
+                      {woConfig.perDayTimes&&(
+                        <div className={styles.dayTimeGrid} style={{gridTemplateColumns:`repeat(${cfgDays},1fr)`}}>
+                          {Array.from({length:cfgDays},(_,i)=>(
+                            <div key={i} className={styles.field}>
+                              <label>{dayLabel(woConfig.defaultDate,i)}</label>
+                              <input className={styles.input} placeholder={woConfig.startTime||'8:00am'} value={(woConfig.startTimes||[])[i]||''} onChange={e=>setWoConfig(p=>{const a=[...(p.startTimes||['','','','','','',''])];a[i]=e.target.value;return{...p,startTimes:a}})}/>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <label className={styles.checkLabel}>
+                        <input type="checkbox" checked={!!woConfig.checkInWindow} onChange={()=>setWoConfig(p=>({...p,checkInWindow:!p.checkInWindow}))}/>
+                        Check-in window (start + end time) instead of a hard start
+                      </label>
+                      {woConfig.checkInWindow&&!woConfig.perDayTimes&&(
+                        <div className={styles.dayTimeGrid} style={{gridTemplateColumns:'1fr 1fr'}}>
+                          <div className={styles.field}>
+                            <label>Window Start</label>
+                            <input className={styles.input} placeholder="8:00am" value={woConfig.startTime||''} onChange={e=>setWoConfig(p=>({...p,startTime:e.target.value}))}/>
+                          </div>
+                          <div className={styles.field}>
+                            <label>Window End</label>
+                            <input className={styles.input} placeholder="10:00am" value={woConfig.endTime||''} onChange={e=>setWoConfig(p=>({...p,endTime:e.target.value}))}/>
+                          </div>
+                        </div>
+                      )}
+                      {woConfig.checkInWindow&&woConfig.perDayTimes&&(
+                        <div className={styles.dayTimeGrid} style={{gridTemplateColumns:`repeat(${cfgDays},1fr)`}}>
+                          {Array.from({length:cfgDays},(_,i)=>(
+                            <div key={i} className={styles.field}>
+                              <label>{dayLabel(woConfig.defaultDate,i)} end</label>
+                              <input className={styles.input} placeholder={woConfig.endTime||'10:00am'} value={(woConfig.endTimes||[])[i]||''} onChange={e=>setWoConfig(p=>{const a=[...(p.endTimes||['','','','','','',''])];a[i]=e.target.value;return{...p,endTimes:a}})}/>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <p className={styles.schedHint}>
+                        {woConfig.checkInWindow?'Rows use a start AND end time (check-in window).':'Rows use a single hard start time.'}
+                        {woConfig.perDayTimes?' Per-day times override the Start Time field above.':''}
+                        {woConfig.perDayTimes&&!woConfig.defaultDate?' Set a Default Date above to see real day-of-week dates here.':''}
+                      </p>
+                    </div>
+                  )}
+
                   {/* SDT Work Order Schedule */}
                   {isSDT&&(
                     <div className={styles.sdtPanel}>
@@ -700,7 +762,7 @@ export default function WorkOrders() {
               </div>
               <div className={styles.card}>
                 <div className={styles.cardTitle}>Summary</div>
-                {[['Sites',sites.filter(rowComplete).length],['Pattern',isSDT?`${sdtWosPerSite} WOs/site · bundled BH/AH over 3 days`:`${woConfig.numTechs}t × ${woConfig.numDays}d`],['Template ID',woConfig.templateId],['Start Time',isSDT?'per SDT schedule':woConfig.startTime||'—'],['Budget / Pay',isSDT?'per SDT schedule':`$${woConfig.budgetTech} / $${woConfig.payRate}`],['Pay Type',woConfig.payType||'Fixed'],['Total rows',`${totalRows}${includeDEL?` + ${companionCount} DEL`:''}${includeBRK?` + ${companionCount} BRK`:''}${includeWRK?` + ${companionCount} WRK`:''}`,true]].map(([l,v,bold])=>(
+                {[['Sites',sites.filter(rowComplete).length],['Pattern',isSDT?`${sdtWosPerSite} WOs/site · bundled BH/AH over 3 days`:`${woConfig.numTechs}t × ${woConfig.numDays}d`],['Template ID',woConfig.templateId],['Start Time',isSDT?'per SDT schedule':woConfig.perDayTimes?`per-day${woConfig.checkInWindow?' windows':' times'}`:woConfig.checkInWindow?`${woConfig.startTime||'—'} – ${woConfig.endTime||'—'} window`:woConfig.startTime||'—'],['Budget / Pay',isSDT?'per SDT schedule':`$${woConfig.budgetTech} / $${woConfig.payRate}`],['Pay Type',woConfig.payType||'Fixed'],['Total rows',`${totalRows}${includeDEL?` + ${companionCount} DEL`:''}${includeBRK?` + ${companionCount} BRK`:''}${includeWRK?` + ${companionCount} WRK`:''}`,true]].map(([l,v,bold])=>(
                   <div key={l} className={styles.summaryRow}><span className={styles.summaryLabel}>{l}</span><span className={`${styles.summaryValue} ${bold?styles.summaryValueBold:''}`}>{v}</span></div>
                 ))}
               </div>
