@@ -15,7 +15,7 @@ import {
   Trash2, X, Save, Sun, Moon, Bell, Key,
   Users, Settings as SettingsIcon, Shield,
   Mail, MessageSquare, ChevronRight, UserPlus,
-  Crown, Eye, Briefcase, Upload, Route as RouteIcon
+  Crown, Eye, EyeOff, Briefcase, Upload, Route as RouteIcon
 } from 'lucide-react'
 import styles from './Settings.module.css'
 
@@ -133,7 +133,7 @@ function UsersTab({ isAdmin }) {
       {showInvite && isAdmin && (
         <div className={styles.formCard}>
           <h3 className={styles.formTitle}>Invite New User</h3>
-          <p className={styles.formDesc}>They'll receive an email to set their password and join the hub.</p>
+          <p className={styles.formDesc}>They&apos;ll receive an email to set their password and join the hub.</p>
           <div className={styles.formGrid2}>
             <Field label="Email address">
               <input type="email" placeholder="name@company.com" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} />
@@ -931,14 +931,13 @@ function AppearanceTab({ theme, toggleTheme }) {
 // ══════════════════════════════════════════════════════════════
 function SecurityTab({ isAdmin }) {
   const FEATURES = [
-    { label: 'Row Level Security (RLS)',        status: 'active',  desc: 'All Supabase tables enforce RLS — users only access authorized data' },
     { label: 'API Rate Limiting',               status: 'active',  desc: '60 requests/minute per IP on all serverless functions' },
     { label: 'Input Validation',                status: 'active',  desc: 'All API endpoints validate and sanitize request bodies' },
     { label: 'Security Headers',                status: 'active',  desc: 'X-Frame-Options, CSP, XSS Protection on all API responses' },
     { label: 'Credential Isolation',            status: 'active',  desc: 'All API keys stored server-side — never sent to browser' },
     { label: 'Audit Logging',                   status: 'active',  desc: 'All admin/PM actions logged with IP and timestamp' },
-    { label: 'Role-Based Access Control',       status: 'active',  desc: 'Admin, PM, Viewer roles enforced at DB and API level' },
-    { label: 'JWT Token Validation',            status: 'active',  desc: 'All protected endpoints validate Supabase Bearer token' },
+    { label: 'Role-Based Access Control',       status: 'active',  desc: 'Admin, PM, Viewer roles enforced at the API level' },
+    { label: 'JWT Token Validation',            status: 'active',  desc: 'Protected endpoints validate signed HS256 JWT Bearer tokens' },
     { label: 'SSO / SAML',                      status: 'pending', desc: 'Ready to swap in when SSO credentials are provided (Phase 8)' },
     { label: 'Webhook Signature Verification',  status: 'pending', desc: 'FN webhook HMAC verification — pending FN credentials' },
   ]
@@ -960,7 +959,7 @@ function SecurityTab({ isAdmin }) {
         <div className={styles.infoCard}>
           <div className={styles.infoCardHead}>Audit Log</div>
           <p className={styles.prefDesc} style={{ padding: '12px 16px' }}>
-            All admin and PM actions are recorded in the <span className="mono" style={{ color: 'var(--amber)' }}>audit_log</span> table. View in <span className="mono" style={{ color: 'var(--amber)' }}>Supabase → Table Editor → audit_log</span>.
+            All admin and PM actions are recorded in the <span className="mono" style={{ color: 'var(--amber)' }}>audit_log</span> table. Query it directly against the Azure PostgreSQL database (e.g. via <span className="mono" style={{ color: 'var(--amber)' }}>psql</span>).
           </p>
         </div>
       )}

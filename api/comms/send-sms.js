@@ -1,4 +1,5 @@
 import { supa as supabase } from '../../_lib/db.js'
+import { logError } from '../_lib/log.js'
 /**
  * POST /api/comms/send-sms
  * Body: {
@@ -60,7 +61,7 @@ export default async function handler(req, res) {
         twilioToken = parsed.auth_token
         twilioFrom  = parsed.from_number
       } catch (e) {
-        console.error('[SMS] Failed to parse credentials:', e.message)
+        logError('[SMS] Failed to parse credentials:', e.message)
       }
     }
   }
@@ -154,7 +155,7 @@ export default async function handler(req, res) {
 
   return res.json({
     ok:      errors.length < recipients.length,
-    mock:    MOCK || !twilioSid,
+    mock:    !twilioSid,
     sent:    results.filter(r => r.status !== 'failed').length,
     failed:  errors.length,
     results,

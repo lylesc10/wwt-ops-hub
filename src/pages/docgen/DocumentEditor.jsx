@@ -221,7 +221,7 @@ export default function DocumentEditor() {
         {schema.error && (
           <div className={styles.errorBanner}>
             <AlertTriangle size={14} />
-            Generation failed: {schema.error} — regenerate from the project's Generate tab.
+            Generation failed: {schema.error} — regenerate from the project&apos;s Generate tab.
           </div>
         )}
 

@@ -272,7 +272,7 @@ export function SiteCommsPanel({ site, onClose }) {
                   <div className={styles.confInfo}>
                     <span className={styles.confName}>{conf.tech_name}</span>
                     <span className={styles.confStatus} style={{ color: meta.color }}>{meta.label}</span>
-                    {conf.response_text && <span className={styles.confReply}>"{conf.response_text}"</span>}
+                    {conf.response_text && <span className={styles.confReply}>&quot;{conf.response_text}&quot;</span>}
                   </div>
                   <span className={styles.confTime}>
                     {(conf.responded_at || conf.created_at)

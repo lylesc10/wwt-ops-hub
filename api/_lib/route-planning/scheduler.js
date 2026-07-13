@@ -59,7 +59,7 @@ export async function loadBusyRanges(techIds, currentPlanId, planStart, planEnd)
     [techIds, planStart, planEnd],
   )
   for (const r of pto) {
-    ;(busy[r.technician_id] ??= []).push({ start: dstr(r.start_date), end: dstr(r.end_date) })
+    (busy[r.technician_id] ??= []).push({ start: dstr(r.start_date), end: dstr(r.end_date) })
   }
 
   const { rows: other } = await query(
@@ -73,7 +73,7 @@ export async function loadBusyRanges(techIds, currentPlanId, planStart, planEnd)
     [techIds, currentPlanId, planStart, addDays(planEnd, 60)],
   )
   for (const r of other) {
-    ;(busy[r.technician_id] ??= []).push({ start: dstr(r.scheduled_start), end: dstr(r.scheduled_end) })
+    (busy[r.technician_id] ??= []).push({ start: dstr(r.scheduled_start), end: dstr(r.scheduled_end) })
   }
   return busy
 }

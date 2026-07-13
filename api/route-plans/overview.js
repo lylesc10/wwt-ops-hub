@@ -46,7 +46,7 @@ async function handler(req, res) {
     : { rows: [] }
   const membersByTeam = {}
   for (const m of members) {
-    ;(membersByTeam[m.team_id] ??= []).push({ technician_id: m.technician_id, tech_name: m.full_name })
+    (membersByTeam[m.team_id] ??= []).push({ technician_id: m.technician_id, tech_name: m.full_name })
   }
 
   const data = rows.map((r) => ({

@@ -917,7 +917,7 @@ export default function WorkOrders() {
             <div className={styles.panelHeader}><h3>🏗 Site Library</h3><button onClick={()=>setShowLibrary(false)}><X size={16}/></button></div>
             <div className={styles.panelSearch}><input className={styles.input} placeholder="Search…" value={libSearch} onChange={e=>setLibSearch(e.target.value)}/></div>
             <div className={styles.panelBody}>
-              {siteLibrary.length===0&&<p className={styles.panelEmpty}>No site lists saved yet. Use "Save to Library" in the site table to store a list for reuse.</p>}
+              {siteLibrary.length===0&&<p className={styles.panelEmpty}>No site lists saved yet. Use &quot;Save to Library&quot; in the site table to store a list for reuse.</p>}
               {siteLibrary.filter(e=>{if(!libSearch.trim())return true;const q=libSearch.toLowerCase();return(e.project_name||'').toLowerCase().includes(q)||(e.project_id||'').toLowerCase().includes(q)}).map(entry=>(
                 <div key={entry.id} className={styles.historyCard}>
                   <div className={styles.historyCardTop}>
@@ -1020,7 +1020,8 @@ export default function WorkOrders() {
             </div>
             <div className={styles.modalFooter}>
               <button className={styles.ghostBtn} onClick={()=>setShowCustomModal(false)}>Cancel</button>
-              <button className={styles.primaryBtn} disabled={!editingKey&&!customForm.key.trim()} onClick={()=>{const k=editingKey||customForm.key.trim();if(!k)return;const entry={label:customForm.label||k,siteIdSuffix:customForm.siteIdSuffix||k,numTechs:Number(customForm.numTechs)||1,numDays:Number(customForm.numDays)||1,useBundle:!!customForm.useBundle};if(WO_TYPES[k]){const nextOv={...overriddenBuiltins,[k]:entry};setOverriddenBuiltins(nextOv);persistWoTypes(customTypes,deletedBuiltins,nextOv)}else{const next={...customTypes,[k]:entry};setCustomTypes(next);persistWoTypes(next,deletedBuiltins,overriddenBuiltins)};setWoType(k);setShowCustomModal(false)}}>Save</button>
+              <button className={styles.primaryBtn} disabled={!editingKey&&!customForm.key.trim()} onClick={()=>{const k=editingKey||customForm.key.trim();if(!k)return;const entry={label:customForm.label||k,siteIdSuffix:customForm.siteIdSuffix||k,numTechs:Number(customForm.numTechs)||1,numDays:Number(customForm.numDays)||1,useBundle:!!customForm.useBundle};if(WO_TYPES[k]){const nextOv={...overriddenBuiltins,[k]:entry};setOverriddenBuiltins(nextOv);persistWoTypes(customTypes,deletedBuiltins,nextOv)}else{const next={...customTypes,[k]:entry};setCustomTypes(next);persistWoTypes(next,deletedBuiltins,overriddenBuiltins)}setWoType(k);setShowCustomModal(false)}}>Save</button>
+
             </div>
           </div>
         </div>
@@ -1047,7 +1048,7 @@ export default function WorkOrders() {
       {showExporterModal&&(
         <div className={styles.modalOverlay} onClick={e=>e.target===e.currentTarget&&setShowExporterModal(false)}>
           <div className={styles.modal}>
-            <div className={styles.modalHeader}><h3>Who's exporting?</h3><button onClick={()=>setShowExporterModal(false)}><X size={15}/></button></div>
+            <div className={styles.modalHeader}><h3>Who&apos;s exporting?</h3><button onClick={()=>setShowExporterModal(false)}><X size={15}/></button></div>
             <div className={styles.modalBody}>
               <p style={{fontSize:13,color:'var(--text-secondary)',marginBottom:12}}>Your name is stamped on the export filename and job history.</p>
               <div className={styles.field}><label>Name</label><input className={styles.input} autoFocus placeholder="e.g. Chris" value={exporterInput} onChange={e=>setExporterInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&confirmExporter()}/></div>

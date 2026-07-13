@@ -174,7 +174,7 @@ export function UploadDiffReport({ result, onClose }) {
           onToggle={() => toggle('removed')}
         >
           <div className={styles.removedNote}>
-            These sites exist in the DB but weren't in the uploaded file. They have NOT been deleted — verify in Smartsheet if they were cancelled or moved.
+            These sites exist in the DB but weren&apos;t in the uploaded file. They have NOT been deleted — verify in Smartsheet if they were cancelled or moved.
           </div>
           {diff.sites_removed.map((s, i) => (
             <div key={i} className={styles.changeRow}>

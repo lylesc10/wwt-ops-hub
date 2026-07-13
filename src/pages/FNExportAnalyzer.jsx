@@ -165,7 +165,7 @@ export default function FNExportAnalyzer() {
             {result.upload.skipped_no_name > 0 && <span>· {result.upload.skipped_no_name} skipped (no name)</span>}
             <span>· {result.upload.total_stored} stored of {result.upload.total_in_file} rows</span>
             {result.upload.unassigned_wos > 0 && <span>· {result.upload.unassigned_wos} unassigned (Draft/no provider)</span>}
-            {result.column_map?.provider_name && <span className={styles.uploadNote}>Name col: "{result.column_map.provider_name}"</span>}
+            {result.column_map?.provider_name && <span className={styles.uploadNote}>Name col: &quot;{result.column_map.provider_name}&quot;</span>}
             {result.errors?.length > 0 && <span style={{color:'var(--red)'}}>⚠ {result.errors[0]}</span>}
             <span className={styles.uploadNote}>All stats reflect full DB history</span>
           </div>
