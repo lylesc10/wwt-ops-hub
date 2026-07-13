@@ -1,0 +1,68 @@
+name: Deploy to Azure Container Apps
+
+# Runs deploy-azure.sh itself (rather than re-implementing its az CLI calls
+# here) so the manual and automated deploy paths can never drift out of sync.
+# Gated on the CI workflow finishing successfully for a push to main.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  id-token: write # required for OIDC federated login (azure/login)
+  contents: read
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install containerapp CLI extension
+        run: az extension add --name containerapp --upgrade --only-show-errors
+
+      # Assumes the subscription-level `Microsoft.App` / `Microsoft.OperationalInsights`
+      # provider registration and the initial resource group/ACR/environment have
+      # already been bootstrapped once via a manual `./deploy-azure.sh` run — this
+      # workflow only needs to build+push the new image and update the running app.
+      # ENV_FILE points at a path that doesn't exist in the checkout, so
+      # deploy-azure.sh falls back to the env vars exported below instead of
+      # trying to read a local .env file.
+      - name: Deploy
+        env:
+          ENV_FILE: .env.ci-unused
+          RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+          LOCATION: ${{ vars.LOCATION }}
+          ENVIRONMENT: ${{ vars.ENVIRONMENT }}
+          APP_NAME: ${{ vars.APP_NAME }}
+          ACR_NAME: ${{ vars.ACR_NAME }}
+          VITE_API_BASE: ${{ vars.VITE_API_BASE }}
+          VITE_DAB_BASE: ${{ vars.VITE_DAB_BASE }}
+          VITE_APP_ENV: ${{ vars.VITE_APP_ENV }}
+          VITE_FN_MOCK: ${{ vars.VITE_FN_MOCK }}
+          ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS }}
+          LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+          FN_BASE_URL: ${{ vars.FN_BASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+          SMARTSHEET_ACCESS_TOKEN: ${{ secrets.SMARTSHEET_ACCESS_TOKEN }}
+          FN_CLIENT_ID: ${{ secrets.FN_CLIENT_ID }}
+          FN_CLIENT_SECRET: ${{ secrets.FN_CLIENT_SECRET }}
+          FN_USERNAME: ${{ secrets.FN_USERNAME }}
+          FN_PASSWORD: ${{ secrets.FN_PASSWORD }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
+        run: ./deploy-azure.sh
