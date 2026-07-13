@@ -94,7 +94,7 @@ Backend at `api/docgen/` with shared libs in `api/docgen/_lib/`:
 
 Endpoints: `projects` CRUD, `upload` (JSON base64), `uploads/[projectId]`, `documents` CRUD + `[id]/download`, `generate` (creates status=`generating` placeholder; client polls `documents/[id]` every 3s for `generation_progress`), `suggest-answers`, `questions`, `responses`.
 
-Schema + question-template seed: `supabase/migrations/021_docgen.sql` (tables `docgen_projects`, `docgen_uploads`, `docgen_question_templates`, `docgen_question_responses`, `documents`).
+Schema + question-template seed: consolidated into `azure/schema.sql` (tables `docgen_projects`, `docgen_uploads`, `docgen_question_templates`, `docgen_question_responses`, `documents`); original migration history kept at `db/migrations/021_docgen.sql`.
 
 ### Mock mode
 

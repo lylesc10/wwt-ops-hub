@@ -177,7 +177,7 @@ export default function QuestionFlow({ project, uploads }) {
         {questions.length === 0 && (
           <p className={styles.emptyHint}>
             No question templates found for practice area “{project.practice_area}”.
-            Run supabase/migrations/021_docgen.sql to seed them.
+            Load azure/schema.sql to seed them.
           </p>
         )}
 

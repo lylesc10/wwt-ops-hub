@@ -29,9 +29,11 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 # App code: the API handlers, their shared lib, and the production server.
+# (No Data API Builder deployment exists — api/[table]/* reimplements DAB's
+# REST dialect directly against DATABASE_URL — so azure/dab-config.json is
+# reference-only and intentionally not copied into the runtime image.)
 COPY --from=build /app/dist ./dist
 COPY api ./api
-COPY azure/dab-config.json ./azure/dab-config.json
 COPY server.js ./
 
 EXPOSE 8080

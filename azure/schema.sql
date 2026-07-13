@@ -1,6 +1,9 @@
 -- ============================================================
 -- WWT OPS HUB — Azure PostgreSQL Schema
--- Consolidated from supabase/migrations/001–020
+-- This is the single source of truth for a fresh database — see db/README.md.
+-- Consolidated from the historical migrations kept in db/migrations/
+-- (formerly supabase/migrations/001-020, plus five later migrations for
+-- route planning, the WO generator, and DocGen — folded in below).
 -- RLS and Supabase auth.* references removed.
 -- Enforcement is via DAB entity permissions + Express middleware.
 -- ============================================================
@@ -473,6 +476,10 @@ CREATE TABLE job_history (
   sites        jsonb,
   site_count   integer     DEFAULT 0,
   csv_files    jsonb,
+  include_wrk  boolean     DEFAULT false,
+  wrk_config   jsonb,
+  sdt_config   jsonb,
+  fn_results   jsonb,      -- FieldNation push results [{site_id, wo_id, url, ok, mock}]
   created_at   timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_job_history_created ON job_history(created_at DESC);
@@ -748,3 +755,251 @@ CREATE TABLE fn_upload_batches (
   uploaded_by  uuid,
   created_at   timestamptz DEFAULT now()
 );
+
+-- ============================================================
+-- WO Generator — chrisprattwog.com parity (WO templates + saved site lists)
+-- Consolidated from supabase/migrations/20260708_wo_generator.sql
+-- ============================================================
+
+-- ── wo_templates (Step 0 quick-start full-config templates) ──
+CREATE TABLE wo_templates (
+  id         uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name       text        NOT NULL,
+  data       jsonb       NOT NULL DEFAULT '{}', -- { woType, woConfig, includeDEL, delConfig, includeBRK, brkConfig, includeWRK, wrkConfig, sdtConfig }
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- ── site_library (reusable saved site lists across jobs) ─────
+CREATE TABLE site_library (
+  id            uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_name  text,
+  project_id    text,
+  sites         jsonb       NOT NULL DEFAULT '[]',
+  site_count    integer     DEFAULT 0,
+  source_format text        DEFAULT 'manual',
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_site_library_created ON site_library(created_at DESC);
+
+-- ============================================================
+-- Route Planning — multi-day route plans: teams of technicians
+-- visit sets of sites across a date window, with generated
+-- schedules, route optimization, and conflict detection.
+-- Ported from the field-services platform's route planning module.
+-- Consolidated from supabase/migrations/20260707_route_planning.sql
+-- ============================================================
+
+-- ── route_plans ──────────────────────────────────────────────
+CREATE TABLE route_plans (
+  id                   uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name                 text        NOT NULL,
+  status               text        NOT NULL DEFAULT 'draft',       -- draft | optimized | approved | in_progress | completed
+  team_mode            text        NOT NULL DEFAULT 'fixed_team',  -- individual | fixed_team | flexible_group
+  start_date           date        NOT NULL,
+  end_date             date,
+  include_travel_days  boolean     NOT NULL DEFAULT true,
+  max_sites_per_night  int,                                        -- global per-night site cap (null = unlimited)
+  work_days            int[]       NOT NULL DEFAULT '{0,1,2,3,4}', -- 0=Mon .. 6=Sun
+  notes                text,
+  created_by           uuid        REFERENCES users(id),
+  created_at           timestamptz NOT NULL DEFAULT now(),
+  updated_at           timestamptz NOT NULL DEFAULT now()
+);
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON route_plans
+  FOR EACH ROW EXECUTE PROCEDURE trigger_set_updated_at();
+
+-- ── route_plan_projects (plan ↔ project links) ────────────────
+CREATE TABLE route_plan_projects (
+  id            uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  route_plan_id uuid        NOT NULL REFERENCES route_plans(id) ON DELETE CASCADE,
+  project_id    uuid        NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (route_plan_id, project_id)
+);
+CREATE INDEX idx_rpp_plan    ON route_plan_projects(route_plan_id);
+CREATE INDEX idx_rpp_project ON route_plan_projects(project_id);
+
+-- ── route_plan_teams ───────────────────────────────────────────
+CREATE TABLE route_plan_teams (
+  id            uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  route_plan_id uuid        NOT NULL REFERENCES route_plans(id) ON DELETE CASCADE,
+  name          text        NOT NULL,
+  color         text        NOT NULL DEFAULT '#3B82F6',
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON route_plan_teams
+  FOR EACH ROW EXECUTE PROCEDURE trigger_set_updated_at();
+CREATE INDEX idx_rpt_plan ON route_plan_teams(route_plan_id);
+
+-- ── route_plan_team_members ────────────────────────────────────
+CREATE TABLE route_plan_team_members (
+  id            uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  team_id       uuid        NOT NULL REFERENCES route_plan_teams(id) ON DELETE CASCADE,
+  technician_id uuid        NOT NULL REFERENCES technicians(id) ON DELETE CASCADE,
+  role          text        NOT NULL DEFAULT 'member', -- lead | member
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (team_id, technician_id)
+);
+CREATE INDEX idx_rptm_team ON route_plan_team_members(team_id);
+CREATE INDEX idx_rptm_tech ON route_plan_team_members(technician_id);
+
+-- ── route_plan_stops ────────────────────────────────────────────
+CREATE TABLE route_plan_stops (
+  id                     uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  route_plan_id          uuid        NOT NULL REFERENCES route_plans(id) ON DELETE CASCADE,
+  team_id                uuid        NOT NULL REFERENCES route_plan_teams(id) ON DELETE CASCADE,
+  site_id                uuid        NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+  stop_order             int         NOT NULL DEFAULT 0,
+  scheduled_start        date,
+  scheduled_end          date,
+  estimated_hours        numeric(5,1),
+  travel_hours_from_prev numeric(5,2),
+  travel_date            date,                              -- explicit travel day when leg > 4h
+  status                 text        NOT NULL DEFAULT 'planned', -- planned | confirmed | completed | cancelled
+  notes                  text,
+  created_at             timestamptz NOT NULL DEFAULT now(),
+  updated_at             timestamptz NOT NULL DEFAULT now()
+);
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON route_plan_stops
+  FOR EACH ROW EXECUTE PROCEDURE trigger_set_updated_at();
+CREATE INDEX idx_rps_plan  ON route_plan_stops(route_plan_id);
+CREATE INDEX idx_rps_team  ON route_plan_stops(team_id);
+CREATE INDEX idx_rps_site  ON route_plan_stops(site_id);
+CREATE INDEX idx_rps_dates ON route_plan_stops(scheduled_start, scheduled_end);
+
+-- ── tech_time_off (PTO used by conflict detection) ─────────────
+CREATE TABLE tech_time_off (
+  id            uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  technician_id uuid        NOT NULL REFERENCES technicians(id) ON DELETE CASCADE,
+  start_date    date        NOT NULL,
+  end_date      date        NOT NULL,
+  reason        text        DEFAULT 'PTO',
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_tto_tech  ON tech_time_off(technician_id);
+CREATE INDEX idx_tto_dates ON tech_time_off(start_date, end_date);
+
+-- ── geocode_cache (Nominatim results, keyed by location) ───────
+CREATE TABLE geocode_cache (
+  location_key text             PRIMARY KEY,
+  lat          double precision NOT NULL,
+  lng          double precision NOT NULL,
+  cached_at    timestamptz      NOT NULL DEFAULT now()
+);
+
+-- ============================================================
+-- DocGen — full document generator (ported from field-services;
+-- engagement → docgen_project). Frontend routes under /doc-gen/*.
+-- Consolidated from supabase/migrations/20260629_documents.sql and
+-- supabase/migrations/021_docgen.sql (the two were reconciled into
+-- a single `documents` definition — the DAB/Express layer replaced
+-- the original auth.users-based ownership model, so `created_by`
+-- was dropped in favor of the `project_id` FK actually used by
+-- api/docgen/*).
+-- ============================================================
+
+-- ── docgen_projects (groups uploads, responses, documents) ────
+CREATE TABLE docgen_projects (
+  id            uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name          text        NOT NULL,
+  customer      text,
+  practice_area text        NOT NULL DEFAULT 'Network',
+  site_address  text,
+  pm_name       text,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON docgen_projects
+  FOR EACH ROW EXECUTE PROCEDURE trigger_set_updated_at();
+
+-- ── documents ───────────────────────────────────────────────────
+CREATE TABLE documents (
+  id                      uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id              uuid        REFERENCES docgen_projects(id) ON DELETE CASCADE,
+  title                   text        NOT NULL DEFAULT 'Untitled Document',
+  doc_type                text        NOT NULL DEFAULT 'Deployment Guide',
+  schema_data             jsonb,
+  status                  text        NOT NULL DEFAULT 'draft'
+                            CHECK (status IN ('generating','draft','in_review','approved')),
+  generation_progress     text,
+  generation_time_seconds float,
+  context                 jsonb,      -- question answers used to generate this doc
+  created_at              timestamptz NOT NULL DEFAULT now(),
+  updated_at              timestamptz NOT NULL DEFAULT now()
+);
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON documents
+  FOR EACH ROW EXECUTE PROCEDURE trigger_set_updated_at();
+CREATE INDEX documents_project_idx    ON documents(project_id);
+CREATE INDEX documents_created_at_idx ON documents(created_at DESC);
+
+-- ── docgen_uploads (parsed source files: BOM, SOW, design docs) ─
+CREATE TABLE docgen_uploads (
+  id                uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id        uuid        NOT NULL REFERENCES docgen_projects(id) ON DELETE CASCADE,
+  file_type         text        NOT NULL DEFAULT 'other', -- bom | design | sow | config | other
+  original_filename text        NOT NULL,
+  parsed_data       jsonb,
+  created_at        timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX docgen_uploads_project_idx ON docgen_uploads(project_id);
+
+-- ── docgen_question_templates (per practice area) ───────────────
+CREATE TABLE docgen_question_templates (
+  id            uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  practice_area text        NOT NULL,
+  question_text text        NOT NULL,
+  input_type    text        NOT NULL DEFAULT 'text'
+                  CHECK (input_type IN ('text','number','select','multi_select','boolean')),
+  options       jsonb,
+  display_order int         NOT NULL DEFAULT 0,
+  required      boolean     NOT NULL DEFAULT false,
+  UNIQUE (practice_area, question_text)
+);
+
+-- ── docgen_question_responses (per project) ─────────────────────
+CREATE TABLE docgen_question_responses (
+  id                   uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id           uuid        NOT NULL REFERENCES docgen_projects(id) ON DELETE CASCADE,
+  question_template_id uuid        NOT NULL REFERENCES docgen_question_templates(id) ON DELETE CASCADE,
+  answer               jsonb,
+  created_at           timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX docgen_responses_project_idx ON docgen_question_responses(project_id);
+
+-- ── Seed: docgen question templates (from field-services seed.py) ─
+INSERT INTO docgen_question_templates (practice_area, question_text, input_type, options, display_order, required) VALUES
+  -- Network
+  ('Network',       'What is the project name?',                          'text',         null,                                                                                        1, true),
+  ('Network',       'What is the site address?',                          'text',         null,                                                                                        2, true),
+  ('Network',       'What type of change is being performed?',            'select',       '["Install","Upgrade","Migration","Decommission"]',                                          3, true),
+  ('Network',       'What is the maintenance window?',                    'text',         null,                                                                                        4, true),
+  ('Network',       'Is a rollback plan required?',                       'boolean',      null,                                                                                        5, true),
+  ('Network',       'What is the risk level?',                            'select',       '["Low","Medium","High","Critical"]',                                                        6, true),
+  ('Network',       'Are there any special requirements or constraints?', 'text',         null,                                                                                        7, false),
+  -- Data Center
+  ('Data Center',   'What is the project name?',                          'text',         null,                                                                                        1, true),
+  ('Data Center',   'What is the data center location?',                  'text',         null,                                                                                        2, true),
+  ('Data Center',   'What rack(s) are involved?',                         'text',         null,                                                                                        3, true),
+  ('Data Center',   'What is the power requirement?',                     'select',       '["Single Phase","Three Phase","Redundant A+B"]',                                            4, true),
+  ('Data Center',   'Is hot/cold aisle containment in place?',            'boolean',      null,                                                                                        5, true),
+  ('Data Center',   'What cabling standard is used?',                     'select',       '["Cat6","Cat6a","OM3 Fiber","OM4 Fiber","Single-mode Fiber"]',                              6, true),
+  -- Security
+  ('Security',      'What is the project name?',                          'text',         null,                                                                                        1, true),
+  ('Security',      'What security devices are being deployed?',          'multi_select', '["Firewall","IDS/IPS","NAC","VPN Concentrator","Web Proxy"]',                               2, true),
+  ('Security',      'Is this a HA deployment?',                           'boolean',      null,                                                                                        3, true),
+  ('Security',      'What compliance frameworks apply?',                  'multi_select', '["PCI-DSS","HIPAA","SOX","NIST","None"]',                                                   4, false),
+  ('Security',      'Is there an existing security policy to follow?',    'boolean',      null,                                                                                        5, true),
+  -- Collaboration
+  ('Collaboration', 'What is the project name?',                          'text',         null,                                                                                        1, true),
+  ('Collaboration', 'What collaboration platform is being deployed?',     'select',       '["Webex","Teams","Zoom Rooms","Poly","Other"]',                                             2, true),
+  ('Collaboration', 'How many rooms/endpoints?',                          'number',       null,                                                                                        3, true),
+  ('Collaboration', 'Is PSTN integration required?',                      'boolean',      null,                                                                                        4, true),
+  ('Collaboration', 'What is the user count?',                            'number',       null,                                                                                        5, true),
+  -- Cloud
+  ('Cloud',         'What is the project name?',                          'text',         null,                                                                                        1, true),
+  ('Cloud',         'What cloud provider?',                               'select',       '["AWS","Azure","GCP","Multi-cloud"]',                                                       2, true),
+  ('Cloud',         'What services are being deployed?',                  'text',         null,                                                                                        3, true),
+  ('Cloud',         'Is this a new deployment or migration?',             'select',       '["New Deployment","Migration","Hybrid Extension"]',                                         4, true),
+  ('Cloud',         'What connectivity is required?',                     'select',       '["VPN","ExpressRoute/Direct Connect","Internet Only","SD-WAN"]',                            5, true)
+ON CONFLICT (practice_area, question_text) DO NOTHING;
