@@ -1,5 +1,5 @@
 {
-  "name": "ops-manager",
+  "name": "wwt-ops-hub",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -8,10 +8,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .js,.jsx",
+    "lint:api": "eslint api server.js --ext .js",
+    "lint:all": "npm run lint && npm run lint:api",
+    "test": "vitest run",
     "start": "node server.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
+    "applicationinsights": "^3.15.1",
     "bcryptjs": "^3.0.3",
     "date-fns": "^3.3.1",
     "docx": "^9.7.1",
@@ -22,6 +26,7 @@
     "mammoth": "^1.12.0",
     "pdf-parse": "^2.4.5",
     "pg": "^8.22.0",
+    "pino": "^10.3.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-leaflet": "^4.2.1",
@@ -35,7 +40,8 @@
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.0",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "vite": "5.4.19"
+    "vite": "5.4.19",
+    "vitest": "^4.1.10"
   },
   "description": "WWT Field Services Operations Platform"
 }
