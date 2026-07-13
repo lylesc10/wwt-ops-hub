@@ -21,8 +21,14 @@ async function call(path, opts = {}) {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.message ?? `FN API error ${res.status}`)
+    const message = res.status === 429
+      ? 'FieldNation rate limit reached — try again shortly.'
+      : (err.message ?? `FN API error ${res.status}`)
+    const error = new Error(message)
+    error.status = res.status // additive — existing callers only read .message
+    throw error
   }
+  if (res.status === 204) return null
   return res.json()
 }
 
@@ -32,3 +38,6 @@ export const createWorkOrder = (payload)               => call('/work-orders',  
 export const pushWorkOrder   = (csv_row, project_id)   => call('/push-wo',      { method: 'POST', body: JSON.stringify({ csv_row, project_id }) })
 export const checkDupes      = (site_codes, fn_project_id) => call('/check-dupes', { method: 'POST', body: JSON.stringify({ site_codes, fn_project_id }) })
 export const syncStatus      = (project_id)            => call('/sync-status',  { method: 'POST', body: JSON.stringify({ project_id }) })
+export const updateWorkOrder = (id, initial, current)  => call(`/work-orders/${id}`, { method: 'PUT', body: JSON.stringify({ initial, current }) })
+export const publishWorkOrder = (id)                   => call(`/work-orders/${id}/publish`, { method: 'POST' })
+export const revertPublish    = (id)                   => call(`/work-orders/${id}/publish`, { method: 'DELETE' })
