@@ -1,0 +1,61 @@
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { listWorkOrders } from '@/lib/fieldnation'
+
+/**
+ * Fetches the live FieldNation work order list for the "Work Order List" tab.
+ *
+ * Unlike most hooks in this app (which poll a local DB every 30-60s), this
+ * hits FN's real, rate-limited API — so it fetches on demand only: once on
+ * mount, and again whenever `filters` changes (debounced, so typing in a
+ * search box or moving a date picker doesn't fire a request per keystroke).
+ * Call `refetch()` for a manual refresh (e.g. after a modal save).
+ *
+ * @param {{ status?: string, project?: string, dateStart?: string, dateEnd?: string, page?: number, perPage?: number }} filters
+ */
+export function useFieldNationWorkOrders(filters = {}) {
+  const [workOrders, setWorkOrders] = useState([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [mock, setMock] = useState(false)
+
+  const filterKey = JSON.stringify(filters)
+  const requestId = useRef(0)
+
+  const load = useCallback(async () => {
+    const thisRequest = ++requestId.current
+    setLoading(true)
+    setError(null)
+    try {
+      const params = {}
+      if (filters.status && filters.status !== 'all') params.status = filters.status
+      if (filters.project && filters.project !== 'all') params.project = filters.project
+      if (filters.dateStart) params.date_start = filters.dateStart
+      if (filters.dateEnd) params.date_end = filters.dateEnd
+      params.page = filters.page ?? 1
+      params.per_page = filters.perPage ?? 50
+
+      const data = await listWorkOrders(params)
+      if (thisRequest !== requestId.current) return // a newer request superseded this one
+
+      setWorkOrders(data.results ?? [])
+      setTotal(data.total ?? data.results?.length ?? 0)
+      setMock(!!data.mock)
+    } catch (e) {
+      if (thisRequest !== requestId.current) return
+      setError(e.message || 'Failed to load work orders')
+      setWorkOrders([])
+      setTotal(0)
+    } finally {
+      if (thisRequest === requestId.current) setLoading(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey])
+
+  useEffect(() => {
+    const timer = setTimeout(load, 300)
+    return () => clearTimeout(timer)
+  }, [load])
+
+  return { workOrders, total, loading, error, mock, refetch: load }
+}
