@@ -9,6 +9,7 @@
 
 import { withSecurity } from '../_lib/middleware.js'
 import { suggestAnswers } from './_lib/service.js'
+import { logError } from '../_lib/log.js'
 
 async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' })
@@ -20,7 +21,7 @@ async function handler(req, res) {
     const suggestions = await suggestAnswers(project_id)
     return res.json({ suggestions })
   } catch (e) {
-    console.error('[docgen/suggest-answers] failed:', e.message)
+    logError('[docgen/suggest-answers] failed:', e.message)
     return res.json({ suggestions: {} })
   }
 }

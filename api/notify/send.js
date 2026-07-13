@@ -18,6 +18,7 @@
 
 import { withSecurity, requireAuth } from '../_lib/middleware.js'
 import { supa as supabase } from '../../_lib/db.js'
+import { logInfo, logError } from '../_lib/log.js'
 
 
 const RESEND_KEY     = process.env.RESEND_API_KEY
@@ -77,7 +78,7 @@ function buildSmsText(alert, site) {
 // ── Send email via Resend ─────────────────────────────────────
 async function sendEmail(to, subject, html) {
   if (!RESEND_KEY) {
-    console.log('[Notify] Resend not configured — skipping email to', to)
+    logInfo('[Notify] Resend not configured — skipping email', to)
     return { skipped: true }
   }
 
@@ -98,7 +99,7 @@ async function sendEmail(to, subject, html) {
 // ── Send SMS via Twilio ───────────────────────────────────────
 async function sendSMS(to, body) {
   if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) {
-    console.log('[Notify] Twilio not configured — skipping SMS to', to)
+    logInfo('[Notify] Twilio not configured — skipping SMS', to)
     return { skipped: true }
   }
 
@@ -217,7 +218,7 @@ async function handler(req, res) {
 
     return res.json({ ok: true, alert_id, notifications: results })
   } catch (err) {
-    console.error('[Notify] Error:', err)
+    logError('[Notify] Error:', err)
     return res.status(500).json({ message: err.message })
   }
 }

@@ -14,9 +14,18 @@ import express from 'express'
 import { readdirSync, existsSync } from 'fs'
 import path from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
+import { log, logError } from './api/_lib/log.js'
 
 // Load .env when present (values already in the environment win)
 try { process.loadEnvFile() } catch { /* no .env — fine */ }
+
+// Azure Application Insights — only starts when a connection string is
+// configured, so local dev and CI stay instrumentation-free by default.
+if (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING) {
+  const appInsights = (await import('applicationinsights')).default
+  appInsights.setup().setSendLiveMetrics(true).start()
+  log.info('[server] Application Insights started')
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const API_DIR = path.join(__dirname, 'api')
@@ -70,12 +79,12 @@ for (const route of routes) {
       Object.defineProperty(req, 'query', { value: merged, writable: true, configurable: true })
       return mod.default(req, res)
     } catch (e) {
-      console.error(`[server] ${expressPath} failed:`, e)
+      logError(`[server] ${expressPath} failed:`, e)
       res.status(500).json({ message: 'Internal server error' })
     }
   })
-  console.log(`route ${expressPath}`)
 }
+log.info({ routeCount: routes.length }, '[server] API routes registered')
 
 // ── Static SPA ────────────────────────────────────────────────────────────────
 
@@ -86,4 +95,4 @@ if (existsSync(DIST_DIR)) {
   app.get('/', (_req, res) => res.send('API host running. Build the SPA with `npm run build`, or use `npm run dev` for the frontend.'))
 }
 
-app.listen(PORT, () => console.log(`\nOps Hub server listening on http://localhost:${PORT}`))
+app.listen(PORT, () => log.info(`Ops Hub server listening on http://localhost:${PORT}`))

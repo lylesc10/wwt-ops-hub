@@ -6,6 +6,7 @@
  */
 
 import { withSecurity, requireAuth } from '../_lib/middleware.js'
+import { logInfo, logError } from '../_lib/log.js'
 
 const FN_AUTH_URL = 'https://api-sandbox.fndev.net/authentication/api/oauth/token'
 const FN_BASE_URL = 'https://api-sandbox.fndev.net/api/rest/v2'
@@ -52,12 +53,12 @@ async function handler(req, res) {
     const listData = await listRes.json()
 
     if (!listRes.ok) {
-      console.error('[draft-wos] FN list error:', listRes.status, listData)
+      logError('[draft-wos] FN list error:', { status: listRes.status, data: listData })
       return res.status(listRes.status).json({ message: listData.message ?? 'FN error' })
     }
 
     const ids = (listData.results ?? []).map(wo => wo.id)
-    console.log(`[draft-wos] ${ids.length} draft IDs from FN:`, ids)
+    logInfo(`[draft-wos] ${ids.length} draft IDs from FN:`, ids)
 
     // Fetch full details for each WO in parallel
     const details = await Promise.all(ids.map(async (id) => {
@@ -70,12 +71,12 @@ async function handler(req, res) {
     }))
 
     const drafts = details.filter(Boolean)
-    console.log(`[draft-wos] fetched full details for ${drafts.length} WOs`)
+    logInfo(`[draft-wos] fetched full details for ${drafts.length} WOs`)
 
     return res.json({ total: ids.length, count: drafts.length, drafts, statuses: ['Draft'] })
 
   } catch (err) {
-    console.error('[draft-wos]', err.message)
+    logError('[draft-wos]', err.message)
     return res.status(500).json({ message: err.message })
   }
 }

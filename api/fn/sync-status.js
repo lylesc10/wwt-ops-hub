@@ -21,6 +21,7 @@
 import { fnFetch } from './auth.js'
 import { withSecurity, requireAuth } from '../_lib/middleware.js'
 import { supa as supabase } from '../../_lib/db.js'
+import { logError } from '../_lib/log.js'
 
 
 const FN_STATUS_MAP = {
@@ -134,7 +135,7 @@ async function handler(req, res) {
     })
 
   } catch (err) {
-    console.error('[FN sync-status]', err)
+    logError('[FN sync-status]', err)
     return res.status(500).json({ ok: false, message: err.message })
   }
 }

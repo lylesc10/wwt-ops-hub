@@ -18,6 +18,7 @@
 import { fnFetch } from './auth.js'
 import { withSecurity } from '../_lib/middleware.js'
 import { supa as supabase } from '../_lib/db.js'
+import { logError } from '../_lib/log.js'
 
 
 // "4:30pm" / "16:30" / "16:30:00" → "HH:MM:SS" (24h) for the FN schedule payload
@@ -141,7 +142,7 @@ async function handler(req, res) {
     })
 
   } catch (err) {
-    console.error('[FN push-wo]', err)
+    logError('[FN push-wo]', err)
     return res.status(500).json({ ok: false, message: err.message })
   }
 }

@@ -7,6 +7,7 @@
 
 import { withSecurity } from '../../_lib/middleware.js'
 import { resolveTable, entitySelect, entityUpdate, entityDelete } from '../../_lib/entity.js'
+import { logError } from '../../_lib/log.js'
 
 async function handler(req, res) {
   const entity = await resolveTable(req.query?.table)
@@ -36,7 +37,7 @@ async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' })
   } catch (e) {
     const status = /Unknown column|Unsupported|Invalid|No valid columns/.test(e.message) ? 400 : 500
-    if (status === 500) console.error(`[entity/${entity.table}]`, e.message)
+    if (status === 500) logError(`[entity/${entity.table}]`, e.message)
     return res.status(status).json({ message: e.message })
   }
 }

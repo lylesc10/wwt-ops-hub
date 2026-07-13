@@ -12,6 +12,7 @@
 import * as XLSX from 'xlsx'
 import mammoth from 'mammoth'
 import { PDFParse } from 'pdf-parse'
+import { logWarn } from '../../_lib/log.js'
 
 export const ALLOWED_EXTENSIONS = ['.xlsx', '.xls', '.docx', '.doc', '.pdf', '.csv']
 
@@ -101,7 +102,7 @@ export async function parseUpload(buffer, filename) {
       default:      return { parse_error: `Unsupported file type: ${e}`, filename }
     }
   } catch (err) {
-    console.warn(`[docgen/parsers] Failed to parse ${filename}:`, err.message)
+    logWarn(`[docgen/parsers] Failed to parse ${filename}:`, err.message)
     return { parse_error: err.message, filename }
   }
 }

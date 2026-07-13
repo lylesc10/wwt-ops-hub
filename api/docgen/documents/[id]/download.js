@@ -5,6 +5,7 @@
 import { withSecurity } from '../../../_lib/middleware.js'
 import { supa } from '../../../_lib/db.js'
 import { renderDocx } from '../../_lib/renderer.js'
+import { logError } from '../../../_lib/log.js'
 
 async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ message: 'Method not allowed' })
@@ -24,7 +25,7 @@ async function handler(req, res) {
     res.setHeader('Content-Length', buffer.byteLength)
     return res.end(Buffer.from(buffer))
   } catch (e) {
-    console.error('[docgen/download] DOCX render failed:', e)
+    logError('[docgen/download] DOCX render failed:', e)
     return res.status(500).json({ message: e.message ?? 'DOCX generation failed' })
   }
 }

@@ -86,11 +86,13 @@ declare -A SECRET_SRC=(
   [twilio-account-sid]=TWILIO_ACCOUNT_SID
   [twilio-auth-token]=TWILIO_AUTH_TOKEN
   [anthropic-api-key]=ANTHROPIC_API_KEY
+  [appinsights-connection-string]=APPLICATIONINSIGHTS_CONNECTION_STRING
 )
 
 SECRETS=()
 ENVS=( "VITE_API_BASE=${VITE_API_BASE}" "VITE_DAB_BASE=${VITE_DAB_BASE:-}" "FN_BASE_URL=${FN_BASE_URL:-https://api.fieldnation.com}" )
 [[ -n "${ALLOWED_ORIGINS:-}" ]] && ENVS+=( "ALLOWED_ORIGINS=$ALLOWED_ORIGINS" )
+[[ -n "${LOG_LEVEL:-}" ]] && ENVS+=( "LOG_LEVEL=$LOG_LEVEL" )
 
 for secret in "${!SECRET_SRC[@]}"; do
   var="${SECRET_SRC[$secret]}"

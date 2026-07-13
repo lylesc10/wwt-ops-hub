@@ -20,6 +20,7 @@
 
 import crypto from 'crypto'
 import { supa as supabase } from '../../_lib/db.js'
+import { logInfo, logWarn, logError } from '../_lib/log.js'
 
 
 const FN_WEBHOOK_SECRET = process.env.FN_WEBHOOK_SECRET
@@ -53,7 +54,7 @@ export default async function handler(req, res) {
       crypto.timingSafeEqual(sigBuf, expBuf)
 
     if (!valid) {
-      console.warn('[FN Webhook] Invalid signature')
+      logWarn('[FN Webhook] Invalid signature')
       return res.status(401).json({ message: 'Invalid signature' })
     }
   }
@@ -63,7 +64,7 @@ export default async function handler(req, res) {
   const wo        = event?.work_order ?? event?.data?.work_order ?? {}
   const woId      = String(wo.id ?? event?.work_order_id ?? '')
 
-  console.log(`[FN Webhook] ${eventType} — WO ${woId}`)
+  logInfo(`[FN Webhook] ${eventType} — WO ${woId}`)
 
   if (!woId) return res.json({ ok: true, message: 'No WO ID in payload' })
 
@@ -76,7 +77,7 @@ export default async function handler(req, res) {
       .single()
 
     if (!site) {
-      console.log(`[FN Webhook] No site found for WO ${woId}`)
+      logInfo(`[FN Webhook] No site found for WO ${woId}`)
       return res.json({ ok: true, message: `No site matched WO ${woId}` })
     }
 
@@ -139,7 +140,7 @@ export default async function handler(req, res) {
     return res.json({ ok: true, site_id: site.id, updates })
 
   } catch (err) {
-    console.error('[FN Webhook]', err)
+    logError('[FN Webhook]', err)
     // Return 200 so FN doesn't keep retrying — log the error internally
     return res.json({ ok: false, message: err.message })
   }

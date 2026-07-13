@@ -10,6 +10,7 @@
  */
 
 import pg from 'pg'
+import { logError } from './log.js'
 
 let _pool = null
 function pool() {
@@ -121,7 +122,7 @@ class QueryBuilder {
       if (this._mutation) return await this._runMutation()
       return await this._runSelect()
     } catch (e) {
-      console.error(`[db] ${this._table}:`, e.message)
+      logError(`[db] ${this._table}:`, e.message)
       return { data: null, error: { message: e.message } }
     }
   }

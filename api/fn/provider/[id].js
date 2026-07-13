@@ -8,6 +8,7 @@
 
 import { fnFetch } from '../auth.js'
 import { supa as supabase } from '../../_lib/db.js'
+import { logError } from '../../_lib/log.js'
 
 function parseCreds(encrypted_data) {
   try {
@@ -122,12 +123,12 @@ export default async function handler(req, res) {
       .update(fnData)
       .eq('fn_provider_id', String(providerId))
 
-    if (updateErr) console.error('[FN Provider] Update error:', updateErr.message)
+    if (updateErr) logError('[FN Provider] Update error:', updateErr.message)
 
     return res.json({ ok: true, provider_id: providerId, profile, history, current, ourRating })
 
   } catch (err) {
-    console.error('[FN Provider]', err)
+    logError('[FN Provider]', err)
     return res.status(500).json({ message: err.message })
   }
 }

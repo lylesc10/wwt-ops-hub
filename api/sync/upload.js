@@ -1,4 +1,5 @@
 import { supa as supabase } from '../../_lib/db.js'
+import { logInfo, logError } from '../_lib/log.js'
 /**
  * POST /api/sync/upload
  * Body: { project_id, rows, fileName }
@@ -142,7 +143,7 @@ export default async function handler(req, res) {
       flag_late:      storedMap.flag_late      ?? null,
       last_modified:  storedMap.last_modified  ?? null,
     }
-    console.log('[Upload] Using stored AI column map')
+    logInfo('[Upload] Using stored AI column map')
   } else {
     // Fallback: substring-based detection
     const find = (...candidates) =>
@@ -170,7 +171,7 @@ export default async function handler(req, res) {
       flag_late:      find('Flag Tech Assigned'),
       last_modified:  find('Last Modified'),
     }
-    console.log('[Upload] Using fallback column detection:', JSON.stringify(COL))
+    logInfo('[Upload] Using fallback column detection:', COL)
   }
 
   // ── Parse rows ─────────────────────────────────────────────
@@ -340,7 +341,7 @@ export default async function handler(req, res) {
       .from('sites')
       .upsert(records.slice(i, i + 50), { onConflict: 'project_id,code' })
     if (error) {
-      console.error('[Upload] Upsert error:', error.message)
+      logError('[Upload] Upsert error:', error.message)
       errors.push(error.message)
     } else {
       upserted += Math.min(50, records.length - i)

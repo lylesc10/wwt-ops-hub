@@ -10,6 +10,7 @@
 
 import { URLSearchParams } from 'url'
 import { supa as supabase } from '../../_lib/db.js'
+import { logInfo } from '../_lib/log.js'
 
 
 // Keywords → confirmation status
@@ -45,7 +46,7 @@ export default async function handler(req, res) {
     return res.status(200).send('<Response></Response>')
   }
 
-  console.log(`[SMS Inbound] From: ${fromNumber} | "${msgBody}"`)
+  logInfo(`[SMS Inbound] From: ${fromNumber} | "${msgBody}"`)
 
   const normalized = fromNumber.replace(/\s/g, '')
 

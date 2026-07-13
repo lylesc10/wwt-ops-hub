@@ -72,6 +72,8 @@ npm run build && node server.js
 | `ANTHROPIC_API_KEY` | Claude API for FN export analysis and column mapping |
 | `ALLOWED_ORIGINS` | Comma-separated CORS allowlist |
 | `SYNC_JOB` | Set `true` by the Container Apps Job to run Smartsheet sync and exit |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Application Insights — omit to run without telemetry (local dev, CI) |
+| `LOG_LEVEL` | Structured log verbosity: `trace`\|`debug`\|`info`\|`warn`\|`error`\|`fatal` (default `info`) |
 
 ---
 

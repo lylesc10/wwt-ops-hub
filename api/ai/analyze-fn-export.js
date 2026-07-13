@@ -1,5 +1,6 @@
 import { createHash }   from 'crypto'
 import { supa as supabase } from '../../_lib/db.js'
+import { logError } from '../_lib/log.js'
 
 
 const FN_KNOWN_HEADERS = ['ID','Title','Provider','Status','Service Date']
@@ -264,7 +265,7 @@ Return ONLY JSON:
   })
 
   } catch(err) {
-    console.error('[analyze-fn-export] Unhandled error:', err)
+    logError('[analyze-fn-export] Unhandled error:', err)
     return res.status(500).json({ message: err.message ?? 'Internal server error', stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined })
   }
 }

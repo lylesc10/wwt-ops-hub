@@ -16,6 +16,7 @@
 import { withSecurity } from '../_lib/middleware.js'
 import { supa } from '../_lib/db.js'
 import { generateDocumentSectioned, generateDocumentSingle, getProject } from './_lib/service.js'
+import { logError } from '../_lib/log.js'
 
 function normalizeDocType(raw) {
   return String(raw ?? 'Deployment Guide')
@@ -66,7 +67,7 @@ async function handler(req, res) {
   }
 
   // Long-lived host: fire and forget, respond immediately.
-  run().catch(e => console.error('[docgen/generate] background generation error:', e))
+  run().catch(e => logError('[docgen/generate] background generation error:', e))
   return res.status(201).json(doc)
 }
 

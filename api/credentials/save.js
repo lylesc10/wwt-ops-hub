@@ -1,5 +1,6 @@
 import { requireAuth } from '../_lib/middleware.js'
 import { supa as supabase } from '../../_lib/db.js'
+import { logError } from '../_lib/log.js'
 
 
 const SERVICE_FIELDS = {
@@ -30,7 +31,7 @@ async function handler(req, res) {
     const { error } = await supabase.from('credentials').insert({ service, label:service, encrypted_data:encoded, is_active:true, test_status:'untested' })
     dbError = error
   }
-  if (dbError) { console.error('[Credentials] DB error:', dbError); return res.status(500).json({ message: dbError.message }) }
+  if (dbError) { logError('[Credentials] DB error:', dbError); return res.status(500).json({ message: dbError.message }) }
   return res.json({ ok:true, service })
 }
 

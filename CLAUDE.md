@@ -36,6 +36,8 @@ FN_CLIENT_ID, FN_CLIENT_SECRET, FN_BASE_URL, FN_USERNAME, FN_PASSWORD
 TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER
 ALLOWED_ORIGINS
 SYNC_JOB=true              # Set by Container Apps Job to run sync and exit
+APPLICATIONINSIGHTS_CONNECTION_STRING  # Azure Application Insights; omit to run without telemetry
+LOG_LEVEL                  # pino level: trace|debug|info|warn|error|fatal (default info)
 ```
 
 ## Architecture
@@ -71,6 +73,7 @@ Each page calls one or more custom hooks in `src/hooks/`. Hooks use `src/lib/sup
 `api/_lib/db.js` — pg Pool + `supa` query builder used by all `api/` handlers.
 `api/_lib/middleware.js` — `withSecurity` (headers, CORS, rate limiting) + `requireAuth(handler, role)`.
 `api/_lib/credentials.js` — shared helpers (`getFNCredentials()`, `getTwilioCreds()`, `getSSToken()`).
+`api/_lib/log.js` — structured (pino, JSON) logging; `logInfo/logWarn/logError(message, detail)` preserve the second argument that a plain `console.error`-style pino call would silently drop. `server.js` also starts Azure Application Insights here when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set.
 
 ### Work Order generation pipeline
 

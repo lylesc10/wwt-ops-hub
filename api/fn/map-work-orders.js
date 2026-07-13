@@ -16,6 +16,7 @@
 
 import { fnFetch } from './auth.js'
 import { supa as supabase } from '../../_lib/db.js'
+import { logInfo, logError } from '../_lib/log.js'
 
 
 const FN_STATUS_MAP = {
@@ -92,7 +93,7 @@ export default async function handler(req, res) {
     if (total === null) total = data?.total ?? wos.length
     allWOs = [...allWOs, ...wos]
 
-    console.log(`[FN Map] Page ${page}: ${wos.length} WOs (${allWOs.length}/${total})`)
+    logInfo(`[FN Map] Page ${page}: ${wos.length} WOs (${allWOs.length}/${total})`)
 
     if (wos.length < page_size || allWOs.length >= total) break
     page++
@@ -101,7 +102,7 @@ export default async function handler(req, res) {
     if (page > 200) break
   }
 
-  console.log(`[FN Map] Total WOs pulled: ${allWOs.length}`)
+  logInfo(`[FN Map] Total WOs pulled: ${allWOs.length}`)
 
   // Parse and match each WO to a site
   let matched = 0, unmatched = 0
@@ -163,7 +164,7 @@ export default async function handler(req, res) {
         ignoreDuplicates: false,
       })
     if (!error) upserted += Math.min(50, upsertRows.length - i)
-    else console.error('[FN Map] Upsert error:', error.message)
+    else logError('[FN Map] Upsert error:', error.message)
   }
 
   // Log

@@ -7,6 +7,8 @@
  * GET /api/smartsheet/sheets/:sheetId → returns { rows, columns }
  */
 
+import { logInfo, logError } from '../../_lib/log.js'
+
 const SS_BASE = 'https://api.smartsheet.com/2.0'
 const SS_TOKEN = process.env.SMARTSHEET_ACCESS_TOKEN
 
@@ -19,7 +21,7 @@ export default async function handler(req, res) {
 
   // MOCK mode
   if (!SS_TOKEN) {
-    console.log('[Smartsheet Proxy] No token — returning mock sheet')
+    logInfo('[Smartsheet Proxy] No token — returning mock sheet')
     return res.json(getMockSheet(sheetId))
   }
 
@@ -56,7 +58,7 @@ export default async function handler(req, res) {
 
     return res.json({ sheetId, rows, columns, totalRows: rows.length })
   } catch (err) {
-    console.error('[Smartsheet Proxy] Error:', err)
+    logError('[Smartsheet Proxy] Error:', err)
     return res.status(500).json({ message: err.message })
   }
 }

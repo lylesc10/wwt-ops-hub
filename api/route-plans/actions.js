@@ -13,6 +13,7 @@
  */
 
 import { query, supa } from '../_lib/db.js'
+import { logError } from '../_lib/log.js'
 import { withSecurity } from '../_lib/middleware.js'
 import { geocodeLocation, siteLocationString, techLocationString } from '../_lib/route-planning/geo.js'
 import { detectConflicts, getDistanceMatrix, optimizeTeamRoute } from '../_lib/route-planning/optimization.js'
@@ -488,7 +489,7 @@ async function handler(req, res) {
         return res.status(400).json({ message: `Unknown action: ${action}` })
     }
   } catch (e) {
-    console.error(`[route-plans] action ${action} failed:`, e)
+    logError(`[route-plans] action ${action} failed:`, e)
     return res.status(500).json({ message: e.message })
   }
 }

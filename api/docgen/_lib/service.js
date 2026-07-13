@@ -9,6 +9,7 @@
 
 import { supa } from '../../_lib/db.js'
 import { getAIProvider } from './ai.js'
+import { logWarn, logError } from '../../_lib/log.js'
 import {
   OUTLINE_SYSTEM_PROMPT, SECTION_SYSTEM_PROMPT, ASSEMBLY_SYSTEM_PROMPT,
   SUGGEST_ANSWERS_SYSTEM_PROMPT,
@@ -141,7 +142,7 @@ export function parseJsonResponse(raw) {
     const result = JSON.parse(text)
     return result && typeof result === 'object' && !Array.isArray(result) ? result : null
   } catch (e) {
-    console.warn('[docgen/service] AI returned invalid JSON:', e.message)
+    logWarn('[docgen/service] AI returned invalid JSON:', e.message)
     return null
   }
 }
@@ -218,7 +219,7 @@ async function saveResult(documentId, schemaData, startedAt) {
 }
 
 async function saveFailure(documentId, docType, error, startedAt) {
-  console.error('[docgen/service] Generation failed:', error)
+  logError('[docgen/service] Generation failed:', error)
   await supa.from('documents').update({
     schema_data: { error: String(error.message ?? error), title: `${docType} - Generation Failed` },
     title: `${docType} - Generation Failed`,
@@ -290,7 +291,7 @@ export async function generateDocumentSectioned(documentId, projectId, docType, 
     const outline = parseJsonResponse(outlineRaw)
 
     if (!outline?.sections?.length) {
-      console.warn('[docgen/service] Outline generation failed — falling back to single-call')
+      logWarn('[docgen/service] Outline generation failed — falling back to single-call')
       await onProgress('Outline failed — falling back to single-call generation...')
       return await generateDocumentSingle(documentId, projectId, docType)
     }
@@ -317,7 +318,7 @@ export async function generateDocumentSectioned(documentId, projectId, docType, 
       const result = results[i]
 
       if (result.status === 'rejected') {
-        console.warn(`[docgen/service] Section '${heading}' failed: ${result.reason} — retrying...`)
+        logWarn(`[docgen/service] Section '${heading}' failed: ${result.reason} — retrying...`)
         await onProgress(`Retrying section ${i + 1} of ${sectionCount}: ${heading}...`)
         try {
           const contextSubset = extractContextForSection(sectionDef, fullContext)
@@ -328,7 +329,7 @@ export async function generateDocumentSectioned(documentId, projectId, docType, 
           const sectionData = parseJsonResponse(retryRaw)
           if (sectionData) { generatedSections.push(sectionData); continue }
         } catch (retryErr) {
-          console.error(`[docgen/service] Section '${heading}' retry also failed:`, retryErr.message)
+          logError(`[docgen/service] Section '${heading}' retry also failed:`, retryErr.message)
         }
         generatedSections.push({
           heading,
@@ -355,7 +356,7 @@ export async function generateDocumentSectioned(documentId, projectId, docType, 
       )
       schemaData = parseJsonResponse(assemblyRaw)
       if (!schemaData) {
-        console.warn('[docgen/service] AI assembly failed — stitching sections directly')
+        logWarn('[docgen/service] AI assembly failed — stitching sections directly')
         schemaData = { title: outline.title ?? `${docType} Document`, sections: generatedSections }
       }
     } else {
