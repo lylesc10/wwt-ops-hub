@@ -3,3 +3,4 @@ node_modules/
 dist/
 *.tsv
 .DS_Store
+ROUTE_PLANNING.md
