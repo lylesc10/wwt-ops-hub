@@ -3,13 +3,13 @@
  * from a site record + WO type config.
  *
  * Extracted from chrisprattwog wizard logic.
- * In this platform, output goes to Supabase + FN push instead of CSV.
+ * In this platform, output goes to the database + FN push instead of CSV.
  */
 
 import { WO_TYPES } from './woTypes'
 
 /**
- * @param {Object} site         - Site row from Supabase
+ * @param {Object} site         - Site row from the database
  * @param {string} woTypeCode   - WO type code, e.g. 'LVL'
  * @param {Object} overrides    - Per-site budget/rate/title overrides
  * @param {Object} globalConfig - Project-level defaults

@@ -1,6 +1,6 @@
 /**
  * WO Type definitions — extracted from chrisprattwog
- * Matches the wo_types table in Supabase.
+ * Matches the wo_types table in Azure PostgreSQL.
  * Source of truth for type-specific defaults at generation time.
  */
 

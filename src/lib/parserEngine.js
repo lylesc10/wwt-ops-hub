@@ -3,7 +3,7 @@
  *
  * Executes a saved parser config against raw input (text/CSV/paste).
  * Fully client-side — no server round-trip for the actual parsing.
- * Results are then saved to Supabase via the import hooks.
+ * Results are then saved to the database via the import hooks.
  */
 
 // ── Transforms ────────────────────────────────────────────────

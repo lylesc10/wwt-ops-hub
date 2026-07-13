@@ -31,7 +31,7 @@ export async function fetchSheet(sheetId) {
 
 /**
  * Trigger a manual sync for a project.
- * Calls the Supabase edge function `smartsheet-sync`.
+ * Calls the api/sync/smartsheet handler.
  *
  * @param {string} projectId - our internal project UUID
  * @returns {Promise<{ synced: number, changes: number }>}
