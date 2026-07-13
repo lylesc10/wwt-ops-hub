@@ -116,12 +116,48 @@ else
   az containerapp create --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \
     --environment "$ENVIRONMENT" \
     --image "$ACR_SERVER/$IMAGE" \
+    --container-name "$APP_NAME" \
     --registry-server "$ACR_SERVER" --registry-username "$ACR_USER" --registry-password "$ACR_PASS" \
     --target-port 8080 --ingress external \
     --min-replicas 1 --max-replicas 3 \
     --secrets "${SECRETS[@]}" \
     --env-vars "${ENVS[@]}" --output none
 fi
+
+# ── Health probes ──────────────────────────────────────────────────────────────
+# Point startup + readiness at GET /api/health (checks DB connectivity — keeps a
+# replica with a broken DB connection out of the traffic rotation). Liveness is
+# deliberately left on Container Apps' automatic TCP default rather than the same
+# endpoint: liveness failures trigger a container *restart*, and restarting a
+# replica does nothing to fix a downstream DB outage — it would just churn
+# replicas during an incident. Readiness/startup failures only pull the replica
+# out of rotation, which is the correct response to a DB-down health check.
+echo "==> Configuring startup + readiness probes (GET /api/health)"
+PROBE_YAML="$(mktemp)"
+cat > "$PROBE_YAML" <<EOF
+properties:
+  template:
+    containers:
+      - name: ${APP_NAME}
+        probes:
+          - type: startup
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 30
+          - type: readiness
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+EOF
+az containerapp update --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \
+  --yaml "$PROBE_YAML" --output none
+rm -f "$PROBE_YAML"
 
 FQDN="$(az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \
   --query properties.configuration.ingress.fqdn -o tsv)"
