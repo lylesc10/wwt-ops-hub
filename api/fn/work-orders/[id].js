@@ -10,11 +10,13 @@
  * at the first failure, so a partial save can't silently skip ahead — the
  * response reports exactly which resources saved, which failed, and which
  * were never attempted.
+ *
+ * Open-access like the rest of the app (no login) — withSecurity only.
  */
 
 import { fnFetch } from '../auth.js'
 import { getFNCredentials } from '../../_lib/credentials.js'
-import { withSecurity, requireAuth } from '../../_lib/middleware.js'
+import { withSecurity } from '../../_lib/middleware.js'
 import { query } from '../../_lib/db.js'
 import { logError } from '../../_lib/log.js'
 import { diffToPatch, patchToSteps } from '../_lib/wo-payloads.js'
@@ -113,4 +115,4 @@ async function mirrorLocal(fnWoId, patch, results) {
   await query(`UPDATE work_orders SET updated_at = now() WHERE fn_wo_id = $1`, [fnWoId])
 }
 
-export default withSecurity(requireAuth(handler, 'pm'))
+export default withSecurity(handler)

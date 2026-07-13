@@ -1,11 +1,13 @@
 /**
  * POST   /api/fn/work-orders/[id]/publish — publish a draft WO (send it live).
  * DELETE /api/fn/work-orders/[id]/publish — revert a publish (unpublish back to draft).
+ *
+ * Open-access like the rest of the app (no login) — withSecurity only.
  */
 
 import { fnFetch } from '../../auth.js'
 import { getFNCredentials } from '../../../_lib/credentials.js'
-import { withSecurity, requireAuth } from '../../../_lib/middleware.js'
+import { withSecurity } from '../../../_lib/middleware.js'
 import { query } from '../../../_lib/db.js'
 import { logError } from '../../../_lib/log.js'
 
@@ -53,4 +55,4 @@ async function mirrorLocal(fnWoId, fnStatus) {
   )
 }
 
-export default withSecurity(requireAuth(handler, 'pm'))
+export default withSecurity(handler)

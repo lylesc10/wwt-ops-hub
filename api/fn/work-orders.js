@@ -3,11 +3,12 @@
  * POST /api/fn/work-orders        — create a new WO
  * GET  /api/fn/work-orders/[id]   — get a single WO
  *
- * Authenticated (pm+). Credentials read from DB or env vars.
+ * Open-access like the rest of the app (no login) — withSecurity only.
+ * Credentials read from DB or env vars.
  */
 
 import { fnFetch }                         from './auth.js'
-import { withSecurity, requireAuth }       from '../_lib/middleware.js'
+import { withSecurity }                    from '../_lib/middleware.js'
 import { supa as supabase }                from '../_lib/db.js'
 
 
@@ -74,4 +75,4 @@ async function handler(req, res) {
   return res.status(405).json({ message: 'Method not allowed' })
 }
 
-export default withSecurity(requireAuth(handler, 'pm'))
+export default withSecurity(handler)
