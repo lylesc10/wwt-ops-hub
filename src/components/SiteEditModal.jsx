@@ -25,6 +25,10 @@ export function SiteEditModal({ site, onClose, onSaved }) {
     onsite_phone:     site.onsite_phone     ?? '',
     scheduled_start:  site.scheduled_start  ?? '',
     scheduled_end:    site.scheduled_end    ?? '',
+    date_locked:      site.date_locked      ?? false,
+    estimated_hours:  site.estimated_hours  ?? '',
+    nights_required:  site.nights_required  ?? 1,
+    display_order:    site.display_order    ?? '',
     due_date_assign:  site.due_date_assign  ?? '',
     target_quarter:   site.target_quarter   ?? '',
     lvv_in_scope:     site.lvv_in_scope     ?? '',
@@ -47,9 +51,16 @@ export function SiteEditModal({ site, onClose, onSaved }) {
     if (!isPM) return
     setSaving(true)
     setError(null)
+    const payload = {
+      ...form,
+      estimated_hours: form.estimated_hours === '' ? null : Number(form.estimated_hours),
+      nights_required: Number(form.nights_required) || 1,
+      display_order: form.display_order === '' ? null : Number(form.display_order),
+      updated_at: new Date().toISOString(),
+    }
     const { error } = await dab
       .from('sites')
-      .update({ ...form, updated_at: new Date().toISOString() })
+      .update(payload)
       .eq('id', site.id)
     if (error) { setError(error.message); setSaving(false) }
     else { onSaved?.(); onClose() }
@@ -139,6 +150,30 @@ export function SiteEditModal({ site, onClose, onSaved }) {
                 </Field>
                 <Field label="Scheduled End">
                   <input type="date" value={form.scheduled_end} onChange={set('scheduled_end')} disabled={!isPM} />
+                </Field>
+              </div>
+              <div className={styles.grid2}>
+                <Field label="Onsite Hours">
+                  <input type="number" min="0" step="0.5" value={form.estimated_hours} onChange={set('estimated_hours')} placeholder="8" disabled={!isPM} />
+                </Field>
+                <Field label="Nights Required">
+                  <input type="number" min="1" step="1" value={form.nights_required} onChange={set('nights_required')} disabled={!isPM} />
+                </Field>
+              </div>
+              <div className={styles.grid2}>
+                <Field label="Route Order">
+                  <input type="number" min="0" step="1" value={form.display_order} onChange={set('display_order')} placeholder="auto" disabled={!isPM} />
+                </Field>
+                <Field label="Lock Scheduled Date">
+                  <label className={styles.checkLabel}>
+                    <input
+                      type="checkbox"
+                      checked={form.date_locked}
+                      onChange={e => setForm(f => ({ ...f, date_locked: e.target.checked }))}
+                      disabled={!isPM}
+                    />
+                    Keep this date during schedule generation
+                  </label>
                 </Field>
               </div>
               <div className={styles.grid2}>

@@ -100,6 +100,10 @@ CREATE TABLE sites (
   time_zone           text,
   flag_late_assign    boolean     DEFAULT false,
   lead_technician     text,
+  date_locked         boolean     NOT NULL DEFAULT false,
+  estimated_hours     numeric(5,1),           -- null = scheduler default (8.0)
+  nights_required     int         NOT NULL DEFAULT 1,
+  display_order       int,                    -- seeds nearest-neighbor route order
   route_id            uuid,       -- FK to routes added below
   fn_wo_status        text,
   fn_wo_synced_at     timestamptz,
