@@ -9,6 +9,7 @@ import {
 } from '@/cpwog/engine'
 import { parsePaste, parseCSVImport } from '@/cpwog/parsers'
 import { pushWorkOrder } from '@/lib/fieldnation'
+import { WorkOrderListView } from '@/components/fnwo/WorkOrderListView'
 import {
   Download, History, Route, Plus, X, Trash2, Check, ChevronDown, AlertTriangle,
   Loader, ExternalLink, ShieldAlert, UploadCloud, BookTemplate, Library, Calendar, Sparkles,
@@ -36,6 +37,7 @@ function dayLabel(defaultDate, i) {
 
 export default function WorkOrders() {
   const { user } = useAuth()
+  const [view,         setView]         = useState('generator') // 'generator' | 'list'
   const [step,         setStep]         = useState(0)
   const [joke,         setJoke]         = useState(() => JOKES[0])
   const [projectId,    setProjectId]    = useState('')
@@ -488,6 +490,13 @@ export default function WorkOrders() {
       />
 
       <div className={styles.body}>
+        {/* View tabs */}
+        <div className={styles.viewTabs}>
+          <button className={`${styles.viewTab} ${view==='generator'?styles.viewTabActive:''}`} onClick={()=>setView('generator')}>Generator</button>
+          <button className={`${styles.viewTab} ${view==='list'?styles.viewTabActive:''}`} onClick={()=>setView('list')}>Work Order List</button>
+        </div>
+
+        {view==='generator'&&(<>
         {/* Step bar */}
         <div className={styles.stepBar}>
           {STEP_LABELS.map((label,i)=>(
@@ -873,6 +882,9 @@ export default function WorkOrders() {
 
           <div className={styles.jokeBar}><span>😄</span><span className={styles.jokeText}>{joke}</span><button className={styles.jokeNext} onClick={()=>setJoke(JOKES[Math.floor(Math.random()*JOKES.length)])}>next</button></div>
         </div>
+        </>)}
+
+        {view==='list'&&<WorkOrderListView/>}
       </div>
 
       {/* Templates Panel */}

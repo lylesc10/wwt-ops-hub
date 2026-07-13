@@ -1,5 +1,11 @@
 .page { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 .body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+/* View tabs (Generator vs Work Order List) */
+.viewTabs { display: flex; gap: 4px; padding: 12px 28px 0; border-bottom: 1px solid var(--border-subtle); background: var(--bg-surface); }
+.viewTab { font-size: 13px; font-weight: 500; padding: 8px 14px; border: none; border-bottom: 2px solid transparent; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.12s; margin-bottom: -1px; font-family: var(--font-ui); }
+.viewTab:hover { color: var(--text-primary); }
+.viewTabActive { color: var(--amber) !important; border-bottom-color: var(--amber); }
 .headerActions { display: flex; gap: 8px; align-items: center; }
 .badge { display: inline-flex; align-items: center; justify-content: center; background: var(--amber); color: var(--text-inverse); border-radius: 10px; font-size: 10px; font-weight: 700; padding: 1px 6px; margin-left: 4px; }
 
