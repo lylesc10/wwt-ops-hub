@@ -3,11 +3,14 @@
  * Port of field-services app/route_planning/optimization.py.
  *
  * ORS is optional — set ORS_API_KEY. Without it (or on API failure)
- * optimization falls back to a local nearest-neighbor ordering.
+ * the existing stop order is preserved; reordering without also
+ * rescheduling dates would make the itinerary read out of order.
+ *
+ * Deliberate deviation from the Python reference: coords are sent as
+ * [lng, lat] (what ORS expects); the reference sends [lat, lng].
  */
 
 import { query } from '../db.js'
-import { haversineMiles } from './geo.js'
 import { dstr } from './service.js'
 
 const ORS_MATRIX_URL = 'https://api.openrouteservice.org/v2/matrix/driving-car'
@@ -38,32 +41,16 @@ export async function getDistanceMatrix(coords) {
   }
 }
 
-function nearestNeighborIndices(coords) {
-  if (coords.length <= 2) return coords.map((_, i) => i)
-  const order = [0]
-  const remaining = new Set(coords.map((_, i) => i).slice(1))
-  while (remaining.size) {
-    const cur = coords[order[order.length - 1]]
-    let best = null
-    let bestDist = Infinity
-    for (const i of remaining) {
-      const d = haversineMiles(cur.lat, cur.lng, coords[i].lat, coords[i].lng)
-      if (d < bestDist) { bestDist = d; best = i }
-    }
-    order.push(best)
-    remaining.delete(best)
-  }
-  return order
-}
-
 /**
- * Optimize visit order via ORS; falls back to nearest-neighbor.
+ * Optimize visit order via ORS; keeps the existing order when ORS is
+ * unavailable or fails (matches optimization.py optimize_team_route).
  * coords: [{lat,lng}], serviceSeconds: seconds on site per stop.
  * Returns array of indices in optimized visit order.
  */
 export async function optimizeTeamRoute(coords, serviceSeconds) {
-  if (coords.length <= 2) return coords.map((_, i) => i)
-  if (!process.env.ORS_API_KEY) return nearestNeighborIndices(coords)
+  const identity = coords.map((_, i) => i)
+  if (coords.length <= 2) return identity
+  if (!process.env.ORS_API_KEY) return identity
 
   try {
     const res = await fetch(ORS_OPTIMIZATION_URL, {
@@ -77,13 +64,13 @@ export async function optimizeTeamRoute(coords, serviceSeconds) {
       }),
       signal: AbortSignal.timeout(30_000),
     })
-    if (!res.ok) return nearestNeighborIndices(coords)
+    if (!res.ok) return identity
     const data = await res.json()
     const steps = data.routes?.[0]?.steps ?? []
     const order = steps.filter((s) => s.type === 'job').map((s) => s.id)
-    return order.length === coords.length ? order : nearestNeighborIndices(coords)
+    return order.length === coords.length ? order : identity
   } catch {
-    return nearestNeighborIndices(coords)
+    return identity
   }
 }
 

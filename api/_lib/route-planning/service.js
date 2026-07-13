@@ -134,7 +134,7 @@ export async function getPlanSites(planId) {
      from sites s
      join projects pr on pr.id = s.project_id
      where s.project_id in (select project_id from route_plan_projects where route_plan_id = $1)
-     order by s.state, s.city, s.code`,
+     order by s.display_order nulls last, s.state, s.city, s.code`,
     [planId],
   )
   return rows

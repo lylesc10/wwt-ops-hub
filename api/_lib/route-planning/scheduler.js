@@ -2,11 +2,15 @@
  * Schedule generation for route plans.
  *
  * Assigns sites to teams across days, respecting:
- * - Locked dates (sites that already have a scheduled_start — customer-mandated)
- * - Max working hours per day
+ * - Locked dates (sites explicitly flagged date_locked with a scheduled_start —
+ *   customer-mandated; an unlocked site's date is re-flowed from plan start)
+ * - Per-site onsite hours (sites.estimated_hours, default 8.0) and max working
+ *   hours per day
+ * - Multi-night sites (sites.nights_required spans consecutive work days)
  * - Travel days when the previous leg exceeds 4 hours
  * - Technician PTO (tech_time_off) and busy ranges from other plans
- * - Per-plan work days (0=Mon .. 6=Sun; Mon-Fri default)
+ * - Per-plan work days (0=Mon .. 6=Sun; Mon-Fri default) and company holidays
+ *   (COMPANY_HOLIDAYS env: JSON array of 'YYYY-MM-DD')
  *
  * Port of field-services app/route_planning/scheduler.py.
  */
@@ -39,10 +43,30 @@ export function pyWeekday(s) {
   return (toDate(s).getDay() + 6) % 7
 }
 
-export function nextWorkday(s, allowedDays) {
+const NO_HOLIDAYS = new Set()
+
+export function nextWorkday(s, allowedDays, holidays = NO_HOLIDAYS) {
   let d = s
-  while (!allowedDays.has(pyWeekday(d))) d = addDays(d, 1)
+  while (!allowedDays.has(pyWeekday(d)) || holidays.has(d)) d = addDays(d, 1)
   return d
+}
+
+/** End date spanning `nights` consecutive work days starting from `start`. */
+export function endDateForNights(start, nights, allowedDays, holidays = NO_HOLIDAYS) {
+  if (nights <= 1) return start
+  let d = start
+  for (let i = 0; i < nights - 1; i++) d = nextWorkday(addDays(d, 1), allowedDays, holidays)
+  return d
+}
+
+/** Company holidays from COMPANY_HOLIDAYS env (JSON array of 'YYYY-MM-DD'). */
+export function loadHolidays() {
+  try {
+    const parsed = JSON.parse(process.env.COMPANY_HOLIDAYS ?? '[]')
+    return new Set(Array.isArray(parsed) ? parsed : [])
+  } catch {
+    return new Set()
+  }
 }
 
 // ── data loading ──────────────────────────────────────────────────────────────
@@ -86,12 +110,12 @@ function allMembersAvailable(memberIds, date, busyByTech) {
   return true
 }
 
-async function computeTeamCentroid(team) {
+async function computeTeamCentroid(team, geocoder = geocodeLocation) {
   const coords = []
   for (const m of team.members ?? []) {
     const loc = techLocationString(m)
     if (!loc) continue
-    const c = await geocodeLocation(loc)
+    const c = await geocoder(loc)
     if (c) coords.push(c)
   }
   if (!coords.length) return null
@@ -129,14 +153,22 @@ function nearestNeighborOrder(sites) {
  *
  * @param plan route_plans row
  * @param options { params?: { maxSitesPerNight, maxWorkHoursPerDay, estimatedHoursOverride },
- *                  teamsOverride?: teams array (what-if virtual teams) }
+ *                  teamsOverride?: teams array (what-if virtual teams),
+ *                  busyByTech?, geocoder?, holidays? (test injection; default to
+ *                  loadBusyRanges / geocodeLocation / COMPANY_HOLIDAYS) }
  * @returns [{ team_id, site_id, scheduled_start, scheduled_end, estimated_hours,
  *             stop_order, travel_hours, travel_date }]
  */
-export async function generateSchedule(plan, { params = null, teamsOverride = null, teams: teamsInput, sites: sitesInput } = {}) {
+export async function generateSchedule(plan, {
+  params = null, teamsOverride = null, teams: teamsInput, sites: sitesInput,
+  busyByTech: busyOverride = null, geocoder = geocodeLocation, holidays = null,
+} = {}) {
   const maxHours = params?.maxWorkHoursPerDay ?? DEFAULT_MAX_WORK_HOURS
   const maxSites = params ? (params.maxSitesPerNight ?? null) : (plan.max_sites_per_night ?? null)
   const allowedDays = new Set(plan.work_days?.length ? plan.work_days : [0, 1, 2, 3, 4])
+  holidays ??= loadHolidays()
+  const nextWd = (d) => nextWorkday(d, allowedDays, holidays)
+  const endForNights = (start, nights) => endDateForNights(start, nights, allowedDays, holidays)
 
   const sitesRaw = sitesInput ?? []
   const teams = teamsOverride ?? teamsInput ?? []
@@ -147,13 +179,17 @@ export async function generateSchedule(plan, { params = null, teamsOverride = nu
   const sites = []
   for (const s of sitesRaw) {
     const loc = siteLocationString(s)
-    const geo = loc ? await geocodeLocation(loc) : null
+    const geo = loc ? await geocoder(loc) : null
     sites.push({
       site_id: s.id,
-      estimated_hours: hoursOverride ?? DEFAULT_SITE_HOURS,
+      state: s.state ?? '',
+      city: s.city ?? '',
+      estimated_hours: hoursOverride
+        ?? (s.estimated_hours != null ? Number(s.estimated_hours) : DEFAULT_SITE_HOURS),
       scheduled_date: dstr(s.scheduled_start),
       scheduled_end_date: dstr(s.scheduled_end),
-      date_locked: !!s.scheduled_start,
+      date_locked: !!s.date_locked && !!s.scheduled_start,
+      nights_required: Number(s.nights_required) || 1,
       lat: geo?.lat ?? null,
       lng: geo?.lng ?? null,
     })
@@ -168,7 +204,7 @@ export async function generateSchedule(plan, { params = null, teamsOverride = nu
   const allMemberIds = [...new Set(teams.flatMap((t) => (t.members ?? []).map((m) => m.technician_id)))]
   // Phantom what-if members have no real IDs — filter them from busy lookups
   const realMemberIds = allMemberIds.filter(Boolean)
-  const busyByTech = await loadBusyRanges(realMemberIds, plan.id, planStart, planEndHint)
+  const busyByTech = busyOverride ?? await loadBusyRanges(realMemberIds, plan.id, planStart, planEndHint)
 
   const teamInfo = teams.map((t) => ({
     team: t,
@@ -184,6 +220,13 @@ export async function generateSchedule(plan, { params = null, teamsOverride = nu
   const reserveDay = (teamId, date, hours) => {
     teamDayHours[teamId][date] = (teamDayHours[teamId][date] ?? 0) + hours
     globalDaySiteCount[date] = (globalDaySiteCount[date] ?? 0) + 1
+  }
+
+  // Reserve hours on every spanned work day of a (possibly multi-night) stop
+  const reserveSpan = (teamId, start, end, hours) => {
+    for (let d = start; d <= end; d = addDays(d, 1)) {
+      if (allowedDays.has(pyWeekday(d)) && !holidays.has(d)) reserveDay(teamId, d, hours)
+    }
   }
 
   // 1. Locked sites first, on their mandated dates, to the least-loaded available team
@@ -211,18 +254,20 @@ export async function generateSchedule(plan, { params = null, teamsOverride = nu
   // 2. Flexible sites — proximity-aware if every team has a centroid, else round-robin
   const centroids = {}
   for (const ti of teamInfo) {
-    const c = await computeTeamCentroid(ti.team)
+    const c = await computeTeamCentroid(ti.team, geocoder)
     if (c) centroids[ti.team.id] = c
   }
 
-  const placeSite = (ti, site, date) => {
-    reserveDay(ti.team.id, date, site.estimated_hours)
+  const placeSite = (ti, site, start) => {
+    const end = endForNights(start, site.nights_required)
+    reserveSpan(ti.team.id, start, end, site.estimated_hours)
     results.push({
       team_id: ti.team.id, site_id: site.site_id,
-      scheduled_start: date, scheduled_end: date,
+      scheduled_start: start, scheduled_end: end,
       estimated_hours: site.estimated_hours, stop_order: stopCounter++,
       travel_hours: null, travel_date: null,
     })
+    return end
   }
 
   if (Object.keys(centroids).length === teamInfo.length && teamInfo.length > 0) {
@@ -245,13 +290,13 @@ export async function generateSchedule(plan, { params = null, teamsOverride = nu
 
     for (const ti of teamInfo) {
       const ordered = nearestNeighborOrder(teamSites[ti.team.id])
-      let currentDate = nextWorkday(planStart, allowedDays)
+      let currentDate = nextWd(planStart)
 
       for (const site of ordered) {
         let placed = false
         let attempts = 0
         while (!placed && attempts < 365) {
-          currentDate = nextWorkday(currentDate, allowedDays)
+          currentDate = nextWd(currentDate)
           if (!allMembersAvailable(ti.memberIds, currentDate, busyByTech)) {
             currentDate = addDays(currentDate, 1)
             attempts++
@@ -260,34 +305,35 @@ export async function generateSchedule(plan, { params = null, teamsOverride = nu
           const dayHours = teamDayHours[ti.team.id][currentDate] ?? 0
           const globalSites = globalDaySiteCount[currentDate] ?? 0
           if (dayHours + site.estimated_hours <= maxHours && (maxSites == null || globalSites < maxSites)) {
-            placeSite(ti, site, currentDate)
+            const siteEnd = placeSite(ti, site, currentDate)
             placed = true
+            // Advance past this multi-night stop
+            if (site.nights_required > 1) currentDate = nextWd(addDays(siteEnd, 1))
           } else {
             currentDate = addDays(currentDate, 1)
             attempts++
           }
         }
         if (!placed) {
-          currentDate = nextWorkday(addDays(currentDate, 1), allowedDays)
+          currentDate = nextWd(addDays(currentDate, 1))
           placeSite(ti, site, currentDate)
         }
       }
     }
   } else {
-    // Fallback: sort by state/city, round-robin across teams
-    let currentDate = nextWorkday(planStart, allowedDays)
-    const sorted = [...flexibleSites].sort((a, b) => {
-      const sa = sitesRaw.find((s) => s.id === a.site_id)
-      const sb = sitesRaw.find((s) => s.id === b.site_id)
-      return `${sa?.state ?? ''}${sa?.city ?? ''}`.localeCompare(`${sb?.state ?? ''}${sb?.city ?? ''}`)
-    })
+    // Fallback: sort by (state, city) — field-wise ordinal, matching the
+    // Python reference's tuple sort — then round-robin across teams
+    let currentDate = nextWd(planStart)
+    const sorted = [...flexibleSites].sort((a, b) =>
+      a.state < b.state ? -1 : a.state > b.state ? 1 :
+      a.city < b.city ? -1 : a.city > b.city ? 1 : 0)
     let teamIdx = 0
 
     for (const site of sorted) {
       let placed = false
       let attempts = 0
       while (!placed && attempts < 365) {
-        currentDate = nextWorkday(currentDate, allowedDays)
+        currentDate = nextWd(currentDate)
         const ti = teamInfo[teamIdx % teamInfo.length]
         if (!allMembersAvailable(ti.memberIds, currentDate, busyByTech)) {
           teamIdx++
@@ -306,7 +352,7 @@ export async function generateSchedule(plan, { params = null, teamsOverride = nu
         }
       }
       if (!placed) {
-        currentDate = nextWorkday(addDays(currentDate, 1), allowedDays)
+        currentDate = nextWd(addDays(currentDate, 1))
         placeSite(teamInfo[0], site, currentDate)
       }
     }
