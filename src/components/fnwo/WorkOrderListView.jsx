@@ -31,15 +31,20 @@ function dateWindowToRange(window) {
   }
 }
 
+// Normalizes wo.status.name ("Draft", "Work Done", ...) to FN_STATUS_META's
+// snake_case keys ("draft", "work_done", ...).
+function statusKeyOf(wo) {
+  const name = wo.status?.name ?? wo.status
+  return name ? name.toLowerCase().replace(/\s+/g, '_') : 'UNKNOWN'
+}
+
 function scheduledDateOf(wo) {
-  const raw = wo.scheduling?.start_time?.local_time?.split('T')[0]
-    ?? wo.scheduling?.requested?.start?.local_time?.split(' ')[0]
-  return raw ?? null
+  return wo.schedule?.service_window?.start?.local?.date || null
 }
 
 function payLabelOf(wo) {
-  if (wo.pay?.fixed?.amount != null) return `$${wo.pay.fixed.amount} fixed`
-  if (wo.pay?.hourly?.rate != null) return `$${wo.pay.hourly.rate}/hr`
+  if (wo.pay?.type === 'hourly' && wo.pay?.base?.rate != null) return `$${wo.pay.base.rate}/hr`
+  if (wo.pay?.base?.amount != null) return `$${wo.pay.base.amount} fixed`
   return '—'
 }
 
@@ -70,12 +75,24 @@ export function WorkOrderListView() {
   const { workOrders, total, loading, error, mock, refetch } = useFieldNationWorkOrders(filters)
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return workOrders
-    const q = search.toLowerCase()
-    return workOrders.filter((wo) =>
-      String(wo.id).includes(q) ||
-      (wo.title ?? '').toLowerCase().includes(q))
-  }, [workOrders, search])
+    let list = workOrders
+
+    // Some FN statuses share a server-side list (published+routed) or have
+    // no dedicated list at all (paid, cancelled — see STATUS_TO_FN_LIST in
+    // the hook) and fall back to fetching 'all'. Filtering again here by the
+    // actual returned status guarantees correctness regardless of which
+    // case applies, at the cost of being a harmless no-op the rest of the time.
+    if (status !== 'all') list = list.filter((wo) => statusKeyOf(wo) === status)
+
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter((wo) =>
+        String(wo.id).includes(q) ||
+        (wo.title ?? '').toLowerCase().includes(q))
+    }
+
+    return list
+  }, [workOrders, search, status])
 
   return (
     <div className={styles.page}>
@@ -138,8 +155,7 @@ export function WorkOrderListView() {
             </thead>
             <tbody>
               {filtered.map((wo) => {
-                const statusKey = wo.status?.name ?? wo.status ?? 'UNKNOWN'
-                const meta = FN_STATUS_META[statusKey] ?? FN_STATUS_META.UNKNOWN
+                const meta = FN_STATUS_META[statusKeyOf(wo)] ?? FN_STATUS_META.UNKNOWN
                 const provider = providerNameOf(wo)
                 return (
                   <tr key={wo.id} className={styles.row}>
