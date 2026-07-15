@@ -163,7 +163,7 @@ export default function Comms() {
                     <span className={styles.siteBranch}>{site.branch_name}</span>
                     <span className={styles.siteMeta}>
                       {site.state} · {techCount} tech{techCount !== 1 ? 's' : ''}
-                      {site.scheduled_start && ` · ${format(new Date(site.scheduled_start + 'T12:00:00'), 'M/d')}`}
+                      {site.scheduled_start && ` · ${format(new Date(String(site.scheduled_start).slice(0, 10) + 'T12:00:00'), 'M/d')}`}
                     </span>
                   </div>
                   <ChevronRight size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />

@@ -183,7 +183,7 @@ export default function WOCoverage() {
                   <div className={styles.gridCellDate}>
                     <span className={styles.dateVal}>
                       {site.scheduled_start
-                        ? new Date(site.scheduled_start+'T12:00:00').toLocaleDateString('en-US',{month:'numeric',day:'numeric'})
+                        ? new Date(String(site.scheduled_start).slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'numeric',day:'numeric'})
                         : '—'}
                     </span>
                   </div>
