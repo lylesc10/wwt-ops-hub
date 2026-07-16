@@ -28,13 +28,18 @@ export function getAIProvider() {
   const defaultMaxTokens = Number(process.env.ANTHROPIC_MAX_TOKENS) || DEFAULT_MAX_TOKENS
 
   async function generate(systemPrompt, userPrompt, maxTokens = null) {
-    const response = await client().messages.create({
+    // Streamed rather than a plain create(): the SDK rejects non-streaming
+    // requests whose max_tokens could exceed ~10 minutes of generation, which
+    // the 32K single-call/assembly paths do. finalMessage() returns the same
+    // Message shape create() would.
+    const stream = client().messages.stream({
       model,
       max_tokens: maxTokens ?? defaultMaxTokens,
       thinking: { type: 'adaptive' },
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
     })
+    const response = await stream.finalMessage()
 
     if (response.stop_reason === 'refusal') {
       throw new Error('AI declined the request (safety refusal). Adjust the source materials and retry.')
