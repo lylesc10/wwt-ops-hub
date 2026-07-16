@@ -5,7 +5,7 @@ import styles from './UploadDiffReport.module.css'
 function humanDate(d) {
   if (!d) return 'TBD'
   try {
-    return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    return new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
   } catch { return d }
 }
 

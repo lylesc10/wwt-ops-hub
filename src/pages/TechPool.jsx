@@ -392,7 +392,7 @@ function TechCard({ tech, expanded, onExpand, onEdit, onDeactivate, fnUrl, regio
                 {tech.fn_total_earned && <span className={styles.fnStat}><span className={styles.fnStatVal}>${tech.fn_total_earned.toLocaleString()}</span> Earned</span>}
               </div>
               {tech.fn_wo_types && <div className={styles.fnTypes}>{tech.fn_wo_types}</div>}
-              {tech.fn_last_wo_date && <div className={styles.fnSync}>Last WO: {new Date(tech.fn_last_wo_date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>}
+              {tech.fn_last_wo_date && <div className={styles.fnSync}>Last WO: {new Date(String(tech.fn_last_wo_date).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>}
               {tech.fn_current_jobs?.length > 0 && (
                 <div className={styles.fnCurrent}>
                   <span className={styles.fnCurrentLabel}>Currently assigned:</span>

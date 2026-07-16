@@ -32,7 +32,7 @@ function createNumberedIcon(number, color) {
 
 function formatStopDate(date) {
   if (!date) return 'TBD'
-  return new Date(`${date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return new Date(`${String(date).slice(0, 10)}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 function FitBounds({ positions }) {

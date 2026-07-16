@@ -162,7 +162,7 @@ function WORow({ wo }) {
             {wo.provider_id && <span className={styles.woProviderId}>ID: {wo.provider_id}</span>}
           </div>
         )}
-        {wo.scheduled_date && <div className={styles.woDate}>📅 {new Date(wo.scheduled_date + 'T12:00:00').toLocaleDateString('en-US', {weekday:'short',month:'short',day:'numeric'})}</div>}
+        {wo.scheduled_date && <div className={styles.woDate}>📅 {new Date(String(wo.scheduled_date).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', {weekday:'short',month:'short',day:'numeric'})}</div>}
       </div>
       <div className={styles.woRight}>
         <span className={styles.woStatus} style={{background:`${sm.color}18`,color:sm.color,borderColor:`${sm.color}30`}}>

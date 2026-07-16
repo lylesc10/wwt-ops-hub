@@ -20,7 +20,7 @@ const STATUS_COLORS = {
 
 function fmt(d) {
   if (!d) return '—'
-  try { return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}) } catch { return d }
+  try { return new Date(String(d).slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}) } catch { return d }
 }
 
 export default function FNExportAnalyzer() {

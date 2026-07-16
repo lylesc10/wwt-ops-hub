@@ -19,13 +19,13 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 
 function fmt(d) {
   if (!d) return '—'
-  try { return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}) }
+  try { return new Date(String(d).slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}) }
   catch { return d }
 }
 
 function reliabilityScore(rate, total, lastDate) {
   const vol     = Math.min(total/20,1)*20
-  const recency = lastDate ? Math.max(0,20-Math.floor((Date.now()-new Date(lastDate+'T12:00:00'))/(864e5*30))) : 0
+  const recency = lastDate ? Math.max(0,20-Math.floor((Date.now()-new Date(String(lastDate).slice(0,10)+'T12:00:00'))/(864e5*30))) : 0
   return Math.round(rate*0.6+vol+recency)
 }
 

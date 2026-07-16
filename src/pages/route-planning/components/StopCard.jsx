@@ -4,7 +4,7 @@ import styles from './Sidebar.module.css'
 
 function formatDate(iso) {
   if (!iso) return ''
-  return new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return new Date(`${String(iso).slice(0, 10)}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 export default function StopCard({ stop, isFirst, isLast, onUpdate, onDelete, onMoveUp, onMoveDown }) {

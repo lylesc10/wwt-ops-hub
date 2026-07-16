@@ -23,7 +23,7 @@ import styles from './RoutePlanBuilder.module.css'
 const DAY_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 function formatDate(iso, opts = { month: 'short', day: 'numeric' }) {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', opts)
+  return new Date(`${String(iso).slice(0, 10)}T00:00:00`).toLocaleDateString('en-US', opts)
 }
 
 export default function RoutePlanBuilder() {
@@ -279,7 +279,7 @@ export default function RoutePlanBuilder() {
     if (planEnd && latestStop) return planEnd > latestStop ? planEnd : latestStop
     if (latestStop) return latestStop
     if (planEnd) return planEnd
-    const fb = new Date(`${plan.start_date}T00:00:00`)
+    const fb = new Date(`${String(plan.start_date).slice(0, 10)}T00:00:00`)
     fb.setDate(fb.getDate() + 30)
     return fb.toISOString().slice(0, 10)
   })()
