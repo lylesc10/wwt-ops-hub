@@ -70,6 +70,14 @@ export async function downloadDocument(docId, filename) {
   URL.revokeObjectURL(url)
 }
 
+// ── Hardware repository ───────────────────────────────────────────────────────
+
+export const listHardware   = () => request('/api/docgen/hardware')
+export const createHardware = (fields) => request('/api/docgen/hardware', { method: 'POST', body: JSON.stringify(fields) })
+export const updateHardware = (id, fields) => request(`/api/docgen/hardware/${id}`, { method: 'PATCH', body: JSON.stringify(fields) })
+export const deleteHardware = (id) => request(`/api/docgen/hardware/${id}`, { method: 'DELETE' })
+export const getBomMatches  = (projectId) => request(`/api/docgen/projects/${projectId}/bom-matches`)
+
 // ── Questions & responses ─────────────────────────────────────────────────────
 
 export const getQuestions = (practiceArea) =>

@@ -11,6 +11,8 @@
 import { withSecurity } from '../_lib/middleware.js'
 import { supa } from '../_lib/db.js'
 import { parseUpload, isAllowedExtension, ALLOWED_EXTENSIONS } from './_lib/parsers.js'
+import { extractBomItems } from './_lib/service.js'
+import { upsertHardwareFromBom } from './_lib/hardware.js'
 
 const MAX_FILE_BYTES = 15 * 1024 * 1024 // serverless request body limits are the real cap
 
@@ -45,7 +47,15 @@ async function handler(req, res) {
   }).select().single()
 
   if (error) return res.status(500).json({ message: error.message })
-  return res.status(201).json(data)
+
+  // BOM uploads seed the global hardware repo (new part numbers become
+  // entries; re-sightings only bump counters). Never fails the upload.
+  let hardware_sync = null
+  if (file_type === 'bom' && parsed_data && !parsed_data.parse_error) {
+    hardware_sync = await upsertHardwareFromBom(extractBomItems([data]))
+  }
+
+  return res.status(201).json({ ...data, hardware_sync })
 }
 
 export default withSecurity(handler)

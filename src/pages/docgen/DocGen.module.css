@@ -228,6 +228,29 @@
 }
 .aiTextarea { border-color:rgba(245,158,11,.4); }
 
+/* ── Hardware repository ─────────────────────────────────────────────────────── */
+.searchRow {
+  display:flex;align-items:center;gap:8px;max-width:420px;
+  color:var(--text-muted);
+}
+.hwRow {
+  display:flex;align-items:center;gap:10px;text-align:left;width:100%;
+  background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:9px 12px;cursor:pointer;font-family:var(--font-ui);color:inherit;
+  transition:border-color .1s;
+}
+.hwRow:hover { border-color:var(--border-strong); }
+.hwMeta { font-size:10px;color:var(--text-muted);font-family:var(--font-mono);white-space:nowrap; }
+.stepRow  { display:flex;align-items:center;gap:6px; }
+.stepNum  { font-size:11px;font-family:var(--font-mono);color:var(--text-muted);min-width:18px;text-align:right; }
+.stepFlag {
+  display:inline-flex;align-items:center;gap:3px;font-size:13px;cursor:pointer;
+  color:var(--text-muted);flex-shrink:0;
+}
+.matchChipGood  { font-size:10px;font-family:var(--font-mono);color:var(--green);border:1px solid var(--green);border-radius:8px;padding:1px 7px;white-space:nowrap; }
+.matchChipWarn  { font-size:10px;font-family:var(--font-mono);color:var(--amber);border:1px solid var(--amber);border-radius:8px;padding:1px 7px;white-space:nowrap; }
+.matchChipNone  { font-size:10px;font-family:var(--font-mono);color:var(--text-muted);border:1px solid var(--border);border-radius:8px;padding:1px 7px;white-space:nowrap; }
+
 /* ── Status badge ────────────────────────────────────────────────────────────── */
 .statusChip {
   font-size:10px;font-family:var(--font-mono);border-radius:9px;padding:1px 8px;

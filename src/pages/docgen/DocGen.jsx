@@ -2,11 +2,13 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import ProjectList from './ProjectList'
 import ProjectWorkspace from './ProjectWorkspace'
 import DocumentEditor from './DocumentEditor'
+import HardwarePage from './HardwarePage'
 
 /**
  * Doc Generator — complete port of the field-services docgen package.
  *
  * /doc-gen                                     → project list
+ * /doc-gen/hardware                            → global hardware repository
  * /doc-gen/projects/:projectId                 → workspace (Generate / Files / Documents)
  * /doc-gen/projects/:projectId/documents/:docId → document editor
  */
@@ -14,6 +16,7 @@ export default function DocGen() {
   return (
     <Routes>
       <Route index element={<ProjectList />} />
+      <Route path="hardware" element={<HardwarePage />} />
       <Route path="projects/:projectId" element={<ProjectWorkspace />} />
       <Route path="projects/:projectId/documents/:docId" element={<DocumentEditor />} />
       <Route path="*" element={<Navigate to="." replace />} />

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageHeader } from '@/components/PageHeader'
-import { FolderOpen, Plus, Trash2, Loader2, FileText, Upload, AlertTriangle, ChevronLeft } from 'lucide-react'
+import { FolderOpen, Plus, Trash2, Loader2, FileText, Upload, AlertTriangle, ChevronLeft, Wrench } from 'lucide-react'
 import { listProjects, createProject, deleteProject } from './api'
 import { fmtDate, PRACTICE_AREAS } from './DocGen'
 import styles from './DocGen.module.css'
@@ -51,10 +51,16 @@ export default function ProjectList() {
         title="Doc Generator"
         subtitle="AI-generated deployment guides from BOMs, SOWs, and questionnaires"
         actions={
-          <button className={styles.btnPrimary} onClick={() => setCreating(true)}>
-            <Plus size={14} />
-            New Project
-          </button>
+          <div className={styles.headerActions}>
+            <button className={styles.btnSecondary} onClick={() => navigate('hardware')}>
+              <Wrench size={14} />
+              Hardware
+            </button>
+            <button className={styles.btnPrimary} onClick={() => setCreating(true)}>
+              <Plus size={14} />
+              New Project
+            </button>
+          </div>
         }
       />
       <div className={styles.body}>

@@ -4,7 +4,9 @@
  * Context loading, the single-call generation path, the 3-phase sectioned
  * pipeline (outline → parallel sections → assembly), answer suggestion, and
  * JSON response parsing. Engagements map to docgen_projects; BOM items are
- * extracted from parsed BOM uploads (ops-hub has no BOM/procedure library).
+ * extracted from parsed BOM uploads and matched against the global
+ * docgen_hardware repo — matched entries with curated steps are injected
+ * into the generated document by postProcessor.js.
  */
 
 import { supa } from '../../_lib/db.js'
@@ -17,6 +19,8 @@ import {
   buildAssemblyPromptSectioned, buildSuggestPrompt,
 } from './prompts.js'
 import { injectProcedures, resolveUnusedPlaceholders } from './postProcessor.js'
+import { listHardware } from './hardware.js'
+import { matchBomItems } from './hardwareMatcher.js'
 
 const MAX_UPLOAD_CHARS = 50_000 // Cap per-upload text to keep prompts under ~100K total
 const MAX_BOM_ITEMS = 60
@@ -95,7 +99,7 @@ export function extractBomItems(uploads) {
           description,
           part_number: pnKey ? String(row[pnKey] ?? '').trim() : '',
           quantity: qtyKey ? (Number(row[qtyKey]) || 1) : 1,
-          matched_procedure: null, // no curated procedure library in ops-hub
+          matched_procedure: null, // filled in by hardware-repo matching (loadFullContext)
         })
       }
     }
@@ -120,12 +124,32 @@ async function loadFullContext(projectId, onProgress) {
     pm_name: project.pm_name,
   }
 
-  const bomItems = extractBomItems(uploads)
+  // Match BOM items against the global hardware repo. Filling matched_procedure
+  // makes the outline prompt advertise curated steps; matched entries with
+  // steps become bomProcedures for deterministic injection in postProcess().
+  let matched = extractBomItems(uploads).map(item => ({ ...item, match: null }))
+  try {
+    matched = matchBomItems(matched, await listHardware())
+  } catch (err) {
+    logWarn('[docgen/service] hardware matching failed — generating without curated steps', { error: err.message })
+  }
+  const bomItems = matched.map(({ match, ...item }) => ({
+    ...item,
+    matched_procedure: match ? match.hardware_description : null,
+  }))
+  const bomProcedures = matched
+    .filter(m => m.match?.steps?.length)
+    .map(m => ({
+      description: m.description,
+      part_number: m.part_number,
+      matched_procedure_title: m.match.hardware_description,
+      steps: m.match.steps,
+    }))
 
   const sowUploads = uploads.filter(u => (u.file_type === 'sow' || u.file_type === 'scope') && u.parsed_data)
   const sowContext = sowUploads.map(u => JSON.stringify(u.parsed_data)).join('\n').slice(0, MAX_UPLOAD_CHARS)
 
-  return { project, projectContext, uploads, parsedUploads, questionAnswers, bomItems, sowContext }
+  return { project, projectContext, uploads, parsedUploads, questionAnswers, bomItems, bomProcedures, sowContext }
 }
 
 // ── JSON response parsing ─────────────────────────────────────────────────────
@@ -229,10 +253,10 @@ async function saveFailure(documentId, docType, error, startedAt) {
   }).eq('id', documentId)
 }
 
-function postProcess(schemaData) {
-  // No curated procedures to inject in ops-hub — injection is a no-op, but the
-  // placeholder cleanup guarantees no raw markers reach the editor.
-  const injected = injectProcedures(schemaData, [], [])
+function postProcess(schemaData, bomProcedures = []) {
+  // Inject curated hardware-repo steps into matched Installation subsections,
+  // then clean up any placeholders the AI emitted with nothing to inject.
+  const injected = injectProcedures(schemaData, [], bomProcedures)
   return resolveUnusedPlaceholders(injected)
 }
 
@@ -251,7 +275,8 @@ export async function generateDocumentSingle(documentId, projectId, docType) {
     let userPrompt = buildUserPrompt(ctx.parsedUploads, ctx.questionAnswers, ctx.projectContext)
     if (ctx.bomItems.length) {
       const bomLines = ctx.bomItems.map(it =>
-        `- ${it.description} (PN: ${it.part_number || 'n/a'}, Qty: ${it.quantity})`)
+        `- ${it.description} (PN: ${it.part_number || 'n/a'}, Qty: ${it.quantity})` +
+        (it.matched_procedure ? ' [curated install steps available]' : ''))
       userPrompt += `\n\n## BOM Items (${ctx.bomItems.length})\n${bomLines.join('\n')}\n` +
         'Create one Installation Procedures subsection per BOM item above.'
     }
@@ -263,7 +288,7 @@ export async function generateDocumentSingle(documentId, projectId, docType) {
     let schemaData = parseJsonResponse(raw)
     if (!schemaData) throw new Error('AI returned empty or invalid response')
 
-    schemaData = postProcess(schemaData)
+    schemaData = postProcess(schemaData, ctx.bomProcedures)
     await onProgress(`Done — ${schemaData.sections?.length ?? 0} sections generated`)
     await saveResult(documentId, schemaData, startedAt)
   } catch (e) {
@@ -364,7 +389,7 @@ export async function generateDocumentSectioned(documentId, projectId, docType, 
       schemaData = { title: outline.title ?? `${docType} Document`, sections: generatedSections }
     }
 
-    schemaData = postProcess(schemaData)
+    schemaData = postProcess(schemaData, ctx.bomProcedures)
 
     const totalSecs = Math.round((Date.now() - startedAt) / 1000)
     await onProgress(`Done — ${schemaData.sections?.length ?? 0} sections in ${totalSecs}s`)

@@ -1003,3 +1003,23 @@ INSERT INTO docgen_question_templates (practice_area, question_text, input_type,
   ('Cloud',         'Is this a new deployment or migration?',             'select',       '["New Deployment","Migration","Hybrid Extension"]',                                         4, true),
   ('Cloud',         'What connectivity is required?',                     'select',       '["VPN","ExpressRoute/Direct Connect","Internet Only","SD-WAN"]',                            5, true)
 ON CONFLICT (practice_area, question_text) DO NOTHING;
+
+-- ── docgen_hardware (global repo, auto-populated from BOM uploads) ─
+CREATE TABLE docgen_hardware (
+  id              uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  part_number     text,                    -- normalized (trim/upper/no whitespace); NULL when the BOM row had none
+  description     text        NOT NULL,
+  description_key text        NOT NULL,    -- normalized description; dedupe key for no-PN items
+  steps           jsonb       NOT NULL DEFAULT '[]',  -- [{text, warning, photo_required}]
+  notes           text,
+  source          text        NOT NULL DEFAULT 'bom' CHECK (source IN ('bom','manual')),
+  seen_count      integer     NOT NULL DEFAULT 1,
+  last_seen_at    timestamptz NOT NULL DEFAULT now(),
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT docgen_hardware_part_number_key UNIQUE (part_number)
+);
+CREATE UNIQUE INDEX docgen_hardware_desc_key_idx
+  ON docgen_hardware(description_key) WHERE part_number IS NULL;
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON docgen_hardware
+  FOR EACH ROW EXECUTE PROCEDURE trigger_set_updated_at();
