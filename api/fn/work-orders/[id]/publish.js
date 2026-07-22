@@ -5,7 +5,7 @@
 
 import { fnFetch } from '../../auth.js'
 import { getFNCredentials } from '../../../_lib/credentials.js'
-import { withSecurity, requireAuth } from '../../../_lib/middleware.js'
+import { withSecurity } from '../../../_lib/middleware.js'
 import { query } from '../../../_lib/db.js'
 import { logError } from '../../../_lib/log.js'
 
@@ -53,4 +53,5 @@ async function mirrorLocal(fnWoId, fnStatus) {
   )
 }
 
-export default withSecurity(requireAuth(handler, 'pm'))
+// Open-access like the rest of the app (no login) — withSecurity only
+export default withSecurity(handler)
