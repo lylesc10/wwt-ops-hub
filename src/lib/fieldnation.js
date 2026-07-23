@@ -36,6 +36,7 @@ export const listWorkOrders  = (params = {})          => call(`/work-orders?${ne
 export const getWorkOrder    = (id)                    => call(`/work-orders/${id}`)
 export const createWorkOrder = (payload)               => call('/work-orders',  { method: 'POST', body: JSON.stringify(payload) })
 export const pushWorkOrder   = (csv_row, project_id)   => call('/push-wo',      { method: 'POST', body: JSON.stringify({ csv_row, project_id }) })
+export const pushWorkOrders  = (csv_rows, project_id)  => call('/push-wos',     { method: 'POST', body: JSON.stringify({ csv_rows, project_id }) })
 export const checkDupes      = (site_codes, fn_project_id) => call('/check-dupes', { method: 'POST', body: JSON.stringify({ site_codes, fn_project_id }) })
 export const syncStatus      = (project_id)            => call('/sync-status',  { method: 'POST', body: JSON.stringify({ project_id }) })
 export const updateWorkOrder = (id, initial, current)  => call(`/work-orders/${id}`, { method: 'PUT', body: JSON.stringify({ initial, current }) })

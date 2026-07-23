@@ -8,7 +8,7 @@ import {
   rowComplete, isPastDate, triggerDownload,
 } from '@/cpwog/engine'
 import { parsePaste, parseCSVImport } from '@/cpwog/parsers'
-import { pushWorkOrder } from '@/lib/fieldnation'
+import { pushWorkOrders } from '@/lib/fieldnation'
 import { WorkOrderListView } from '@/components/fnwo/WorkOrderListView'
 import {
   Download, History, Route, Plus, X, Trash2, Check, ChevronDown, AlertTriangle,
@@ -422,15 +422,22 @@ export default function WorkOrders() {
       const allRows = files.flatMap(f => f.rows.filter(r => r.length > 0))
       setPushProgress({ done: 0, total: allRows.length })
       const results = []
-      for (const row of allRows) {
-        const siteId = row[2]
+      // Batch through /api/fn/push-wos — one request per chunk keeps us well
+      // under our own per-IP rate limit (60/min) even for 100+ WOs, while the
+      // server paces the FN calls and retries FN-side 429s.
+      const CHUNK = 10
+      for (let i = 0; i < allRows.length; i += CHUNK) {
+        const chunk = allRows.slice(i, i + CHUNK)
         try {
-          const r = await pushWorkOrder(row, projectId)
-          results.push({ site_id: siteId, ok: !!r.ok, mock: !!r.mock, wo_id: r.wo_id, status: r.status, url: r.url })
+          const batch = await pushWorkOrders(chunk, projectId)
+          for (const r of batch.results ?? []) {
+            results.push({ site_id: r.site_id, ok: !!r.ok, mock: !!r.mock, wo_id: r.wo_id, status: r.status, url: r.url, ...(r.ok ? {} : { error: r.message }) })
+          }
         } catch (e) {
-          results.push({ site_id: siteId, ok: false, error: e.message })
+          // Whole-chunk failure (network, 4xx/5xx envelope) — mark each row failed
+          for (const row of chunk) results.push({ site_id: row[2], ok: false, error: e.message })
         }
-        setPushProgress(p => ({ ...p, done: p.done + 1 }))
+        setPushProgress(p => ({ ...p, done: Math.min(i + CHUNK, allRows.length) }))
         setPushResults([...results])
       }
       setPushResults(results)
