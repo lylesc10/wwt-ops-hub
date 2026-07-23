@@ -26,14 +26,14 @@
 .mainGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 
 /* Cards */
-.card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; overflow: hidden; }
-.cardHead { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 14px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; }
+.card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; overflow: hidden; display: flex; flex-direction: column; }
+.cardHead { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 14px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0; }
 .cardSub { font-size: 10px; color: var(--text-muted); font-weight: 400; text-transform: none; }
 .cardLink { margin-left: auto; font-size: 11px; color: var(--amber); background: transparent; border: none; cursor: pointer; font-family: var(--font-mono); }
-.empty { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); text-align: center; padding: 20px 0; }
+.empty { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); text-align: center; padding: 20px 0; flex: 1; display: flex; align-items: center; justify-content: center; }
 
 /* Status breakdown */
-.statusLayout { display: flex; align-items: flex-start; gap: 16px; }
+.statusLayout { display: flex; align-items: center; justify-content: center; gap: 16px; flex: 1; }
 .statusBars { flex: 1; display: flex; flex-direction: column; gap: 7px; }
 .statusBarRow { display: grid; grid-template-columns: 80px 1fr 36px 36px; gap: 6px; align-items: center; }
 .statusLabel { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -43,7 +43,7 @@
 .statusPct { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); text-align: right; }
 
 /* Weekly chart */
-.weekChart { display: flex; align-items: flex-end; gap: 6px; height: 100px; margin-bottom: 8px; }
+.weekChart { display: flex; align-items: flex-end; gap: 6px; height: 100px; margin-top: auto; margin-bottom: 8px; }
 .weekCol { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; }
 .weekColNow .weekColDate { color: var(--amber); font-weight: 700; }
 .weekColInner { position: relative; width: 100%; height: 70px; display: flex; align-items: flex-end; }
@@ -52,11 +52,11 @@
 .weekColNum { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); }
 .weekColDate { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); }
 .weekColWk { font-size: 9px; color: var(--text-muted); font-family: var(--font-mono); opacity: 0.6; }
-.weekLegend { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); }
+.weekLegend { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: auto; }
 .legendDot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 
 /* States */
-.stateList { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+.stateList { display: flex; flex-direction: column; justify-content: center; gap: 6px; max-height: 280px; overflow-y: auto; flex: 1; }
 .stateRow { display: grid; grid-template-columns: 28px 1fr 32px 40px; gap: 6px; align-items: center; }
 .stateCode { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--amber); }
 .stateTrack { height: 5px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; position: relative; }
@@ -66,7 +66,7 @@
 .stateDoneNum { font-size: 10px; color: var(--green); font-family: var(--font-mono); text-align: right; }
 
 /* FST */
-.fstList { display: flex; flex-direction: column; gap: 7px; }
+.fstList { display: flex; flex-direction: column; justify-content: center; gap: 7px; flex: 1; }
 .fstRow { display: grid; grid-template-columns: 110px 1fr 28px 28px 28px; gap: 6px; align-items: center; }
 .fstName { font-size: 11px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fstUnass { color: var(--text-muted); font-style: italic; }
@@ -77,7 +77,7 @@
 .fstWarn { font-size: 10px; color: var(--amber); font-family: var(--font-mono); text-align: right; }
 
 /* Spotlight */
-.spotList { display: flex; flex-direction: column; gap: 4px; }
+.spotList { display: flex; flex-direction: column; justify-content: center; gap: 4px; flex: 1; }
 .spotRow { display: grid; grid-template-columns: 52px 28px 1fr; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--border-subtle); }
 .spotRow:last-child { border-bottom: none; }
 .spotCode { font-family: var(--font-mono); font-size: 11px; color: var(--amber); }
@@ -88,13 +88,13 @@
 
 /* Alerts */
 .alertBadge { background: var(--red); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px; }
-.alertRows { display: flex; flex-direction: column; gap: 6px; }
+.alertRows { display: flex; flex-direction: column; justify-content: center; gap: 6px; flex: 1; }
 .alertRow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--bg-elevated); border-radius: var(--r-sm); cursor: pointer; transition: background 0.1s; }
 .alertRow:hover { background: var(--bg-hover); }
 .alertIcon { font-size: 16px; width: 28px; text-align: center; }
 .alertLabel { flex: 1; font-size: 12px; color: var(--text-secondary); }
 .alertCount { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--amber); }
-.allClear { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 0; color: var(--text-secondary); font-size: 13px; }
+.allClear { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 0; color: var(--text-secondary); font-size: 13px; flex: 1; }
 
 /* Header controls */
 .headerControls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
